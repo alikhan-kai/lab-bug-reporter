@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>SDU Lab Bug Reporter Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #f8f9fa;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    button.primary {
+      background: #0066cc;
+      color: white;
+      border-color: #0052a3;
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+  </style>
+  <!-- Подключаем наш собранный SDK -->
+  <script src="../sdk/dist/sdk.js"></script>
+</head>
+<body>
+  <h1>Демо-портал лаборатории SDU</h1>
+  <p>Эта страница эмулирует реальный сайт университета с подключенным виджетом Bug Reporter.</p>
+
+  <div class="card">
+    <h3>1. Авторизация</h3>
+    <button class="primary" id="btn-login">Войти как Alice (Студентка)</button>
+    <span id="auth-status" style="margin-left: 10px; color: #666;">Не авторизован</span>
+  </div>
+
+  <div class="card">
+    <h3>2. Тестовые ошибки (проверка логов)</h3>
+    <button id="btn-error">Вызвать JS ошибку в консоль</button>
+    <button id="btn-500">Запрос на 500 ошибку</button>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById('btn-login');
+    const authStatus = document.getElementById('auth-status');
+
+    loginBtn.addEventListener('click', () => {
+      // Инициализируем SDK
+      LabReporter.init({
+        projectKey: "pk_sdu_demo_1",
+        widget: true,
+        appVersion: "1.0.0"
+      });
+
+      // Передаем данные пользователя
+      LabReporter.identify({
+        id: "u-1842",
+        email: "alice@sdu.edu.kz"
+      });
+
+      authStatus.innerText = "Авторизован как Alice (alice@sdu.edu.kz)";
+      authStatus.style.color = "green";
+      alert("LabReporter успешно инициализирован! Проверь вкладку Console (F12).");
+    });
+
+    document.getElementById('btn-error').addEventListener('click', () => {
+      console.error(new Error("Тестовая ошибка: кнопка сломалась!"));
+    });
+
+    document.getElementById('btn-500').addEventListener('click', () => {
+      fetch('https://httpstat.us/500').catch(err => console.log('Fetch error caught:', err));
+    });
+  </script>
+</body>
+</html>
