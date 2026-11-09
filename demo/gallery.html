@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Галерея компонентов — Lab Bug Reporter (UI Review)</title>
+  <style>
+    :root {
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --danger: #ef4444;
+      --danger-bg: #fee2e2;
+      --success: #10b981;
+      --success-bg: #dcfce7;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+
+    h1 { margin: 0 0 8px 0; font-size: 26px; }
+    p.subtitle { margin: 0; color: var(--text-muted); font-size: 15px; }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 32px 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .component-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .component-card h3 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .state-label {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: inline-block;
+      background: #f0f9ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Компоненты галереи */
+    .btn-launcher {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-launcher.hover { background: var(--primary-hover); transform: translateY(-2px); }
+    .btn-launcher.focus { outline: 3px solid rgba(2, 132, 199, 0.35); }
+
+    /* Segmented Control */
+    .segmented {
+      display: flex;
+      background: var(--bg);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .segmented button {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: 6px;
+    }
+
+    .segmented button.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      font-weight: 600;
+    }
+
+    /* Поля ввода */
+    .input-demo {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    .input-demo.error {
+      border-color: var(--danger);
+      background: #fff5f5;
+    }
+
+    .error-hint {
+      font-size: 11px;
+      color: var(--danger);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Плавающая панель записи */
+    .rec-bar-demo {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 9999px;
+      padding: 6px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    .rec-btn-stop {
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Вложения */
+    .attachment-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      font-size: 12px;
+    }
+
+    .btn-submit-demo {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-submit-demo.loading {
+      opacity: 0.7;
+      cursor: wait;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Галерея компонентов виджета (Design System)</h1>
+      <p class="subtitle">Страница демонстрации всех компонентов и их состояний (по ТЗ раздел 9 и 12 для ревью Кудайберди).</p>
+    </header>
+
+    <!-- 1. КНОПКА LAUNCHER -->
+    <div class="section-title">
+      <span>1. Кнопка вызова («Help button»)</span>
+      <span class="badge-status">Tokens: Lucide + Inter</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Default</h3>
+        <span class="state-label">default</span><br>
+        <button class="btn-launcher">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Помощь
+        </button>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Hover</h3>
+        <span class="state-label">hover</span><br>
+        <button class="btn-launcher hover">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Помощь
+        </button>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Focus</h3>
+        <span class="state-label">focus</span><br>
+        <button class="btn-launcher focus">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Помощь
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. TYPE SELECTOR -->
+    <div class="section-title">
+      <span>2. Переключатель типа («Type selector»)</span>
+      <span class="badge-status">Segmented control</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Активен: Баг</h3>
+        <span class="state-label">selected: bug</span>
+        <div class="segmented">
+          <button class="active">Баг</button>
+          <button>Предложение</button>
+          <button>Вопрос</button>
+        </div>
+      </div>
+
+      <div class="component-card">
+        <h3>Активен: Предложение</h3>
+        <span class="state-label">selected: feature</span>
+        <div class="segmented">
+          <button>Баг</button>
+          <button class="active">Предложение</button>
+          <button>Вопрос</button>
+        </div>
+      </div>
+
+      <div class="component-card">
+        <h3>Активен: Вопрос</h3>
+        <span class="state-label">selected: question</span>
+        <div class="segmented">
+          <button>Баг</button>
+          <button>Предложение</button>
+          <button class="active">Вопрос</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. REPORT FORM STATES -->
+    <div class="section-title">
+      <span>3. Поля формы («Report form»)</span>
+      <span class="badge-status">Inputs & Validation</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Пустое (Empty)</h3>
+        <span class="state-label">empty</span>
+        <input class="input-demo" placeholder="Кратко опишите проблему..." />
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Заполнено (Filled)</h3>
+        <span class="state-label">filled</span>
+        <input class="input-demo" value="Кнопка оплаты не реагирует на нажатие" />
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Ошибка валидации (Validation Error)</h3>
+        <span class="state-label">validation error</span>
+        <input class="input-demo error" value="" placeholder="Поле обязательно для ввода" />
+        <div class="error-hint">Пожалуйста, укажите тему проблемы</div>
+      </div>
+    </div>
+
+    <!-- 4. FLOATING RECORDING BAR -->
+    <div class="section-title">
+      <span>4. Плавающая плашка записи («Floating Recording Bar»)</span>
+      <span class="badge-status">Jam.dev style</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Идет запись экрана</h3>
+        <span class="state-label">recording</span><br>
+        <div class="rec-bar-demo">
+          <div class="rec-dot"></div>
+          <span style="font-family: monospace; font-size: 12px; font-weight: 600;">0:14</span>
+          <button class="rec-btn-stop">⏹ Завершить запись</button>
+        </div>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Приближение к лимиту (5 мин)</h3>
+        <span class="state-label">near limit</span><br>
+        <div class="rec-bar-demo" style="border: 1px solid var(--danger);">
+          <div class="rec-dot"></div>
+          <span style="font-family: monospace; font-size: 12px; font-weight: 600; color: #fca5a5;">4:48</span>
+          <button class="rec-btn-stop">⏹ Завершить запись</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. ATTACHMENT LIST -->
+    <div class="section-title">
+      <span>5. Список вложений («Attachment list»)</span>
+      <span class="badge-status">Previews & Removal</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Пусто (Empty)</h3>
+        <span class="state-label">empty</span>
+        <div style="color: var(--text-muted); font-size: 13px; font-style: italic;">Нет прикрепленных файлов</div>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Со скриншотом и видео (With items)</h3>
+        <span class="state-label">with items</span>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="attachment-row">
+            <span>📷 Скриншот страницы (284 КБ)</span>
+            <span style="color: var(--danger); font-weight: 600; cursor: pointer;">Удалить</span>
+          </div>
+          <div class="attachment-row">
+            <span>🎥 Видеозапись экрана (12 сек)</span>
+            <span style="color: var(--danger); font-weight: 600; cursor: pointer;">Удалить</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. SUBMIT BUTTON -->
+    <div class="section-title">
+      <span>6. Кнопка отправки («Submit bar»)</span>
+      <span class="badge-status">Actions</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Idle</h3>
+        <span class="state-label">idle</span>
+        <button class="btn-submit-demo">Отправить отчет</button>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Uploading</h3>
+        <span class="state-label">uploading</span>
+        <button class="btn-submit-demo loading">Отправка данных (45%)...</button>
+      </div>
+
+      <div class="component-card">
+        <h3>Состояние: Success</h3>
+        <span class="state-label">success</span>
+        <div style="text-align: center; padding: 10px;">
+          <span style="color: var(--success); font-weight: 700;">✓ Отчет отправлен!</span>
+          <div style="font-family: monospace; font-size: 12px; margin-top: 4px; color: var(--text-muted);">REF-84920</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
