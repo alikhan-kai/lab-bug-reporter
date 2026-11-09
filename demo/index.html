@@ -10,46 +10,85 @@
       margin: 40px auto;
       padding: 0 20px;
       line-height: 1.6;
+      color: #1e293b;
     }
     button {
       padding: 10px 16px;
       font-size: 14px;
       cursor: pointer;
-      border: 1px solid #ccc;
+      border: 1px solid #cbd5e1;
       border-radius: 6px;
-      background: #f8f9fa;
+      background: #f8fafc;
       margin-right: 8px;
       margin-bottom: 8px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
     }
     button.primary {
-      background: #0066cc;
+      background: #0284c7;
       color: white;
-      border-color: #0052a3;
+      border-color: #0369a1;
+    }
+    button.primary:hover {
+      background: #0369a1;
+    }
+    button.danger {
+      background: #ef4444;
+      color: white;
+      border-color: #dc2626;
+    }
+    button.success {
+      background: #10b981;
+      color: white;
+      border-color: #059669;
     }
     .card {
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-wait { background: #fef3c7; color: #92400e; }
   </style>
   <!-- Подключаем наш собранный SDK -->
   <script src="../sdk/dist/sdk.js"></script>
 </head>
 <body>
   <h1>Демо-портал лаборатории SDU</h1>
-  <p>Эта страница эмулирует реальный сайт университета с подключенным виджетом Bug Reporter.</p>
+  <p>Тестирование защищенного ядра перехвата (Jam.dev Core: логи, сеть, безопасность).</p>
 
   <div class="card">
-    <h3>1. Авторизация</h3>
+    <h3>1. Авторизация на сайте</h3>
     <button class="primary" id="btn-login">Войти как Alice (Студентка)</button>
-    <span id="auth-status" style="margin-left: 10px; color: #666;">Не авторизован</span>
+    <span id="auth-status" class="badge badge-wait">Не авторизован</span>
   </div>
 
   <div class="card">
-    <h3>2. Тестовые ошибки (проверка логов)</h3>
-    <button id="btn-error">Вызвать JS ошибку в консоль</button>
-    <button id="btn-500">Запрос на 500 ошибку</button>
+    <h3>2. Тесты перехватчика и безопасности</h3>
+    <button class="danger" id="btn-error">1. Сгенерировать ошибку в консоль</button>
+    <button id="btn-secure-req">2. Отправить секретный токен (проверка [REDACTED])</button>
+    <button id="btn-500">3. Вызвать сбой 500</button>
+  </div>
+
+  <div class="card" style="background: #f8fafc;">
+    <h3>3. Проверка того, что SDK сохранил в память</h3>
+    <button class="success" id="btn-debug">🔍 Вывести в консоль всё, что перехватил SDK</button>
+    <p style="font-size: 13px; color: #64748b; margin-top: 8px;">
+      Нажми эту кнопку, затем открой F12 -> Console, чтобы увидеть сгруппированные логи, замаскированные токены и клики.
+    </p>
   </div>
 
   <script>
@@ -57,30 +96,50 @@
     const authStatus = document.getElementById('auth-status');
 
     loginBtn.addEventListener('click', () => {
-      // Инициализируем SDK
       LabReporter.init({
         projectKey: "pk_sdu_demo_1",
         widget: true,
         appVersion: "1.0.0"
       });
 
-      // Передаем данные пользователя
       LabReporter.identify({
         id: "u-1842",
         email: "alice@sdu.edu.kz"
       });
 
-      authStatus.innerText = "Авторизован как Alice (alice@sdu.edu.kz)";
-      authStatus.style.color = "green";
-      alert("LabReporter успешно инициализирован! Проверь вкладку Console (F12).");
+      authStatus.innerText = "Авторизован: Alice (alice@sdu.edu.kz)";
+      authStatus.className = "badge badge-ok";
     });
 
+    // 1. Ошибка в консоль
     document.getElementById('btn-error').addEventListener('click', () => {
-      console.error(new Error("Тестовая ошибка: кнопка сломалась!"));
+      console.error(new TypeError("Cannot read properties of undefined (reading 'grade')"));
+      alert("Ошибка отправлена в консоль. SDK поймал её!");
     });
 
+    // 2. Сетевой запрос с секретным токеном Authorization
+    document.getElementById('btn-secure-req').addEventListener('click', () => {
+      fetch('https://httpstat.us/200', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer secret_jwt_token_alice_12345'
+        },
+        body: JSON.stringify({ password: "SuperSecretPassword123", action: "update_profile" })
+      }).then(() => {
+        alert("Запрос с паролем и токеном отправлен. Проверь, замаскировал ли SDK секреты!");
+      }).catch(() => {});
+    });
+
+    // 3. Сетевой сбой 500
     document.getElementById('btn-500').addEventListener('click', () => {
-      fetch('https://httpstat.us/500').catch(err => console.log('Fetch error caught:', err));
+      fetch('https://httpstat.us/500').catch(() => {});
+      alert("Запрос с кодом 500 отправлен.");
+    });
+
+    // 4. Просмотр памяти SDK
+    document.getElementById('btn-debug').addEventListener('click', () => {
+      LabReporter.getDebugState();
     });
   </script>
 </body>
