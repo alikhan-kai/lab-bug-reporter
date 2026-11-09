@@ -2,198 +2,134 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>SDU Lab Bug Reporter Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDU Student Portal — Демо сайт</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       max-width: 900px;
-      margin: 30px auto;
+      margin: 40px auto;
       padding: 0 20px;
-      line-height: 1.6;
       color: #1e293b;
-    }
-    button {
-      padding: 10px 16px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
       background: #f8fafc;
-      margin-right: 8px;
-      margin-bottom: 8px;
-      font-weight: 500;
-      transition: all 0.2s;
     }
-    button:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
+    header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    button.primary { background: #0284c7; color: white; border-color: #0369a1; }
-    button.danger { background: #ef4444; color: white; border-color: #dc2626; }
-    button.success { background: #10b981; color: white; border-color: #059669; }
-    button.record { background: #e11d48; color: white; border-color: #be123c; }
+    h1 { margin: 0; font-size: 24px; color: #0f172a; }
     .card {
+      background: #ffffff;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 24px;
       margin-bottom: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
+    button {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    button.primary {
+      background: #0284c7;
+      color: white;
+    }
+    button.primary:hover {
+      background: #0369a1;
+    }
+    button.danger {
+      background: #ef4444;
+      color: white;
+    }
+    button.danger:hover {
+      background: #dc2626;
+    }
     .badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
     }
     .badge-ok { background: #dcfce7; color: #166534; }
     .badge-wait { background: #fef3c7; color: #92400e; }
-    .badge-rec { background: #ffe4e6; color: #be123c; animation: pulse 1.5s infinite; }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-    #media-preview {
-      display: flex;
-      gap: 20px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-    .preview-box {
-      border: 1px dashed #cbd5e1;
-      padding: 10px;
-      border-radius: 6px;
-      max-width: 400px;
-      background: #fafafa;
-    }
-    video, img {
-      max-width: 100%;
-      border-radius: 4px;
-      display: block;
-    }
   </style>
+
+  <!-- Подключаем наш готовый SDK одной строчкой -->
   <script src="../sdk/dist/sdk.js"></script>
 </head>
 <body>
-  <h1>Демо-портал лаборатории SDU</h1>
-  <p>Тестирование захвата медиа (Jam.dev Media: запись экрана с микрофоном + скриншоты).</p>
-
-  <!-- 1. АВТОРИЗАЦИЯ -->
-  <div class="card">
-    <h3>1. Авторизация на сайте</h3>
-    <button class="primary" id="btn-login">Войти как Alice</button>
-    <span id="auth-status" class="badge badge-wait">Не авторизован</span>
-  </div>
-
-  <!-- 2. ТЕСТ МЕДИА -->
-  <div class="card">
-    <h3>2. Запись медиа (Экран, Микрофон, Скриншот)</h3>
-    <button class="record" id="btn-start-rec">⏺ Начать запись экрана + микрофон</button>
-    <button id="btn-stop-rec" disabled>⏹ Остановить запись</button>
-    <button id="btn-screenshot">📷 Сделать скриншот</button>
-    <span id="rec-status" style="margin-left: 10px;"></span>
-
-    <div id="media-preview">
-      <div class="preview-box" id="video-preview-box" style="display: none;">
-        <strong>Записанное видео:</strong>
-        <p id="video-timing" style="font-size: 12px; color: #64748b; margin: 4px 0;"></p>
-        <video id="recorded-video" controls></video>
-      </div>
-      <div class="preview-box" id="screenshot-preview-box" style="display: none;">
-        <strong>Скриншот:</strong>
-        <img id="screenshot-img" alt="Скриншот" />
-      </div>
+  <header>
+    <div>
+      <h1>SDU Student Portal (Личный кабинет)</h1>
+      <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Система регистрации на курсы и оценок</p>
     </div>
-  </div>
+    <div id="user-profile">
+      <button class="primary" id="btn-login">Войти как Alice</button>
+      <span id="auth-status" class="badge badge-wait" style="display: none;"></span>
+    </div>
+  </header>
 
-  <!-- 3. ТЕСТ ОШИБОК ДЛЯ ПРОВЕРКИ ТАЙМИНГА -->
-  <div class="card">
-    <h3>3. Симуляция действий во время видеозаписи</h3>
-    <p style="font-size: 13px; color: #64748b;">
-      Пока идет запись видео, нажми эти кнопки. Они зафиксируют точную секунду видео, на которой произошла ошибка!
-    </p>
-    <button class="danger" id="btn-error">1. Ошибка в консоль</button>
-    <button id="btn-500">2. Сетевой сбой 500</button>
-  </div>
+  <main>
+    <div class="card">
+      <h2>Мои курсы на семестр</h2>
+      <p>Здесь отображается обычный интерфейс университетского сайта.</p>
+      <ul>
+        <li>Software Engineering — <strong>A</strong></li>
+        <li>Distributed Systems — <strong>A-</strong></li>
+        <li>Database Management — <strong>B+</strong></li>
+      </ul>
+    </div>
 
-  <div class="card" style="background: #f8fafc;">
-    <h3>4. Полный аудит состояния</h3>
-    <button class="success" id="btn-debug">🔍 Вывести в консоль Debug State</button>
-  </div>
+    <div class="card" style="border-left: 4px solid #ef4444;">
+      <h3>Имитация реального бага на сайте:</h3>
+      <p style="color: #64748b; font-size: 14px;">
+        Представь, что эта кнопка сломана программистами портала. Нажми её, чтобы на странице упала ошибка, а затем протестируй виджет «Помощь» в нижнем правом углу!
+      </p>
+      <button class="danger" id="btn-buggy-action">Оплатить общежитие (кнопка с ошибкой)</button>
+    </div>
+  </main>
 
   <script>
     const loginBtn = document.getElementById('btn-login');
     const authStatus = document.getElementById('auth-status');
-    const startRecBtn = document.getElementById('btn-start-rec');
-    const stopRecBtn = document.getElementById('btn-stop-rec');
-    const recStatus = document.getElementById('rec-status');
-    const videoPreviewBox = document.getElementById('video-preview-box');
-    const recordedVideo = document.getElementById('recorded-video');
-    const videoTiming = document.getElementById('video-timing');
-    const screenshotBtn = document.getElementById('btn-screenshot');
-    const screenshotBox = document.getElementById('screenshot-preview-box');
-    const screenshotImg = document.getElementById('screenshot-img');
 
+    // 1. Инициализация SDK (на реальном сайте это делается сразу при загрузке)
+    LabReporter.init({
+      projectKey: "pk_sdu_portal_2026",
+      widget: true,
+      appVersion: "2.14.0"
+    });
+
+    // 2. Вход пользователя: как только вызван identify(), в правом нижнем углу всплывает кнопка "Помощь"
     loginBtn.addEventListener('click', () => {
-      LabReporter.init({ projectKey: "pk_sdu_demo_1", widget: true, appVersion: "1.0.0" });
-      LabReporter.identify({ id: "u-1842", email: "alice@sdu.edu.kz" });
-      authStatus.innerText = "Авторизован: Alice (alice@sdu.edu.kz)";
+      LabReporter.identify({
+        id: "u-1842",
+        email: "alice@sdu.edu.kz"
+      });
+
+      loginBtn.style.display = 'none';
+      authStatus.style.display = 'inline-block';
+      authStatus.innerText = "Alice (alice@sdu.edu.kz)";
       authStatus.className = "badge badge-ok";
     });
 
-    // Запись экрана
-    startRecBtn.addEventListener('click', async () => {
-      try {
-        const startTime = await LabReporter.startRecording(true);
-        startRecBtn.disabled = true;
-        stopRecBtn.disabled = false;
-        recStatus.innerHTML = `<span class="badge badge-rec">🔴 ИДЕТ ЗАПИСЬ (старт: ${new Date(startTime).toLocaleTimeString()})</span>`;
-      } catch (err) {
-        alert("Ошибка старта записи: " + err.message);
-      }
-    });
-
-    // Остановка записи
-    stopRecBtn.addEventListener('click', async () => {
-      try {
-        const result = await LabReporter.stopRecording();
-        startRecBtn.disabled = false;
-        stopRecBtn.disabled = true;
-        recStatus.innerHTML = `<span class="badge badge-ok">✅ Запись сохранена (${(result.durationMs / 1000).toFixed(1)} сек)</span>`;
-
-        const videoUrl = URL.createObjectURL(result.blob);
-        recordedVideo.src = videoUrl;
-        videoTiming.innerText = `Размер: ${(result.blob.size / 1024 / 1024).toFixed(2)} МБ | Старт: ${result.startTime}`;
-        videoPreviewBox.style.display = 'block';
-      } catch (err) {
-        alert("Ошибка остановки: " + err.message);
-      }
-    });
-
-    // Скриншот
-    screenshotBtn.addEventListener('click', async () => {
-      try {
-        const blob = await LabReporter.captureScreenshot();
-        const imgUrl = URL.createObjectURL(blob);
-        screenshotImg.src = imgUrl;
-        screenshotBox.style.display = 'block';
-      } catch (err) {
-        alert("Ошибка скриншота: " + err.message);
-      }
-    });
-
-    // Ошибки
-    document.getElementById('btn-error').addEventListener('click', () => {
-      console.error(new TypeError("Критическая ошибка UI в момент видеозаписи!"));
-    });
-
-    document.getElementById('btn-500').addEventListener('click', () => {
+    // 3. Баг на сайте: падает ошибка в консоль и запрос на 500
+    document.getElementById('btn-buggy-action').addEventListener('click', () => {
+      // Имитируем падение JS кода
+      console.error(new TypeError("PaymentGatewayException: Не удалось связаться с банком Kaspi (код ошибки 500)"));
+      // Имитируем сбой сети
       fetch('https://httpstat.us/500').catch(() => {});
-    });
-
-    document.getElementById('btn-debug').addEventListener('click', () => {
-      LabReporter.getDebugState();
+      alert("На сайте произошел сбой! Обрати внимание на нижний правый угол — нажми кнопку 'Помощь'.");
     });
   </script>
 </body>
