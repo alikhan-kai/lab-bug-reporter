@@ -2,6 +2,8 @@ import { ConsoleCapture, ConsoleEntry } from './core/console';
 import { NetworkCapture, NetworkEntry } from './core/network';
 import { BreadcrumbsCapture, BreadcrumbEntry } from './core/breadcrumbs';
 import { captureEnvironment, EnvironmentInfo } from './core/environment';
+import { ScreenRecorder, RecordingResult } from './core/capture/recorder';
+import { captureScreenFrame } from './core/capture/screenshot';
 
 export interface InitOptions {
   projectKey: string;
@@ -23,6 +25,7 @@ export interface CapturedContext {
   breadcrumbs: BreadcrumbEntry[];
   host_metadata: Record<string, any>;
   reporter: UserIdentity | null;
+  recording_start_time?: number;
 }
 
 class LabBugReporter {
@@ -36,8 +39,10 @@ class LabBugReporter {
   private networkCapture = new NetworkCapture(200);
   private breadcrumbsCapture = new BreadcrumbsCapture(100);
 
+  // Медиа захват
+  private recorder = new ScreenRecorder();
+
   constructor() {
-    // Автоматически запускаем перехватчики ядра
     this.consoleCapture.install();
     this.networkCapture.install();
     this.breadcrumbsCapture.install();
@@ -64,9 +69,35 @@ class LabBugReporter {
     this.hostMetadata[key] = value;
   }
 
-  /**
-   * Собрать весь накопленный контекст на текущий момент (для отправки или отладки)
-   */
+  // --- МЕДИА API ---
+
+  async startRecording(withMicrophone: boolean = true): Promise<number> {
+    const startTime = await this.recorder.start(withMicrophone);
+    console.log('[LabReporter] Запись экрана началась в:', startTime);
+    return startTime;
+  }
+
+  async stopRecording(): Promise<RecordingResult> {
+    const result = await this.recorder.stop();
+    console.log('[LabReporter] Запись экрана завершена. Длительность (мс):', result.durationMs);
+    return result;
+  }
+
+  isRecording(): boolean {
+    return this.recorder.getIsRecording();
+  }
+
+  getRecordingStartTime(): number {
+    return this.recorder.getStartTime();
+  }
+
+  async captureScreenshot(): Promise<Blob> {
+    console.log('[LabReporter] Захват скриншота...');
+    return await captureScreenFrame();
+  }
+
+  // --- КОНТЕКСТ ДАННЫХ ---
+
   getCapturedContext(): CapturedContext {
     return {
       environment: captureEnvironment(),
@@ -74,13 +105,11 @@ class LabBugReporter {
       network: this.networkCapture.getEntries(),
       breadcrumbs: this.breadcrumbsCapture.getEntries(),
       host_metadata: { ...this.hostMetadata },
-      reporter: this.user ? { ...this.user } : null
+      reporter: this.user ? { ...this.user } : null,
+      recording_start_time: this.recorder.getStartTime() || undefined
     };
   }
 
-  /**
-   * Служебный метод для проверки в консоли браузера
-   */
   getDebugState(): void {
     const data = this.getCapturedContext();
     console.group('[LabReporter Debug State]');
@@ -89,6 +118,7 @@ class LabBugReporter {
     console.log(`Console entries (${data.console.length}):`, data.console);
     console.log(`Network requests (${data.network.length}):`, data.network);
     console.log(`Breadcrumbs (${data.breadcrumbs.length}):`, data.breadcrumbs);
+    console.log('Recording Start Time:', this.recorder.getStartTime());
     console.groupEnd();
   }
 }

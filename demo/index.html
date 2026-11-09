@@ -6,8 +6,8 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 800px;
-      margin: 40px auto;
+      max-width: 900px;
+      margin: 30px auto;
       padding: 0 20px;
       line-height: 1.6;
       color: #1e293b;
@@ -28,24 +28,10 @@
       background: #f1f5f9;
       border-color: #94a3b8;
     }
-    button.primary {
-      background: #0284c7;
-      color: white;
-      border-color: #0369a1;
-    }
-    button.primary:hover {
-      background: #0369a1;
-    }
-    button.danger {
-      background: #ef4444;
-      color: white;
-      border-color: #dc2626;
-    }
-    button.success {
-      background: #10b981;
-      color: white;
-      border-color: #059669;
-    }
+    button.primary { background: #0284c7; color: white; border-color: #0369a1; }
+    button.danger { background: #ef4444; color: white; border-color: #dc2626; }
+    button.success { background: #10b981; color: white; border-color: #059669; }
+    button.record { background: #e11d48; color: white; border-color: #be123c; }
     .card {
       border: 1px solid #e2e8f0;
       border-radius: 8px;
@@ -62,82 +48,150 @@
     }
     .badge-ok { background: #dcfce7; color: #166534; }
     .badge-wait { background: #fef3c7; color: #92400e; }
+    .badge-rec { background: #ffe4e6; color: #be123c; animation: pulse 1.5s infinite; }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    #media-preview {
+      display: flex;
+      gap: 20px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .preview-box {
+      border: 1px dashed #cbd5e1;
+      padding: 10px;
+      border-radius: 6px;
+      max-width: 400px;
+      background: #fafafa;
+    }
+    video, img {
+      max-width: 100%;
+      border-radius: 4px;
+      display: block;
+    }
   </style>
-  <!-- Подключаем наш собранный SDK -->
   <script src="../sdk/dist/sdk.js"></script>
 </head>
 <body>
   <h1>Демо-портал лаборатории SDU</h1>
-  <p>Тестирование защищенного ядра перехвата (Jam.dev Core: логи, сеть, безопасность).</p>
+  <p>Тестирование захвата медиа (Jam.dev Media: запись экрана с микрофоном + скриншоты).</p>
 
+  <!-- 1. АВТОРИЗАЦИЯ -->
   <div class="card">
     <h3>1. Авторизация на сайте</h3>
-    <button class="primary" id="btn-login">Войти как Alice (Студентка)</button>
+    <button class="primary" id="btn-login">Войти как Alice</button>
     <span id="auth-status" class="badge badge-wait">Не авторизован</span>
   </div>
 
+  <!-- 2. ТЕСТ МЕДИА -->
   <div class="card">
-    <h3>2. Тесты перехватчика и безопасности</h3>
-    <button class="danger" id="btn-error">1. Сгенерировать ошибку в консоль</button>
-    <button id="btn-secure-req">2. Отправить секретный токен (проверка [REDACTED])</button>
-    <button id="btn-500">3. Вызвать сбой 500</button>
+    <h3>2. Запись медиа (Экран, Микрофон, Скриншот)</h3>
+    <button class="record" id="btn-start-rec">⏺ Начать запись экрана + микрофон</button>
+    <button id="btn-stop-rec" disabled>⏹ Остановить запись</button>
+    <button id="btn-screenshot">📷 Сделать скриншот</button>
+    <span id="rec-status" style="margin-left: 10px;"></span>
+
+    <div id="media-preview">
+      <div class="preview-box" id="video-preview-box" style="display: none;">
+        <strong>Записанное видео:</strong>
+        <p id="video-timing" style="font-size: 12px; color: #64748b; margin: 4px 0;"></p>
+        <video id="recorded-video" controls></video>
+      </div>
+      <div class="preview-box" id="screenshot-preview-box" style="display: none;">
+        <strong>Скриншот:</strong>
+        <img id="screenshot-img" alt="Скриншот" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ТЕСТ ОШИБОК ДЛЯ ПРОВЕРКИ ТАЙМИНГА -->
+  <div class="card">
+    <h3>3. Симуляция действий во время видеозаписи</h3>
+    <p style="font-size: 13px; color: #64748b;">
+      Пока идет запись видео, нажми эти кнопки. Они зафиксируют точную секунду видео, на которой произошла ошибка!
+    </p>
+    <button class="danger" id="btn-error">1. Ошибка в консоль</button>
+    <button id="btn-500">2. Сетевой сбой 500</button>
   </div>
 
   <div class="card" style="background: #f8fafc;">
-    <h3>3. Проверка того, что SDK сохранил в память</h3>
-    <button class="success" id="btn-debug">🔍 Вывести в консоль всё, что перехватил SDK</button>
-    <p style="font-size: 13px; color: #64748b; margin-top: 8px;">
-      Нажми эту кнопку, затем открой F12 -> Console, чтобы увидеть сгруппированные логи, замаскированные токены и клики.
-    </p>
+    <h3>4. Полный аудит состояния</h3>
+    <button class="success" id="btn-debug">🔍 Вывести в консоль Debug State</button>
   </div>
 
   <script>
     const loginBtn = document.getElementById('btn-login');
     const authStatus = document.getElementById('auth-status');
+    const startRecBtn = document.getElementById('btn-start-rec');
+    const stopRecBtn = document.getElementById('btn-stop-rec');
+    const recStatus = document.getElementById('rec-status');
+    const videoPreviewBox = document.getElementById('video-preview-box');
+    const recordedVideo = document.getElementById('recorded-video');
+    const videoTiming = document.getElementById('video-timing');
+    const screenshotBtn = document.getElementById('btn-screenshot');
+    const screenshotBox = document.getElementById('screenshot-preview-box');
+    const screenshotImg = document.getElementById('screenshot-img');
 
     loginBtn.addEventListener('click', () => {
-      LabReporter.init({
-        projectKey: "pk_sdu_demo_1",
-        widget: true,
-        appVersion: "1.0.0"
-      });
-
-      LabReporter.identify({
-        id: "u-1842",
-        email: "alice@sdu.edu.kz"
-      });
-
+      LabReporter.init({ projectKey: "pk_sdu_demo_1", widget: true, appVersion: "1.0.0" });
+      LabReporter.identify({ id: "u-1842", email: "alice@sdu.edu.kz" });
       authStatus.innerText = "Авторизован: Alice (alice@sdu.edu.kz)";
       authStatus.className = "badge badge-ok";
     });
 
-    // 1. Ошибка в консоль
+    // Запись экрана
+    startRecBtn.addEventListener('click', async () => {
+      try {
+        const startTime = await LabReporter.startRecording(true);
+        startRecBtn.disabled = true;
+        stopRecBtn.disabled = false;
+        recStatus.innerHTML = `<span class="badge badge-rec">🔴 ИДЕТ ЗАПИСЬ (старт: ${new Date(startTime).toLocaleTimeString()})</span>`;
+      } catch (err) {
+        alert("Ошибка старта записи: " + err.message);
+      }
+    });
+
+    // Остановка записи
+    stopRecBtn.addEventListener('click', async () => {
+      try {
+        const result = await LabReporter.stopRecording();
+        startRecBtn.disabled = false;
+        stopRecBtn.disabled = true;
+        recStatus.innerHTML = `<span class="badge badge-ok">✅ Запись сохранена (${(result.durationMs / 1000).toFixed(1)} сек)</span>`;
+
+        const videoUrl = URL.createObjectURL(result.blob);
+        recordedVideo.src = videoUrl;
+        videoTiming.innerText = `Размер: ${(result.blob.size / 1024 / 1024).toFixed(2)} МБ | Старт: ${result.startTime}`;
+        videoPreviewBox.style.display = 'block';
+      } catch (err) {
+        alert("Ошибка остановки: " + err.message);
+      }
+    });
+
+    // Скриншот
+    screenshotBtn.addEventListener('click', async () => {
+      try {
+        const blob = await LabReporter.captureScreenshot();
+        const imgUrl = URL.createObjectURL(blob);
+        screenshotImg.src = imgUrl;
+        screenshotBox.style.display = 'block';
+      } catch (err) {
+        alert("Ошибка скриншота: " + err.message);
+      }
+    });
+
+    // Ошибки
     document.getElementById('btn-error').addEventListener('click', () => {
-      console.error(new TypeError("Cannot read properties of undefined (reading 'grade')"));
-      alert("Ошибка отправлена в консоль. SDK поймал её!");
+      console.error(new TypeError("Критическая ошибка UI в момент видеозаписи!"));
     });
 
-    // 2. Сетевой запрос с секретным токеном Authorization
-    document.getElementById('btn-secure-req').addEventListener('click', () => {
-      fetch('https://httpstat.us/200', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer secret_jwt_token_alice_12345'
-        },
-        body: JSON.stringify({ password: "SuperSecretPassword123", action: "update_profile" })
-      }).then(() => {
-        alert("Запрос с паролем и токеном отправлен. Проверь, замаскировал ли SDK секреты!");
-      }).catch(() => {});
-    });
-
-    // 3. Сетевой сбой 500
     document.getElementById('btn-500').addEventListener('click', () => {
       fetch('https://httpstat.us/500').catch(() => {});
-      alert("Запрос с кодом 500 отправлен.");
     });
 
-    // 4. Просмотр памяти SDK
     document.getElementById('btn-debug').addEventListener('click', () => {
       LabReporter.getDebugState();
     });
