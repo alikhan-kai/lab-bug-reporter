@@ -1,0 +1,19 @@
+{
+  "name": "sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Lab Bug Reporter SDK",
+  "main": "dist/sdk.js",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.3.6",
+    "vite-plugin-dts": "^5.1.2"
+  }
+}

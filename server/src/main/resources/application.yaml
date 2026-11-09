@@ -1,4 +1,17 @@
+server:
+  tomcat:
+    max-swallow-size: -1
+
 spring:
+  config:
+    # Lets the backend start from the IDE, whichever of the two working directories it uses.
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
+
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 260MB
+
   application:
     name: server
 
@@ -18,3 +31,21 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+app:
+  projects-file: ${PROJECTS_FILE:classpath:projects-dev.yaml}
+
+  s3:
+    endpoint: ${S3_ENDPOINT:http://localhost:8333}
+    bucket: ${S3_BUCKET:reports}
+    access-key: ${S3_ACCESS_KEY}
+    secret-key: ${S3_SECRET_KEY}
+    region: ${S3_REGION:us-east-1}
+    force-path-style: ${S3_FORCE_PATH_STYLE:true}
+
+  ingest:
+    max-video-seconds: ${MAX_VIDEO_SECONDS:300}
+    max-video-mb: ${MAX_VIDEO_MB:200}
+    max-screenshot-mb: 10
+    max-screenshots: 5
+    max-context-mb: ${MAX_CONTEXT_MB:5}

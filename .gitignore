@@ -1,4 +1,17 @@
 .env
 *.env.*
 !.env.example
-.idea
+.idea/
+.vscode/
+
+# Node
+node_modules/
+dist/
+.npm/
+
+# Java
+target/
+*.class
+*.jar
+
+Lab_Bug_Reporter_Self_Hosted.pdf
