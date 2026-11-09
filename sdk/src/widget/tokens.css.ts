@@ -1,5 +1,5 @@
 /**
- * Токены дизайна виджета (стилизация в духе campus.codes / modern UI)
+ * Токены дизайна виджета (стилизация в стиле campus.codes / Linear / Vercel)
  */
 export const widgetStyles = `
 :host {
@@ -33,26 +33,94 @@ export const widgetStyles = `
   color: #ffffff;
   border: none;
   border-radius: 9999px;
-  padding: 12px 20px;
-  font-size: 14px;
+  padding: 10px 18px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
-  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s ease;
   z-index: 2147483640;
 }
 
 .lab-launcher:hover {
   background: var(--lab-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
 }
 
 .lab-launcher.hidden {
   display: none !important;
+}
+
+/* ПЛАВАЮЩАЯ ПАНЕЛЬ ЗАПИСИ (Jam.dev / Loom стиль) */
+.lab-recording-bar {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 8px 16px 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 2147483647;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translate(-50%, -100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.lab-recording-bar.hidden {
+  display: none !important;
+}
+
+.lab-rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulseDot 1s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.lab-rec-time {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.lab-bar-stop-btn {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.lab-bar-stop-btn:hover {
+  background: #dc2626;
 }
 
 /* Затемнение фона */
@@ -63,7 +131,7 @@ export const widgetStyles = `
   backdrop-filter: blur(2px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
   z-index: 2147483645;
 }
 
@@ -95,7 +163,7 @@ export const widgetStyles = `
 
 /* Заголовок сайдбара */
 .lab-header {
-  padding: 18px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--lab-border);
   display: flex;
   justify-content: space-between;
@@ -104,8 +172,9 @@ export const widgetStyles = `
 
 .lab-header h2 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
 .lab-close-btn {
@@ -118,6 +187,7 @@ export const widgetStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
 }
 
 .lab-close-btn:hover {
@@ -135,12 +205,12 @@ export const widgetStyles = `
   gap: 16px;
 }
 
-/* Переключатель типа (Segmented control) */
+/* Минималистичный переключатель типа (Segmented control БЕЗ смайликов) */
 .lab-type-selector {
   display: flex;
   background: var(--lab-surface);
-  padding: 4px;
-  border-radius: var(--lab-radius);
+  padding: 3px;
+  border-radius: 8px;
   border: 1px solid var(--lab-border);
 }
 
@@ -148,7 +218,7 @@ export const widgetStyles = `
   flex: 1;
   background: transparent;
   border: none;
-  padding: 8px 10px;
+  padding: 7px 10px;
   font-size: 13px;
   font-weight: 500;
   color: var(--lab-text-muted);
@@ -157,10 +227,14 @@ export const widgetStyles = `
   transition: all 0.15s;
 }
 
+.lab-type-btn:hover {
+  color: var(--lab-text);
+}
+
 .lab-type-btn.active {
   background: #ffffff;
-  color: var(--lab-text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  color: var(--lab-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-weight: 600;
 }
 
@@ -175,8 +249,6 @@ export const widgetStyles = `
   font-size: 12px;
   font-weight: 600;
   color: var(--lab-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .lab-input, .lab-textarea {
@@ -184,11 +256,11 @@ export const widgetStyles = `
   border: 1px solid var(--lab-border);
   border-radius: var(--lab-radius);
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   color: var(--lab-text);
   background: #ffffff;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .lab-input:focus, .lab-textarea:focus {
@@ -213,7 +285,7 @@ export const widgetStyles = `
   border: 1px solid var(--lab-border);
   background: var(--lab-surface);
   color: var(--lab-text);
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-radius: var(--lab-radius);
   font-size: 13px;
   font-weight: 500;
@@ -228,12 +300,6 @@ export const widgetStyles = `
 .lab-btn-outline:hover {
   background: #ffffff;
   border-color: #cbd5e1;
-}
-
-.lab-btn-outline.recording {
-  background: var(--lab-danger-bg);
-  color: var(--lab-danger);
-  border-color: var(--lab-danger);
 }
 
 /* Превью вложений */
@@ -251,7 +317,7 @@ export const widgetStyles = `
   border: 1px solid var(--lab-border);
   border-radius: var(--lab-radius);
   background: var(--lab-surface);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .lab-attachment-name {
@@ -261,6 +327,7 @@ export const widgetStyles = `
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .lab-btn-remove {
@@ -270,6 +337,12 @@ export const widgetStyles = `
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.lab-btn-remove:hover {
+  background: var(--lab-danger-bg);
 }
 
 /* Нижняя панель отправки */
@@ -286,7 +359,7 @@ export const widgetStyles = `
   color: white;
   border: none;
   border-radius: var(--lab-radius);
-  padding: 12px;
+  padding: 11px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -306,38 +379,82 @@ export const widgetStyles = `
   cursor: not-allowed;
 }
 
-/* Экран успеха */
+/* ЭКРАН УСПЕХА (Аккуратный и минималистичный) */
 .lab-success-view {
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 40px 20px;
-  height: 100%;
+  padding: 40px 24px;
+  flex: 1;
 }
 
 .lab-success-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: #dcfce7;
   color: #166534;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 24px;
+  font-weight: bold;
   margin-bottom: 16px;
 }
 
 .lab-ref-badge {
   background: var(--lab-surface);
   border: 1px solid var(--lab-border);
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   font-family: monospace;
+  font-size: 14px;
   font-weight: 700;
-  margin: 12px 0 20px 0;
+  color: var(--lab-primary);
+  margin: 12px 0 24px 0;
   display: inline-block;
+}
+
+.lab-success-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.lab-btn-secondary {
+  flex: 1;
+  background: var(--lab-surface);
+  border: 1px solid var(--lab-border);
+  color: var(--lab-text);
+  padding: 10px 14px;
+  border-radius: var(--lab-radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lab-btn-secondary:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.lab-btn-primary {
+  flex: 1;
+  background: var(--lab-primary);
+  border: 1px solid transparent;
+  color: white;
+  padding: 10px 14px;
+  border-radius: var(--lab-radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lab-btn-primary:hover {
+  background: var(--lab-primary-hover);
 }
 `;
