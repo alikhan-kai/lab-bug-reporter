@@ -1,6 +1,8 @@
 package com.alimberdi.server.ingest;
 
-public record IngestResponse(
+import java.util.UUID;
 
+public record IngestResponse(
+		UUID reportId
 ) {
 }
