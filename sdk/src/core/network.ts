@@ -24,7 +24,7 @@ export interface NetworkEntry extends Timestamped {
 export class NetworkCapture {
   private buffer: RingBuffer<NetworkEntry>;
   private isInstalled = false;
-  private ingestEndpoint = '/api/ingest/reports';
+  private ingestEndpoint = '/api/v1/ingest/';
 
   constructor(maxEntries: number = 200, maxAgeMs: number = 5 * 60 * 1000) {
     this.buffer = new RingBuffer<NetworkEntry>(maxEntries, maxAgeMs);

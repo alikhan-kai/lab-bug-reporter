@@ -59,7 +59,7 @@ class LabBugReporter {
       this.hostMetadata['app_version'] = options.appVersion;
     }
     if (options.apiUrl) {
-      this.networkCapture.setIngestEndpoint(`${options.apiUrl}/api/ingest/reports`);
+      this.networkCapture.setIngestEndpoint(this.getIngestUrl());
     }
 
     // Инициализируем UI виджета (если не выключен флаг widget: false)
@@ -140,14 +140,17 @@ class LabBugReporter {
     }
 
     const payload = {
-      projectKey: this.projectKey,
       type: formData.type,
       title: formData.title,
       description: formData.description,
+      pageUrl: context.environment.url,
+      videoDurationMs: formData.videoDurationMs,
       recordingStartTime: formData.recordingStartTime,
       reporter: this.user,
       environment: context.environment,
-      host_metadata: context.host_metadata,
+      hostMetadata: context.host_metadata
+    };
+    const capturedLogs = {
       console: context.console,
       network: context.network,
       breadcrumbs: context.breadcrumbs
@@ -163,18 +166,16 @@ class LabBugReporter {
     if (this.options?.apiUrl) {
       const form = new FormData();
       form.append('report', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      form.append('context', new Blob([JSON.stringify(capturedLogs)], { type: 'application/json' }), 'context.json');
       if (formData.video) {
         form.append('video', formData.video, 'recording.webm');
       }
       if (formData.screenshot) {
-        form.append('screenshot', formData.screenshot, 'screenshot.png');
+        form.append('screenshots', formData.screenshot, 'screenshot.png');
       }
 
-      const res = await fetch(`${this.options.apiUrl}/api/ingest/reports`, {
+      const res = await fetch(this.getIngestUrl(), {
         method: 'POST',
-        headers: {
-          'X-Project-Key': this.projectKey
-        },
         body: form
       });
 
@@ -183,12 +184,19 @@ class LabBugReporter {
       }
 
       const json = await res.json();
-      return json.reportId || json.id || 'REF-' + Math.floor(10000 + Math.random() * 90000);
+      if (!json.reportId) {
+        throw new Error('Сервер не вернул номер отчета');
+      }
+      return json.reportId;
     }
 
     // Если бэкенд напарника еще не поднят — генерируем тестовый номер
     const simRef = 'REF-' + Math.floor(10000 + Math.random() * 90000);
     return simRef;
+  }
+
+  private getIngestUrl(): string {
+    return `${this.options?.apiUrl}/api/v1/ingest/${encodeURIComponent(this.projectKey)}/reports`;
   }
 
   // --- КОНТЕКСТ ДАННЫХ ---
