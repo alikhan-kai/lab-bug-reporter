@@ -141,11 +141,12 @@ export class BugReporterWidget {
             <span id="lab-error-text">${this.t.errorUploadText}</span>
           </div>
 
-          <!-- Тип отчета -->
+          <!-- Тип отчета (со скользящим индикатором) -->
           <div class="lab-type-selector">
-            <button class="lab-type-btn active" data-type="bug" id="lab-type-bug">${this.t.typeBug}</button>
-            <button class="lab-type-btn" data-type="feature" id="lab-type-feature">${this.t.typeFeature}</button>
-            <button class="lab-type-btn" data-type="question" id="lab-type-question">${this.t.typeQuestion}</button>
+            <div class="lab-type-indicator" id="lab-type-indicator"></div>
+            <button class="lab-type-btn active" data-type="bug" data-index="0" id="lab-type-bug">${this.t.typeBug}</button>
+            <button class="lab-type-btn" data-type="feature" data-index="1" id="lab-type-feature">${this.t.typeFeature}</button>
+            <button class="lab-type-btn" data-type="question" data-index="2" id="lab-type-question">${this.t.typeQuestion}</button>
           </div>
 
           <!-- Заголовок -->
@@ -243,14 +244,18 @@ export class BugReporterWidget {
     this.barTimerEl = this.shadow.getElementById('lab-bar-timer') as HTMLSpanElement;
     this.barStopBtn = this.shadow.getElementById('lab-bar-stop') as HTMLButtonElement;
 
-    // Сегментированный переключатель
+    // Сегментированный переключатель со скользящей анимацией
+    const indicator = this.shadow.getElementById('lab-type-indicator') as HTMLDivElement;
     const typeBtns = this.shadow.querySelectorAll('.lab-type-btn');
-    typeBtns.forEach(btn => {
+    typeBtns.forEach((btn, index) => {
       this.typeButtons.push(btn as HTMLButtonElement);
       btn.addEventListener('click', () => {
         this.typeButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.currentType = btn.getAttribute('data-type') as any;
+        if (indicator) {
+          indicator.style.transform = `translateX(${index * 100}%)`;
+        }
       });
     });
 
@@ -549,6 +554,13 @@ export class BugReporterWidget {
     this.currentVideo = null;
     this.currentVideoDuration = 0;
     this.recordingStartTime = 0;
+    this.currentType = 'bug';
+
+    // Сброс переключателя типа
+    const indicator = this.shadow?.getElementById('lab-type-indicator') as HTMLDivElement;
+    if (indicator) indicator.style.transform = 'translateX(0%)';
+    this.typeButtons.forEach((b, i) => b.classList.toggle('active', i === 0));
+
     this.hideError();
     this.renderAttachments();
     this.formView.style.display = 'flex';

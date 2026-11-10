@@ -1,5 +1,5 @@
 /**
- * Токены дизайна виджета (стилизация в стиле campus.codes / Linear / Vercel)
+ * Токены дизайна виджета (стилизация в стиле campus.codes / Linear / Apple UI)
  */
 export const widgetStyles = `
 :host {
@@ -15,6 +15,7 @@ export const widgetStyles = `
   --lab-danger-bg: #fee2e2;
   --lab-radius: 8px;
   --lab-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --lab-ease: cubic-bezier(0.16, 1, 0.3, 1);
   font-family: var(--lab-font);
   color: var(--lab-text);
   box-sizing: border-box;
@@ -41,14 +42,18 @@ export const widgetStyles = `
   gap: 8px;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-  transition: all 0.2s ease;
+  transition: transform 0.25s var(--lab-ease), box-shadow 0.25s var(--lab-ease), background 0.2s;
   z-index: 2147483640;
 }
 
 .lab-launcher:hover {
   background: var(--lab-primary-hover);
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+}
+
+.lab-launcher:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .lab-launcher.hidden {
@@ -71,7 +76,8 @@ export const widgetStyles = `
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.15);
   z-index: 2147483647;
-  animation: slideDown 0.25s ease-out;
+  animation: slideDown 0.3s var(--lab-ease);
+  transition: transform 0.2s var(--lab-ease);
 }
 
 @keyframes slideDown {
@@ -116,11 +122,16 @@ export const widgetStyles = `
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
 }
 
 .lab-bar-stop-btn:hover {
   background: #dc2626;
+  transform: scale(1.02);
+}
+
+.lab-bar-stop-btn:active {
+  transform: scale(0.96);
 }
 
 /* Затемнение фона */
@@ -131,7 +142,7 @@ export const widgetStyles = `
   backdrop-filter: blur(2px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s var(--lab-ease);
   z-index: 2147483645;
 }
 
@@ -153,7 +164,7 @@ export const widgetStyles = `
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s var(--lab-ease);
   z-index: 2147483646;
 }
 
@@ -187,12 +198,13 @@ export const widgetStyles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: all 0.2s var(--lab-ease);
 }
 
 .lab-close-btn:hover {
   background: var(--lab-surface);
   color: var(--lab-text);
+  transform: rotate(90deg);
 }
 
 /* Тело формы */
@@ -203,18 +215,38 @@ export const widgetStyles = `
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: opacity 0.2s ease;
 }
 
-/* Переключатель типа */
+/* ПЛАВАЮЩИЙ ПЕРЕКЛЮЧАТЕЛЬ С ЭФФЕКТОМ СКОЛЬЖЕНИЯ (SLIDING PILL) */
 .lab-type-selector {
+  position: relative;
   display: flex;
   background: var(--lab-surface);
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--lab-border);
+  user-select: none;
+}
+
+/* Скользящий белый ползунок-подложка */
+.lab-type-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(33.333% - 2px);
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.28s var(--lab-ease);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .lab-type-btn {
+  position: relative;
+  z-index: 2;
   flex: 1;
   background: transparent;
   border: none;
@@ -224,17 +256,19 @@ export const widgetStyles = `
   color: var(--lab-text-muted);
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.25s var(--lab-ease), transform 0.15s ease;
 }
 
 .lab-type-btn:hover {
   color: var(--lab-text);
 }
 
+.lab-type-btn:active {
+  transform: scale(0.96);
+}
+
 .lab-type-btn.active {
-  background: #ffffff;
   color: var(--lab-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-weight: 600;
 }
 
@@ -260,7 +294,7 @@ export const widgetStyles = `
   font-family: inherit;
   color: var(--lab-text);
   background: #ffffff;
-  transition: all 0.2s;
+  transition: border-color 0.2s var(--lab-ease), box-shadow 0.2s var(--lab-ease), background 0.2s;
 }
 
 .lab-input:focus, .lab-textarea:focus {
@@ -294,12 +328,17 @@ export const widgetStyles = `
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.15s;
+  transition: all 0.2s var(--lab-ease);
 }
 
 .lab-btn-outline:hover:not(:disabled) {
   background: #ffffff;
   border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.lab-btn-outline:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .lab-btn-outline:disabled {
@@ -323,6 +362,13 @@ export const widgetStyles = `
   border-radius: var(--lab-radius);
   background: var(--lab-surface);
   font-size: 12px;
+  animation: attachFadeIn 0.25s var(--lab-ease);
+  transition: background 0.2s;
+}
+
+@keyframes attachFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .lab-attachment-name {
@@ -344,6 +390,7 @@ export const widgetStyles = `
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 4px;
+  transition: all 0.15s;
 }
 
 .lab-btn-remove:hover {
@@ -362,6 +409,7 @@ export const widgetStyles = `
   align-items: flex-start;
   gap: 8px;
   line-height: 1.4;
+  animation: attachFadeIn 0.25s var(--lab-ease);
 }
 
 .lab-error-banner.hidden {
@@ -388,7 +436,7 @@ export const widgetStyles = `
   width: 0%;
   background: var(--lab-primary);
   border-radius: 2px;
-  transition: width 0.2s ease;
+  transition: width 0.3s ease;
 }
 
 /* Нижняя панель отправки */
@@ -413,18 +461,24 @@ export const widgetStyles = `
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s var(--lab-ease);
 }
 
-.lab-submit-btn:hover {
+.lab-submit-btn:hover:not(:disabled) {
   background: var(--lab-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+}
+
+.lab-submit-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .lab-submit-btn.retry-mode {
   background: #dc2626;
 }
 
-.lab-submit-btn.retry-mode:hover {
+.lab-submit-btn.retry-mode:hover:not(:disabled) {
   background: #b91c1c;
 }
 
@@ -442,6 +496,7 @@ export const widgetStyles = `
   text-align: center;
   padding: 40px 24px;
   flex: 1;
+  animation: attachFadeIn 0.3s var(--lab-ease);
 }
 
 .lab-success-icon {
@@ -456,6 +511,13 @@ export const widgetStyles = `
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 16px;
+  animation: scaleSuccess 0.4s var(--lab-ease);
+}
+
+@keyframes scaleSuccess {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .lab-ref-badge {
@@ -487,12 +549,13 @@ export const widgetStyles = `
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s var(--lab-ease);
 }
 
 .lab-btn-secondary:hover {
   background: #ffffff;
   border-color: #cbd5e1;
+  transform: translateY(-1px);
 }
 
 .lab-btn-primary {
@@ -505,10 +568,11 @@ export const widgetStyles = `
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s var(--lab-ease);
 }
 
 .lab-btn-primary:hover {
   background: var(--lab-primary-hover);
+  transform: translateY(-1px);
 }
 `;
