@@ -1,0 +1,79 @@
+{
+  "realm": "lab-bug-reporter",
+  "displayName": "Lab Bug Reporter (dev)",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Sees every project, changes status, deletes reports" },
+      { "name": "triager", "description": "Views reports and changes status in the projects they can access" },
+      { "name": "viewer", "description": "Read-only access to the projects they can access" },
+      { "name": "team-demo", "description": "Access to the demo project" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "lab-dashboard",
+      "name": "Lab Bug Reporter dashboard",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:8080/*"],
+      "webOrigins": ["http://localhost:3000", "http://localhost:8080"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:8080/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "reporter-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "lab-bug-reporter-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@lab.example",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "triager",
+      "enabled": true,
+      "email": "triager@lab.example",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Triager",
+      "credentials": [{ "type": "password", "value": "triager", "temporary": false }],
+      "realmRoles": ["triager", "team-demo"]
+    },
+    {
+      "username": "viewer",
+      "enabled": true,
+      "email": "viewer@lab.example",
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "Viewer",
+      "credentials": [{ "type": "password", "value": "viewer", "temporary": false }],
+      "realmRoles": ["viewer", "team-demo"]
+    }
+  ]
+}
