@@ -24,17 +24,16 @@ flowchart LR
     ingest --> registry
     ingest --> db[(PostgreSQL<br/>отчёты и сведения о файлах)]
     ingest --> s3[(SeaweedFS S3<br/>видео, скриншоты, контекст)]
-    api -.-> db
-    api -.-> s3
+    api --> registry
+    api --> db
+    api --> s3
 ```
-
-Пунктир означает часть, которой пока нет.
 
 ## Где какие данные
 
 | Данные | Хранилище | Класс или объект |
 |---|---|---|
-| Заголовок, тип, статус, URL, пользователь, окружение, метаданные сайта | Postgres, `reports` | `Report` |
+| Заголовок, тип, статус, URL, пользователь, окружение, метаданные сайта, счётчики ошибок console и упавших запросов | Postgres, `reports` | `Report` |
 | Тип файла, размер, длительность, время старта записи, путь в S3 | Postgres, `attachments` | `Attachment` |
 | Скриншоты, видео | S3, `<project>/<report-id>/<attachment-id>` | `ObjectStorage` |
 | Console, network, действия пользователя | S3, `<project>/<report-id>/context.json.gz` | `ObjectStorage` |
@@ -43,6 +42,10 @@ flowchart LR
 Проекты намеренно не в базе (ТЗ, разделы 6 и 12): чтобы добавить сайт, правят файл и перезапускают сервис.
 
 Личность пользователя присылает сайт, сервер хранит её как есть и считает непроверенной.
+
+Счётчики `console_error_count` и `failed_request_count` сервер считает из контекста при приёме (`ContextCounts`):
+список отчётов показывает их бейджами и не читает для этого S3. Упавший запрос это статус 4xx/5xx или запрос без
+статуса, который не помечен `pending`.
 
 ## Вход в dashboard и роли
 
@@ -72,7 +75,8 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 | всё вне `/api` | всем: `sdk.js` и статика dashboard |
 
 Без токена или с плохим токеном ответ 401, без нужной роли 403, оба в общем JSON-формате ошибок
-(`JsonSecurityErrorHandler`). Отчёт из невидимого проекта должен отдавать 404: это проверяют сервисы dashboard API.
+(`JsonSecurityErrorHandler`). Отчёт из невидимого проекта отдаёт 404: это проверяет `ReportService`, роль проверяется
+раньше, поэтому viewer получает 403 на `PATCH` даже для чужого отчёта.
 
 ## Как проходит отправка отчёта
 
@@ -139,8 +143,9 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 |---|---|
 | 400 | Некорректные данные или нет пользователя |
 | 403 | `Origin` не разрешён для проекта |
-| 404 | Неизвестный ключ проекта |
+| 404 | Неизвестный ключ проекта, или отчёт не найден либо не виден пользователю |
 | 413 | Превышен лимит |
+| 416 | `Range` вне файла |
 | 503 | S3 недоступен |
 
 ### Текущий пользователь
@@ -164,7 +169,43 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 | 401 | Нет токена, токен просрочен или не прошёл проверку |
 | 403 | В токене нет ни одной роли dashboard |
 
-Эндпоинты отчётов для dashboard (список, карточка, контекст, файлы, статус, удаление) ещё не реализованы.
+### Отчёты для dashboard
+
+Все запросы с Bearer-токеном. Отчёт или файл из проекта, который пользователю не виден, отдаёт 404.
+
+| Запрос | Кто | Ответ |
+|---|---|---|
+| `GET /api/v1/reports` | любая роль | Страница `ReportSummaryResponse` |
+| `GET /api/v1/reports/{id}` | любая роль | `ReportDetailResponse` |
+| `GET /api/v1/reports/{id}/context` | любая роль | JSON `{ console, network, breadcrumbs }` в том виде, как его прислал SDK |
+| `GET /api/v1/reports/{id}/attachments/{attachmentId}` | любая роль | Файл, поддерживает `Range` |
+| `PATCH /api/v1/reports/{id}` | triager, admin | `{ "status": "resolved" }`, в ответ `ReportDetailResponse` |
+| `DELETE /api/v1/reports/{id}` | admin | 204, удаляет запись, затем файлы и контекст в S3 |
+
+Параметры списка: `project` (slug), `status` (`new`, `in_progress`, `resolved`, `wont_fix`), `type` (`bug`, `feature`,
+`question`), `q` (поиск без учёта регистра по заголовку и описанию), `page` (с 0) и `size` (по умолчанию 20, не больше
+100). Сортировка всегда от новых к старым. Без `project` ищется во всех видимых проектах.
+
+```json
+{
+  "content": [{
+    "id": "5b0c…", "projectSlug": "demo", "projectName": "Demo website",
+    "type": "bug", "title": "Кнопка загрузки не работает", "status": "new",
+    "pageUrl": "http://localhost:5500/demo/", "reporter": { "id": "u-1842", "email": "alice@lab.example" },
+    "hasVideo": true, "screenshotCount": 1, "consoleErrorCount": 2, "failedRequestCount": 1,
+    "createdAt": "2026-11-10T09:00:00Z"
+  }],
+  "page": 0, "size": 20, "totalElements": 1, "totalPages": 1
+}
+```
+
+Карточка добавляет `description`, `environment`, `hostMetadata`, `attachments` (`id`, `kind`, `contentType`,
+`sizeBytes`, `durationMs`, `recordingStartTime`), `recordingStartTime` видео и `updatedAt`.
+
+Файл отдаётся целиком или по одному диапазону из `Range` (206 с `Content-Range`). Диапазон вне файла отдаёт 416.
+Файлы присылают пользователи сайтов, поэтому ответ идёт с `Content-Security-Policy: sandbox`: загруженный SVG не
+выполнит скрипт на origin dashboard. `<img>` и `<video>` не умеют слать токен, поэтому dashboard скачивает файл через
+API-клиент и показывает его по blob-URL.
 
 ## Лимиты
 
@@ -213,13 +254,13 @@ projects:
 ```text
 server/src/main/java/com/alimberdi/server/
   ingest/      приём отчётов: контроллер, сервис, CORS-фильтр, лимиты
-  report/      сущности Report и Attachment, DTO, репозиторий
+  report/      сущности Report и Attachment, DTO, репозиторий, API отчётов для dashboard
   project/     Project, ProjectRegistry и доступ к проектам
   security/    проверка токенов Keycloak, роли, CurrentUser
   user/        GET /api/v1/me
   storage/     клиент S3 и ObjectStorage
   exception/   исключения и единый формат ошибок
-  config/      настройка JPA Auditing
+  config/      JPA Auditing и разбор status/type в параметрах запроса
 server/src/main/resources/
   application.yaml      настройки
   projects-dev.yaml     проекты для разработки, ключи не для продакшена
@@ -234,7 +275,8 @@ sdk/src/
 dashboard/src/
   auth/                 вход через Keycloak и текущий пользователь
   api/                  единый API-клиент и типы ответов сервера
-  components/           интерфейс разбора отчётов, отчёты пока из mockData.ts
+  hooks/                загрузка списка, отчёта и файлов
+  components/           список и карточка отчёта, skeleton-заглушки
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
 infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
