@@ -10,8 +10,9 @@
 ```mermaid
 flowchart LR
     site["Сайт лаборатории<br/>SDK и виджет"] -->|Submit, multipart| ingest
-    team["Dashboard<br/>в браузере команды"] -.->|Bearer-токен, ещё нет| api
-    team -.->|вход, ещё нет| kc[Keycloak]
+    team["Dashboard<br/>в браузере команды"] -->|Bearer-токен| api
+    team -->|вход, OIDC + PKCE| kc[Keycloak]
+    api -->|ключи подписи| kc
 
     subgraph service[Сервис на Spring Boot]
         ingest[Ingest API]
@@ -42,6 +43,36 @@ flowchart LR
 Проекты намеренно не в базе (ТЗ, разделы 6 и 12): чтобы добавить сайт, правят файл и перезапускают сервис.
 
 Личность пользователя присылает сайт, сервер хранит её как есть и считает непроверенной.
+
+## Вход в dashboard и роли
+
+Dashboard входит через Keycloak (realm `lab-bug-reporter`, публичный клиент `lab-dashboard`, Authorization Code + PKCE)
+и шлёт access-токен в заголовке `Authorization: Bearer`. Сервер проверяет подпись, срок, issuer и audience
+(`lab-bug-reporter-api`, его добавляет mapper клиента). Сессий и cookie нет, поэтому CSRF выключен.
+
+`TokenUserConverter` читает роли realm из `realm_access.roles` и превращает токен в `CurrentUser`:
+
+| Роль dashboard | Роли Keycloak по умолчанию | Что может |
+|---|---|---|
+| `admin` | `admin` | Видит все проекты, меняет статус, удаляет отчёты |
+| `triager` | `triager` | Видит свои проекты, меняет статус |
+| `viewer` | `viewer` | Только читает свои проекты |
+
+Какой проект виден пользователю, решает `ProjectAccessService`: admin видит все, остальные только те, в поле `access`
+которых есть одна из их ролей Keycloak. Проект без `access` виден только admin.
+
+Правила в `SecurityConfig`:
+
+| Запрос | Кому разрешён |
+|---|---|
+| `/api/v1/ingest/**` | всем, защищён ключом проекта и `Origin` |
+| `PATCH /api/v1/reports/**` | triager, admin |
+| `DELETE /api/v1/reports/**` | admin |
+| остальное под `/api/**` | любая роль dashboard |
+| всё вне `/api` | всем: `sdk.js` и статика dashboard |
+
+Без токена или с плохим токеном ответ 401, без нужной роли 403, оба в общем JSON-формате ошибок
+(`JsonSecurityErrorHandler`). Отчёт из невидимого проекта должен отдавать 404: это проверяют сервисы dashboard API.
 
 ## Как проходит отправка отчёта
 
@@ -112,7 +143,28 @@ flowchart LR
 | 413 | Превышен лимит |
 | 503 | S3 недоступен |
 
-Эндпоинты dashboard (`/api/me`, список, карточка, контекст, файлы, статус, удаление) ещё не реализованы.
+### Текущий пользователь
+
+`GET /api/v1/me`, нужен Bearer-токен с ролью dashboard.
+
+```json
+{
+  "id": "5b0c…",
+  "username": "triager",
+  "email": "triager@lab.example",
+  "roles": ["triager"],
+  "projects": [{ "slug": "demo", "name": "Demo website" }]
+}
+```
+
+Роли идут от сильной к слабой. Ключи проектов в ответ не попадают.
+
+| Код | Когда |
+|---|---|
+| 401 | Нет токена, токен просрочен или не прошёл проверку |
+| 403 | В токене нет ни одной роли dashboard |
+
+Эндпоинты отчётов для dashboard (список, карточка, контекст, файлы, статус, удаление) ещё не реализованы.
 
 ## Лимиты
 
@@ -136,6 +188,14 @@ flowchart LR
 | `S3_REGION` | `us-east-1` | Регион |
 | `S3_FORCE_PATH_STYLE` | `true` | Нужен для SeaweedFS |
 | `PROJECTS_FILE` | `classpath:projects-dev.yaml` | Файл проектов. Путь на диске указывается с префиксом `file:` |
+| `OIDC_ISSUER` | `http://localhost:8081/realms/lab-bug-reporter` | Issuer токенов, должен совпадать с `iss` |
+| `OIDC_JWK_SET_URI` | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Откуда брать ключи подписи. Отдельно, чтобы в Docker ходить к Keycloak по внутреннему адресу |
+| `OIDC_AUDIENCE` | `lab-bug-reporter-api` | Обязательное значение в `aud` |
+| `ADMIN_ROLES`, `TRIAGER_ROLES`, `VIEWER_ROLES` | `admin`, `triager`, `viewer` | Роли Keycloak для каждой роли dashboard, через запятую |
+
+Dashboard настраивается переменными Vite: `VITE_KEYCLOAK_URL` (`http://localhost:8081`), `VITE_KEYCLOAK_REALM`,
+`VITE_KEYCLOAK_CLIENT_ID`, `VITE_API_BASE_URL` (`/api/v1`). В dev-режиме Vite проксирует `/api` на `API_PROXY_TARGET`
+(`http://localhost:8080`), поэтому dashboard и API работают с одного origin, как в контейнере.
 
 Запись в файле проектов:
 
@@ -154,7 +214,9 @@ projects:
 server/src/main/java/com/alimberdi/server/
   ingest/      приём отчётов: контроллер, сервис, CORS-фильтр, лимиты
   report/      сущности Report и Attachment, DTO, репозиторий
-  project/     Project и ProjectRegistry
+  project/     Project, ProjectRegistry и доступ к проектам
+  security/    проверка токенов Keycloak, роли, CurrentUser
+  user/        GET /api/v1/me
   storage/     клиент S3 и ObjectStorage
   exception/   исключения и единый формат ошибок
   config/      настройка JPA Auditing
@@ -169,9 +231,12 @@ sdk/src/
   core/capture/         скриншот и запись экрана
   widget/               кнопка и боковая панель в Shadow DOM
 
-dashboard/src/          интерфейс разбора отчётов, сейчас на mockData.ts
+dashboard/src/
+  auth/                 вход через Keycloak и текущий пользователь
+  api/                  единый API-клиент и типы ответов сервера
+  components/           интерфейс разбора отчётов, отчёты пока из mockData.ts
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
-infra/keycloak/         импорт realm, пока пусто
+infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
 docs/                   документация
 ```

@@ -25,7 +25,8 @@ cp .env.example .env     # заполните значения; ключи S3 д
 docker compose up -d
 ```
 
-Поднимутся Postgres (5432), SeaweedFS S3 (8333) и Keycloak (8081).
+Поднимутся Postgres (5432), SeaweedFS S3 (8333) и Keycloak (8081). При первом старте Keycloak импортирует dev-realm
+из `infra/keycloak/`. Если Keycloak уже запускался без него, выполните `docker compose restart keycloak`.
 
 **2. Сервер.** Запустите `ServerApplication` в IDEA или выполните:
 
@@ -61,7 +62,16 @@ npm install
 npm run dev
 ```
 
-Откроется `http://localhost:3000`. Пока dashboard показывает моковые данные, а не реальные отчёты.
+Откроется `http://localhost:3000` и перенаправит на вход в Keycloak. Запросы к `/api` dev-сервер передаёт на сервер
+`localhost:8080`, поэтому сервер должен быть запущен. Список отчётов пока на моковых данных.
+
+Пользователи dev-realm, пароли только для разработки:
+
+| Логин и пароль | Роль | Видит проекты |
+|---|---|---|
+| `admin` / `admin` | admin | все |
+| `triager` / `triager` | triager | `demo` |
+| `viewer` / `viewer` | viewer | `demo` |
 
 ## Как проверить
 
