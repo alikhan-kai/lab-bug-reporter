@@ -55,7 +55,7 @@ export const widgetStyles = `
   display: none !important;
 }
 
-/* ПЛАВАЮЩАЯ ПАНЕЛЬ ЗАПИСИ (Jam.dev / Loom стиль) */
+/* ПЛАВАЮЩАЯ ПАНЕЛЬ ЗАПИСИ (Jam.dev стиль, сверху экрана) */
 .lab-recording-bar {
   position: fixed;
   top: 20px;
@@ -205,7 +205,7 @@ export const widgetStyles = `
   gap: 16px;
 }
 
-/* Минималистичный переключатель типа (Segmented control БЕЗ смайликов) */
+/* Переключатель типа */
 .lab-type-selector {
   display: flex;
   background: var(--lab-surface);
@@ -297,9 +297,14 @@ export const widgetStyles = `
   transition: all 0.15s;
 }
 
-.lab-btn-outline:hover {
+.lab-btn-outline:hover:not(:disabled) {
   background: #ffffff;
   border-color: #cbd5e1;
+}
+
+.lab-btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Превью вложений */
@@ -345,6 +350,47 @@ export const widgetStyles = `
   background: var(--lab-danger-bg);
 }
 
+/* Блок ошибки загрузки (Inline Error с Retry) */
+.lab-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 12px;
+  border-radius: var(--lab-radius);
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.lab-error-banner.hidden {
+  display: none !important;
+}
+
+/* Полоса прогресса отправки */
+.lab-progress-container {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  display: none;
+  margin-top: 4px;
+}
+
+.lab-progress-container.active {
+  display: block;
+}
+
+.lab-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--lab-primary);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
 /* Нижняя панель отправки */
 .lab-footer {
   padding: 16px 20px;
@@ -374,12 +420,20 @@ export const widgetStyles = `
   background: var(--lab-primary-hover);
 }
 
+.lab-submit-btn.retry-mode {
+  background: #dc2626;
+}
+
+.lab-submit-btn.retry-mode:hover {
+  background: #b91c1c;
+}
+
 .lab-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* ЭКРАН УСПЕХА (Аккуратный и минималистичный) */
+/* ЭКРАН УСПЕХА */
 .lab-success-view {
   display: none;
   flex-direction: column;

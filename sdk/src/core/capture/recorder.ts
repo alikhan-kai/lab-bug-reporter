@@ -24,11 +24,16 @@ export class ScreenRecorder {
 
   /**
    * Начать запись экрана с опциональным микрофоном
+   * @param optionsOrMic - объект { microphone?: boolean } или булево значение
    */
-  async start(withMicrophone: boolean = true, maxDurationSeconds: number = 300): Promise<number> {
+  async start(optionsOrMic?: { microphone?: boolean } | boolean, maxDurationSeconds: number = 300): Promise<number> {
     if (this.isRecording) {
       throw new Error('Запись уже идет');
     }
+
+    const withMicrophone = typeof optionsOrMic === 'object' 
+      ? optionsOrMic?.microphone !== false 
+      : (optionsOrMic !== false);
 
     // 1. Захват экрана
     this.displayStream = await navigator.mediaDevices.getDisplayMedia({
