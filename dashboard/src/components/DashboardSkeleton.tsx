@@ -1,30 +1,12 @@
 import React from 'react';
+import { Bone, SkeletonStyles } from './Skeleton';
 
 const SKELETON_ROWS = 6;
-
-const shimmerKeyframes = `
-@keyframes dashboard-skeleton-shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}`;
-
-const Bone: React.FC<{ width: string | number; height: number; radius?: number }> = ({ width, height, radius = 4 }) => (
-  <div
-    style={{
-      width,
-      height,
-      borderRadius: radius,
-      background: 'linear-gradient(90deg, #1e293b 0%, #273449 50%, #1e293b 100%)',
-      backgroundSize: '800px 100%',
-      animation: 'dashboard-skeleton-shimmer 1.4s linear infinite',
-    }}
-  />
-);
 
 /** Placeholder shaped like the navbar and the report list, shown while the dashboard signs in. */
 export const DashboardSkeleton: React.FC = () => (
   <div style={{ minHeight: '100vh', background: '#0f172a' }} aria-busy="true" aria-label="Загрузка">
-    <style>{shimmerKeyframes}</style>
+    <SkeletonStyles />
     <header style={{
       background: '#090d16',
       borderBottom: '1px solid #1e293b',
