@@ -32,8 +32,24 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}
+          # Set separately so the service can fetch keys over the Docker network while the
+          # tokens keep the public issuer. It also keeps startup independent of Keycloak.
+          jwk-set-uri: ${OIDC_JWK_SET_URI:${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}/protocol/openid-connect/certs}
+          audiences: ${OIDC_AUDIENCE:lab-bug-reporter-api}
+
 app:
   projects-file: ${PROJECTS_FILE:classpath:projects-dev.yaml}
+
+  # Keycloak role names for each dashboard role, comma-separated.
+  auth:
+    admin-roles: ${ADMIN_ROLES:admin}
+    triager-roles: ${TRIAGER_ROLES:triager}
+    viewer-roles: ${VIEWER_ROLES:viewer}
 
   s3:
     endpoint: ${S3_ENDPOINT:http://localhost:8333}
