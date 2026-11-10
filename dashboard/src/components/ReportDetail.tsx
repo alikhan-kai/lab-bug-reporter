@@ -3,6 +3,7 @@ import { ReportItem, ReportStatus } from '../types';
 
 interface ReportDetailProps {
   report: ReportItem;
+  currentRole: string; // 'admin' | 'triager' | 'viewer'
   onBack: () => void;
   onStatusChange: (id: string, newStatus: ReportStatus) => void;
   onDeleteReport: (id: string) => void;
@@ -10,6 +11,7 @@ interface ReportDetailProps {
 
 export const ReportDetail: React.FC<ReportDetailProps> = ({
   report,
+  currentRole,
   onBack,
   onStatusChange,
   onDeleteReport
@@ -22,7 +24,14 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
   const [consoleFilter, setConsoleFilter] = useState<'all' | 'error' | 'warn'>('all');
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
 
-  // Вычисление секунды относительно старта записи
+  // Права по ролям согласно разделу 7 и 8 ТЗ:
+  // admin: видит всё, меняет статус, удаляет
+  // triager: видит свои проекты, меняет статус, НЕ удаляет
+  // viewer: только чтение (НЕ меняет статус 403, НЕ удаляет 403)
+  const canChangeStatus = currentRole === 'admin' || currentRole === 'triager';
+  const canDelete = currentRole === 'admin';
+
+  // Вычисление секунды относительно старта записи (Тайминг от начала видео)
   const getOffset = (t: number): number => {
     if (!report.recordingStartTime) return 0;
     return Math.max(0, (t - report.recordingStartTime) / 1000);
@@ -34,7 +43,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Перемотка видео при клике на строку лога (Фишка Jam.dev)
+  // Перемотка видео при клике на строку лога (Jam.dev синхронизация)
   const seekVideo = (offsetSeconds: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = offsetSeconds;
@@ -47,6 +56,19 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
     if (consoleFilter === 'warn') return c.level === 'warn';
     return true;
   });
+
+  const getStatusBadge = (status: ReportStatus) => {
+    switch (status) {
+      case 'new':
+        return <span style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>Новый</span>;
+      case 'in_progress':
+        return <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.25)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>В работе</span>;
+      case 'resolved':
+        return <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>Решено</span>;
+      case 'wont_fix':
+        return <span style={{ background: 'rgba(100, 116, 139, 0.1)', color: '#94a3b8', border: '1px solid rgba(100, 116, 139, 0.25)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>Отклонено</span>;
+    }
+  };
 
   return (
     <div style={{ padding: '28px', maxWidth: '1440px', margin: '0 auto' }}>
@@ -68,8 +90,6 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             gap: '6px',
             transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#f8fafc'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#cbd5e1'; }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -79,53 +99,59 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
         </button>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {/* Смена статуса (Triagers & Admins) */}
+          {/* Кнопка смены статуса: доступна ТОЛЬКО админам и триажерам */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: '#64748b' }}>Статус:</span>
-            <select
-              value={report.status}
-              onChange={(e) => onStatusChange(report.id, e.target.value as ReportStatus)}
-              style={{
-                background: '#090d16',
-                border: '1px solid #1e293b',
-                color: '#38bdf8',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none'
-              }}
-            >
-              <option value="new">Новый</option>
-              <option value="in_progress">В работе</option>
-              <option value="resolved">Решено</option>
-              <option value="wont_fix">Отклонено</option>
-            </select>
+            {canChangeStatus ? (
+              <select
+                value={report.status}
+                onChange={(e) => onStatusChange(report.id, e.target.value as ReportStatus)}
+                style={{
+                  background: '#090d16',
+                  border: '1px solid #1e293b',
+                  color: '#38bdf8',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="new">Новый</option>
+                <option value="in_progress">В работе</option>
+                <option value="resolved">Решено</option>
+                <option value="wont_fix">Отклонено</option>
+              </select>
+            ) : (
+              // Для роли viewer — только просмотр без возможности смены (по ТЗ раздел 7)
+              <div>{getStatusBadge(report.status)}</div>
+            )}
           </div>
 
-          <button
-            onClick={() => {
-              if (confirm('Удалить отчет из базы данных?')) {
-                onDeleteReport(report.id);
-              }
-            }}
-            style={{
-              background: 'transparent',
-              color: '#f87171',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 500,
-              transition: 'background 0.15s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            Удалить
-          </button>
+          {/* Кнопка удаления: показывается ТОЛЬКО для роли admin (по ТЗ раздел 7 и 9) */}
+          {canDelete && (
+            <button
+              onClick={() => {
+                if (confirm('Удалить отчет и все файлы из базы данных?')) {
+                  onDeleteReport(report.id);
+                }
+              }}
+              style={{
+                background: 'transparent',
+                color: '#f87171',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 500,
+                transition: 'background 0.15s'
+              }}
+            >
+              Удалить отчет
+            </button>
+          )}
         </div>
       </div>
 
@@ -145,6 +171,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date(report.createdAt).toLocaleString()}</span>
         </div>
 
+        {/* Защищенный вывод названия (plain text) */}
         <h1 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.2px' }}>
           {report.title}
         </h1>
@@ -152,7 +179,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           {report.description}
         </p>
 
-        {/* Компактный key-value блок */}
+        {/* Компактный блок метаданных */}
         <div style={{
           background: '#090d16',
           borderRadius: '8px',
@@ -260,7 +287,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           )}
         </div>
 
-        {/* ПРАВАЯ КОЛОНКА: СИНХРОНИЗИРОВАННЫЕ ЛОГИ (JAM.DEV) */}
+        {/* ПРАВАЯ КОЛОНКА: СИНХРОНИЗИРОВАННЫЕ ЛОГИ (ВРЕМЯ ОТ НАЧАЛА ЗАПИСИ) */}
         <div style={{
           background: '#0b1120',
           border: '1px solid #1e293b',
@@ -353,7 +380,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                   report.network.map((req, idx) => {
                     const offset = getOffset(req.t_start);
                     const isSynced = Math.abs(currentTime - offset) < 1.5;
-                    const isFailed = req.status >= 400 || req.status === 0;
+                    const isFailed = req.status === null || req.status >= 400;
                     const isExpanded = expandedNetworkIdx === idx;
 
                     return (
@@ -388,7 +415,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                               fontWeight: 600,
                               fontSize: '11px'
                             }}>
-                              {req.status === 0 ? 'FAIL' : req.status}
+                              {req.pending ? 'PENDING' : req.status === null ? 'ERROR' : req.status}
                             </span>
                             <span style={{
                               fontSize: '12px',
@@ -403,7 +430,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#64748b' }}>{req.duration_ms}ms</span>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {req.duration_ms !== null ? `${req.duration_ms}ms` : 'waiting...'}
+                            </span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -433,7 +462,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                           }}>
                             {req.request && (
                               <div style={{ marginBottom: '8px' }}>
-                                <div style={{ color: '#64748b' }}>Заголовки:</div>
+                                <div style={{ color: '#64748b' }}>Заголовки запроса:</div>
                                 <pre style={{ margin: '4px 0', background: '#020617', padding: '6px', borderRadius: '4px', overflowX: 'auto' }}>
                                   {JSON.stringify(req.request.headers, null, 2)}
                                 </pre>
@@ -442,7 +471,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
 
                             {req.response && (
                               <div>
-                                <div style={{ color: '#64748b' }}>Ответ:</div>
+                                <div style={{ color: '#64748b' }}>Ответ сервера:</div>
                                 <pre style={{ margin: '4px 0', background: '#020617', padding: '6px', borderRadius: '4px', overflowX: 'auto', color: isFailed ? '#fca5a5' : '#86efac' }}>
                                   {req.response.body || '[Empty]'}
                                 </pre>
@@ -457,7 +486,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               </div>
             )}
 
-            {/* ВКЛАДКА: КОНСОЛЬ */}
+            {/* ВКЛАДКА: КОНСОЛЬ (С ЗАЩИТОЙ ОТ XSS: <img src=x onerror=...> ВЫВОДИТСЯ ТЕКСТОМ) */}
             {activeTab === 'console' && (
               <div>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
@@ -533,6 +562,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                             }}>
                               [{log.level.toUpperCase()}]
                             </span>
+
+                            {/* ВАЖНО: React рендерит {log.message} строго как чистый текст через textContent.
+                                Никакие теги <img src=x onerror=...> физически не выполняются! */}
                             <span style={{ color: '#f8fafc', flex: 1, wordBreak: 'break-word', fontFamily: 'monospace', fontSize: '11px' }}>
                               {log.message}
                             </span>
@@ -580,7 +612,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               </div>
             )}
 
-            {/* ВКЛАДКА: ДЕЙСТВИЯ */}
+            {/* ВКЛАДКА: ДЕЙСТВИЯ (BREADCRUMBS С ВРЕМЕНЕМ) */}
             {activeTab === 'actions' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {report.breadcrumbs.map((b, idx) => {
@@ -616,6 +648,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                       </span>
                       <span style={{ color: '#64748b', fontSize: '11px' }}>{b.kind}</span>
                       <span style={{ fontFamily: 'monospace', color: '#f8fafc', fontSize: '11px' }}>{b.target || b.url}</span>
+                      {b.text && <span style={{ color: '#94a3b8' }}>("{b.text}")</span>}
                     </div>
                   );
                 })}

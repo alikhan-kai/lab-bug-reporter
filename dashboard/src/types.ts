@@ -10,11 +10,12 @@ export interface ConsoleEntry {
 
 export interface NetworkEntry {
   t_start: number;
-  duration_ms: number;
+  duration_ms: number | null;
   method: string;
   url: string;
-  status: number;
+  status: number | null; // null для упавших или зависших запросов по ТЗ
   initiator: 'fetch' | 'xhr';
+  pending?: boolean;     // флаг для зависших запросов
   request?: {
     headers: Record<string, string>;
     body: string;

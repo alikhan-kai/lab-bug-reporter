@@ -4,9 +4,17 @@ interface NavbarProps {
   currentProject: string;
   onProjectChange: (project: string) => void;
   onHomeClick: () => void;
+  currentRole: string;
+  onRoleChange: (role: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange, onHomeClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentProject,
+  onProjectChange,
+  onHomeClick,
+  currentRole,
+  onRoleChange
+}) => {
   return (
     <header style={{
       background: '#090d16',
@@ -22,7 +30,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
           onClick={onHomeClick}
           style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
         >
-          {/* Аккуратный логотип в стиле campus.codes */}
           <div style={{
             background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
             width: '28px',
@@ -52,45 +59,53 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
         </div>
 
         {/* Выпадающий список проектов */}
-        <div style={{ position: 'relative' }}>
-          <select
-            value={currentProject}
-            onChange={(e) => onProjectChange(e.target.value)}
-            style={{
-              background: '#0f172a',
-              border: '1px solid #1e293b',
-              color: '#cbd5e1',
-              borderRadius: '6px',
-              padding: '5px 10px',
-              fontSize: '12px',
-              fontWeight: 500,
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s'
-            }}
-          >
-            <option value="all">Все проекты лаборатории</option>
-            <option value="sdu-portal">SDU Student Portal</option>
-            <option value="sdu-library">SDU Library System</option>
-          </select>
-        </div>
+        <select
+          value={currentProject}
+          onChange={(e) => onProjectChange(e.target.value)}
+          style={{
+            background: '#0f172a',
+            border: '1px solid #1e293b',
+            color: '#cbd5e1',
+            borderRadius: '6px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            fontWeight: 500,
+            outline: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="all">Все проекты лаборатории</option>
+          <option value="sdu-portal">SDU Student Portal</option>
+          <option value="sdu-library">SDU Library System</option>
+        </select>
       </div>
 
-      {/* Пользователь команды (Keycloak User) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0', display: 'block' }}>
-            Assylbek Sabyrzhan
-          </span>
-          <span style={{
-            fontSize: '10px',
-            fontFamily: 'monospace',
-            color: '#38bdf8',
-            letterSpacing: '0.5px'
-          }}>
-            ROLE_ADMIN
-          </span>
+      {/* Пользователь и переключатель ролей (Admin, Triager, Viewer) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>Роль (RBAC):</span>
+          <select
+            value={currentRole}
+            onChange={(e) => onRoleChange(e.target.value)}
+            style={{
+              background: '#0f172a',
+              border: '1px solid #334155',
+              color: currentRole === 'admin' ? '#38bdf8' : currentRole === 'triager' ? '#fbbf24' : '#94a3b8',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              fontFamily: 'monospace',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="admin">ROLE_ADMIN (Все права)</option>
+            <option value="triager">ROLE_TRIAGER (Смена статуса)</option>
+            <option value="viewer">ROLE_VIEWER (Только чтение)</option>
+          </select>
         </div>
+
         <div style={{
           width: '32px',
           height: '32px',

@@ -253,7 +253,7 @@ export const ReportList: React.FC<ReportListProps> = ({ reports, onSelectReport,
             ) : (
               filteredReports.map((report) => {
                 const errorCount = report.console.filter(c => c.level === 'error').length;
-                const networkFailedCount = report.network.filter(n => n.status >= 400 || n.status === 0).length;
+                const networkFailedCount = report.network.filter(n => n.status === null || n.status >= 400).length;
 
                 return (
                   <tr
