@@ -1,4 +1,7 @@
 import React from 'react';
+import { useCurrentUser } from '../auth/AuthProvider';
+import { signOut } from '../auth/keycloak';
+import type { CurrentUser } from '../api/types';
 
 interface NavbarProps {
   currentProject: string;
@@ -6,7 +9,18 @@ interface NavbarProps {
   onHomeClick: () => void;
 }
 
+// The dashboard shows only the strongest role; roles come from the server in this order.
+function describeRole(user: CurrentUser): string {
+  return user.roles[0] ?? 'no role';
+}
+
+function initialsOf(username: string): string {
+  return username.slice(0, 2).toUpperCase();
+}
+
 export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange, onHomeClick }) => {
+  const user = useCurrentUser();
+
   return (
     <header style={{
       background: '#090d16',
@@ -54,6 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
         {/* Выпадающий список проектов */}
         <div style={{ position: 'relative' }}>
           <select
+            aria-label="Проект"
             value={currentProject}
             onChange={(e) => onProjectChange(e.target.value)}
             style={{
@@ -69,9 +84,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
               transition: 'border-color 0.2s'
             }}
           >
-            <option value="all">Все проекты лаборатории</option>
-            <option value="sdu-portal">SDU Student Portal</option>
-            <option value="sdu-library">SDU Library System</option>
+            <option value="all">Все доступные проекты</option>
+            {user.projects.map(project => (
+              <option key={project.slug} value={project.slug}>{project.name}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -80,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0', display: 'block' }}>
-            Assylbek Sabyrzhan
+            {user.username}
           </span>
           <span style={{
             fontSize: '10px',
@@ -88,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
             color: '#38bdf8',
             letterSpacing: '0.5px'
           }}>
-            ROLE_ADMIN
+            {describeRole(user)}
           </span>
         </div>
         <div style={{
@@ -104,8 +120,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
           fontWeight: 600,
           fontSize: '12px'
         }}>
-          AS
+          {initialsOf(user.username)}
         </div>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          style={{
+            background: 'transparent',
+            border: '1px solid #1e293b',
+            color: '#94a3b8',
+            borderRadius: '6px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          Выйти
+        </button>
       </div>
     </header>
   );
