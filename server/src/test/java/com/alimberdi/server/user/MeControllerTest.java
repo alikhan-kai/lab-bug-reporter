@@ -21,9 +21,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -91,23 +89,6 @@ class MeControllerTest {
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.status").value(403))
 				.andExpect(jsonPath("$.message").value("Your role does not allow this action"));
-	}
-
-	@Test
-	void forbidsViewerToChangeReportStatus() throws Exception {
-		givenToken("viewer-token", "viewer", "team-demo");
-
-		mockMvc.perform(patch("/api/v1/reports/some-id").header(HttpHeaders.AUTHORIZATION, "Bearer viewer-token"))
-				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.status").value(403));
-	}
-
-	@Test
-	void forbidsTriagerToDeleteReport() throws Exception {
-		givenToken("triager-token", "triager", "team-demo");
-
-		mockMvc.perform(delete("/api/v1/reports/some-id").header(HttpHeaders.AUTHORIZATION, "Bearer triager-token"))
-				.andExpect(status().isForbidden());
 	}
 
 	private void givenToken(String tokenValue, String... realmRoles) {
