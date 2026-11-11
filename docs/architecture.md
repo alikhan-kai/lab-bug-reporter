@@ -222,7 +222,9 @@ API-клиент и показывает его по blob-URL.
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | нет | Подключение к базе на `localhost:5432` |
+| `PORT` | `8080` | Порт сервиса |
+| `DATABASE_URL` | `jdbc:postgresql://localhost:5432/${POSTGRES_DB}` | JDBC-адрес базы |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | нет | Имя базы, логин и пароль |
 | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | нет | Доступ к S3 |
 | `S3_ENDPOINT` | `http://localhost:8333` | Адрес S3 |
 | `S3_BUCKET` | `reports` | Бакет, создаётся при старте |
@@ -232,11 +234,30 @@ API-клиент и показывает его по blob-URL.
 | `OIDC_ISSUER` | `http://localhost:8081/realms/lab-bug-reporter` | Issuer токенов, должен совпадать с `iss` |
 | `OIDC_JWK_SET_URI` | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Откуда брать ключи подписи. Отдельно, чтобы в Docker ходить к Keycloak по внутреннему адресу |
 | `OIDC_AUDIENCE` | `lab-bug-reporter-api` | Обязательное значение в `aud` |
+| `OIDC_CLIENT_ID` | `lab-dashboard` | Клиент Keycloak, через который входит dashboard |
 | `ADMIN_ROLES`, `TRIAGER_ROLES`, `VIEWER_ROLES` | `admin`, `triager`, `viewer` | Роли Keycloak для каждой роли dashboard, через запятую |
 
-Dashboard настраивается переменными Vite: `VITE_KEYCLOAK_URL` (`http://localhost:8081`), `VITE_KEYCLOAK_REALM`,
-`VITE_KEYCLOAK_CLIENT_ID`, `VITE_API_BASE_URL` (`/api/v1`). В dev-режиме Vite проксирует `/api` на `API_PROXY_TARGET`
-(`http://localhost:8080`), поэтому dashboard и API работают с одного origin, как в контейнере.
+Адрес Keycloak dashboard не зашивает при сборке. Перед входом он запрашивает публичный
+`GET /api/v1/dashboard-config` и получает `{ keycloakUrl, keycloakRealm, keycloakClientId }`: сервер берёт их из
+`OIDC_ISSUER` и `OIDC_CLIENT_ID`. Поэтому один образ работает на любом адресе, а адрес задаётся в одном месте.
+Отдельный `PUBLIC_BASE_URL` из ТЗ не нужен: dashboard, API и `sdk.js` отдаются с одного origin по относительным путям.
+
+В dev-режиме Vite проксирует `/api` на `API_PROXY_TARGET` (`http://localhost:8080`), поэтому dashboard и API работают
+с одного origin, как в контейнере. `VITE_API_BASE_URL` (`/api/v1`) меняет базовый путь API.
+
+### Docker Compose
+
+| Сервис | Порт | Что делает |
+|---|---|---|
+| `server` | 8080 | Образ из `Dockerfile`: собирает SDK, dashboard и сервер, отдаёт всё на одном порту |
+| `postgres` | 5432 | База отчётов |
+| `seaweedfs` | 8333 | S3 для файлов и контекста, сервер ждёт его `/healthz` |
+| `keycloak` | 8081 | Вход команды, dev-realm из `infra/keycloak/` |
+| `demo` | 5500 | nginx с `demo/`, `sdk.js` берёт у `server` (`infra/demo/nginx.conf`) |
+
+Внутри сети Compose сервер ходит к базе, S3 и ключам Keycloak по именам сервисов. Issuer токенов остаётся публичным
+адресом Keycloak: его задают `KEYCLOAK_PUBLIC_URL` в `.env` (по умолчанию `http://localhost:8081`), из него же
+собирается `OIDC_ISSUER`. Порты Postgres и SeaweedFS открыты наружу для `mvn test` и запуска сервера из IDE.
 
 Запись в файле проектов:
 
@@ -258,6 +279,7 @@ server/src/main/java/com/alimberdi/server/
   project/     Project, ProjectRegistry и доступ к проектам
   security/    проверка токенов Keycloak, роли, CurrentUser
   user/        GET /api/v1/me
+  dashboard/   GET /api/v1/dashboard-config, настройки входа для dashboard
   storage/     клиент S3 и ObjectStorage
   exception/   исключения и единый формат ошибок
   config/      JPA Auditing и разбор status/type в параметрах запроса
