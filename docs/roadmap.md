@@ -68,20 +68,22 @@
 - [ ] `npx tsc --noEmit` в `sdk/` находит две ошибки (`redact.ts`, `widget.ts`), сборка Vite их пропускает.
 - [ ] Подключить шрифт Inter и иконки lucide (проверить).
 - [ ] Использование отдельных компонентов на чужой странице (проверить).
-- [ ] Демо-кнопки: ошибка console, ответ 500, зависший запрос, заголовок Authorization (проверить).
+- [x] Демо-кнопки: ошибка console, ответ 500, зависший запрос, заголовок Authorization.
 - [ ] Ревью дизайна с Кудайберди.
 
 ### 5. Запуск и деплой (M0)
 
 - [x] Dockerfile сервиса, который отдаёт API, `sdk.js` и dashboard на одном порту.
 - [x] Сервис и демо-сайт в `docker-compose.yaml`, чтобы всё поднималось одной командой.
-- [x] Переменные из ТЗ: `DATABASE_URL`, `PORT`. Вместо `PUBLIC_BASE_URL` адрес задаёт `OIDC_ISSUER`, остальное
-  отдаётся с одного origin.
-- [ ] Деплой на сервер: nginx с TLS перед стеком, Keycloak в режиме `start` с базой, адреса в redirect URI клиента.
-- [ ] Демо-сайт: кнопка с ответом 500 и зависший запрос на локальный адрес, а не на внешний `httpstat.us`.
-- [ ] Файл с описанием API (OpenAPI или аналог).
-- [ ] Заполнить или удалить пустые `application-dev.yaml` и `application-prod.yaml`.
-- [ ] Тесты, которым не нужны запущенные контейнеры (например, Testcontainers).
+- [x] Переменные из ТЗ: `DATABASE_URL`, `PORT`, `PUBLIC_BASE_URL`.
+- [x] `docker-compose.prod.yaml`: Keycloak в режиме `start` с базой, redirect URI из `PUBLIC_BASE_URL`, ограничения
+  памяти, Postgres и SeaweedFS без портов наружу, остальное только на `127.0.0.1`.
+- [ ] Деплой на сервер: nginx с TLS перед стеком, DNS и сертификаты. Ждёт осмотра сервера.
+- [x] Демо-сайт: ответ 500, зависший запрос и запрос с `Authorization` на своём nginx, без внешнего `httpstat.us`.
+- [x] Описание API в OpenAPI: `/v3/api-docs` и Swagger UI, генерируется из кода.
+- [x] Удалены пустые `application-dev.yaml` и `application-prod.yaml`.
+- [x] Testcontainers: тестам нужен только Docker, Postgres и SeaweedFS поднимаются на время прогона.
+- [ ] CI в GitHub Actions: `mvn test` на каждый PR.
 
 ## Не входит в первую версию
 

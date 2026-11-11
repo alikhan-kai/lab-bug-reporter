@@ -1,6 +1,13 @@
 package com.alimberdi.server.report;
 
+import com.alimberdi.server.exception.ApiError;
 import com.alimberdi.server.security.CurrentUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -29,6 +36,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/reports")
+@Tag(name = "Reports", description = "Any dashboard role reads; triager and admin change the status; admin deletes")
 public class ReportController {
 
 	private static final int MAX_PAGE_SIZE = 100;
@@ -38,35 +46,47 @@ public class ReportController {
 
 	private final ReportService reportService;
 
+	@Operation(summary = "List reports in the visible projects, newest first")
 	@GetMapping
 	public PageResponse<ReportSummaryResponse> getReports(
-			@AuthenticationPrincipal CurrentUser user,
-			@RequestParam(required = false) String project,
+			@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user,
+			@Parameter(description = "Project slug") @RequestParam(required = false) String project,
 			@RequestParam(required = false) ReportStatus status,
 			@RequestParam(required = false) ReportType type,
-			@RequestParam(required = false) String q,
+			@Parameter(description = "Case-insensitive search in title and description") @RequestParam(required = false) String q,
 			@RequestParam(defaultValue = "0") @Min(0) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size
 	) {
 		return reportService.findReports(user, new ReportFilter(project, status, type, q), page, size);
 	}
 
+	@Operation(summary = "Report detail with its attachments")
 	@GetMapping("/{reportId}")
-	public ReportDetailResponse getReport(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
+	public ReportDetailResponse getReport(@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
 		return reportService.findReport(user, reportId);
 	}
 
+	@Operation(summary = "Console, network and breadcrumbs as the SDK captured them")
+	@ApiResponse(responseCode = "200", description = "The captured context",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(type = "object")))
 	@GetMapping("/{reportId}/context")
-	public ResponseEntity<byte[]> getContext(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
+	public ResponseEntity<byte[]> getContext(@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
 		return ResponseEntity.ok()
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(reportService.readContext(user, reportId));
 	}
 
 	/** Sends a screenshot or video. Range requests let the video player seek. */
+	@Operation(summary = "Screenshot or video file, whole or one byte range")
+	@ApiResponse(responseCode = "200", description = "The whole file",
+			content = @Content(mediaType = "*/*", schema = @Schema(type = "string", format = "binary")))
+	@ApiResponse(responseCode = "206", description = "The requested byte range, described in Content-Range",
+			content = @Content(mediaType = "*/*", schema = @Schema(type = "string", format = "binary")))
+	@ApiResponse(responseCode = "416", description = "The range is outside the file",
+			content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiError.class)))
 	@GetMapping("/{reportId}/attachments/{attachmentId}")
 	public ResponseEntity<Resource> getAttachment(
-			@AuthenticationPrincipal CurrentUser user,
+			@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user,
 			@PathVariable UUID reportId,
 			@PathVariable UUID attachmentId,
 			@RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader
@@ -86,17 +106,20 @@ public class ReportController {
 		return response.body(new InputStreamResource(attachment.content()));
 	}
 
+	@Operation(summary = "Change the status")
 	@PatchMapping("/{reportId}")
 	public ReportDetailResponse updateReport(
-			@AuthenticationPrincipal CurrentUser user,
+			@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user,
 			@PathVariable UUID reportId,
 			@Valid @RequestBody UpdateReportRequest request
 	) {
 		return reportService.updateStatus(user, reportId, request.status());
 	}
 
+	@Operation(summary = "Delete the report with its files and context")
+	@ApiResponse(responseCode = "204", description = "Deleted")
 	@DeleteMapping("/{reportId}")
-	public ResponseEntity<Void> deleteReport(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
+	public ResponseEntity<Void> deleteReport(@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {
 		reportService.deleteReport(user, reportId);
 		return ResponseEntity.noContent().build();
 	}

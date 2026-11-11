@@ -104,6 +104,9 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 
 ## API
 
+Полное описание генерируется из кода (springdoc): `GET /v3/api-docs` в формате OpenAPI 3 и Swagger UI на
+`/swagger-ui/index.html`. Оба доступны без токена, отключаются через `API_DOCS_ENABLED=false`. Ниже главное.
+
 ### Отправка отчёта
 
 `POST /api/v1/ingest/{projectKey}/reports`, тип `multipart/form-data`. Заголовок `Origin` обязателен.
@@ -235,12 +238,15 @@ API-клиент и показывает его по blob-URL.
 | `OIDC_JWK_SET_URI` | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Откуда брать ключи подписи. Отдельно, чтобы в Docker ходить к Keycloak по внутреннему адресу |
 | `OIDC_AUDIENCE` | `lab-bug-reporter-api` | Обязательное значение в `aud` |
 | `OIDC_CLIENT_ID` | `lab-dashboard` | Клиент Keycloak, через который входит dashboard |
+| `API_DOCS_ENABLED` | `true` | Отдавать `/v3/api-docs` и Swagger UI |
 | `ADMIN_ROLES`, `TRIAGER_ROLES`, `VIEWER_ROLES` | `admin`, `triager`, `viewer` | Роли Keycloak для каждой роли dashboard, через запятую |
 
 Адрес Keycloak dashboard не зашивает при сборке. Перед входом он запрашивает публичный
 `GET /api/v1/dashboard-config` и получает `{ keycloakUrl, keycloakRealm, keycloakClientId }`: сервер берёт их из
 `OIDC_ISSUER` и `OIDC_CLIENT_ID`. Поэтому один образ работает на любом адресе, а адрес задаётся в одном месте.
-Отдельный `PUBLIC_BASE_URL` из ТЗ не нужен: dashboard, API и `sdk.js` отдаются с одного origin по относительным путям.
+Самому серверу публичный адрес не нужен: dashboard, API и `sdk.js` отдаются с одного origin по относительным путям.
+`PUBLIC_BASE_URL` из ТЗ задаётся в `.env` для Compose: из него берутся redirect URI клиента Keycloak и адрес, на который
+демо-сайт отправляет отчёты.
 
 В dev-режиме Vite проксирует `/api` на `API_PROXY_TARGET` (`http://localhost:8080`), поэтому dashboard и API работают
 с одного origin, как в контейнере. `VITE_API_BASE_URL` (`/api/v1`) меняет базовый путь API.
@@ -253,11 +259,44 @@ API-клиент и показывает его по blob-URL.
 | `postgres` | 5432 | База отчётов |
 | `seaweedfs` | 8333 | S3 для файлов и контекста, сервер ждёт его `/healthz` |
 | `keycloak` | 8081 | Вход команды, dev-realm из `infra/keycloak/` |
-| `demo` | 5500 | nginx с `demo/`, `sdk.js` берёт у `server` (`infra/demo/nginx.conf`) |
+| `demo` | 5500 | nginx с `demo/`, `sdk.js` берёт у `server`, плюс тестовые адреса сайта (`infra/demo/`) |
 
 Внутри сети Compose сервер ходит к базе, S3 и ключам Keycloak по именам сервисов. Issuer токенов остаётся публичным
 адресом Keycloak: его задают `KEYCLOAK_PUBLIC_URL` в `.env` (по умолчанию `http://localhost:8081`), из него же
-собирается `OIDC_ISSUER`. Порты Postgres и SeaweedFS открыты наружу для `mvn test` и запуска сервера из IDE.
+собирается `OIDC_ISSUER`. Порты Postgres и SeaweedFS открыты наружу для запуска сервера из IDE.
+Тестам они не нужны: `TestcontainersConfiguration` поднимает для них свои контейнеры на случайных портах.
+
+У демо-сайта свой маленький бэкенд в nginx, его адреса ломаются нарочно (ТЗ, раздел 13):
+
+| Адрес | Что делает |
+|---|---|
+| `/demo-api/server-error` | Отвечает 500 |
+| `/demo-api/hang` | Не отвечает 10 минут (njs), запрос попадает в отчёт как зависший |
+| `/demo-api/profile` | Отвечает 200, страница зовёт его с `Authorization`, чтобы показать маскировку |
+| `/demo/config.js` | Адрес сервиса из `PUBLIC_BASE_URL`, на него страница отправляет отчёты |
+
+### На сервере
+
+`docker-compose.prod.yaml` накладывается поверх основного файла:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
+```
+
+| Что меняет | Зачем |
+|---|---|
+| У Postgres и SeaweedFS нет портов на хосте | Снаружи до них не достучаться |
+| `server`, `keycloak` и `demo` слушают только `127.0.0.1` | TLS снимает nginx хоста перед ними |
+| Keycloak в режиме `start`, данные в базе `keycloak` того же Postgres | Realm, пользователи и сессии переживают перезапуск |
+| `KC_PROXY_HEADERS=xforwarded`, локальный кэш | За nginx и на одном узле |
+| Ограничения памяти: Keycloak 1 ГБ, сервер 768 МБ, Postgres и SeaweedFS по 256 МБ, demo 64 МБ | Весь стек укладывается примерно в 2,5 ГБ |
+| Файл проектов `./projects.yaml` | Свой файл сервера с настоящими origin, не в git |
+
+В `.env` на сервере обязательны `KEYCLOAK_PUBLIC_URL` и `PUBLIC_BASE_URL`, без них Compose не запустится. Базу
+`keycloak` создаёт `infra/postgres/init/` только при первом создании тома Postgres. Realm импортируется один раз, когда
+его ещё нет в базе, поэтому после смены `PUBLIC_BASE_URL` redirect URI правятся в консоли Keycloak. Нужен Docker
+Compose 2.24 или новее (теги `!reset` и `!override`). Пользователи dev-realm с простыми паролями годятся только для
+демо.
 
 Запись в файле проектов:
 
@@ -282,7 +321,7 @@ server/src/main/java/com/alimberdi/server/
   dashboard/   GET /api/v1/dashboard-config, настройки входа для dashboard
   storage/     клиент S3 и ObjectStorage
   exception/   исключения и единый формат ошибок
-  config/      JPA Auditing и разбор status/type в параметрах запроса
+  config/      JPA Auditing, разбор status/type в параметрах запроса, OpenAPI
 server/src/main/resources/
   application.yaml      настройки
   projects-dev.yaml     проекты для разработки, ключи не для продакшена
@@ -302,5 +341,10 @@ dashboard/src/
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
 infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
+infra/demo/             nginx демо-сайта: конфиг, шаблон с тестовыми адресами, njs
+infra/postgres/init/    создание базы Keycloak для docker-compose.prod.yaml
+Dockerfile              образ сервиса: SDK, dashboard и сервер
+docker-compose.yaml     весь стенд для разработки
+docker-compose.prod.yaml  поправки для сервера поверх основного файла
 docs/                   документация
 ```

@@ -35,7 +35,7 @@ Lab Bug Reporter: свой сервис баг-репортов для сайт�
 ```bash
 docker compose up -d                 # Postgres, SeaweedFS, Keycloak
 
-cd server && mvn test                # нужны запущенные Postgres и SeaweedFS
+cd server && mvn test                # нужен запущенный Docker: Testcontainers сам поднимает Postgres и SeaweedFS
 cd sdk && npm run build              # npm run dev только пересобирает файл при изменениях
 cd dashboard && npm run dev          # http://localhost:3000
 ```

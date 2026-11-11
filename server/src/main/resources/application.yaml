@@ -16,9 +16,6 @@ spring:
   application:
     name: server
 
-  profiles:
-    active: dev
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -43,6 +40,13 @@ spring:
           # tokens keep the public issuer. It also keeps startup independent of Keycloak.
           jwk-set-uri: ${OIDC_JWK_SET_URI:${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}/protocol/openid-connect/certs}
           audiences: ${OIDC_AUDIENCE:lab-bug-reporter-api}
+
+# The API description at /v3/api-docs and Swagger UI at /swagger-ui/index.html.
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:true}
 
 app:
   dashboard:
