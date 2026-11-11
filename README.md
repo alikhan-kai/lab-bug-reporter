@@ -27,6 +27,7 @@ docker compose up -d --build
 | `http://localhost:5500/demo/` | Демо-сайт с подключённым SDK |
 | `http://localhost:8080/sdk.js` | Скрипт SDK, который подключают сайты |
 | `http://localhost:8081` | Keycloak |
+| `http://localhost:8080/swagger-ui/index.html` | Описание API (OpenAPI) |
 
 Сервис `server` собирается из `Dockerfile`: один образ отдаёт API, `sdk.js` и dashboard на порту 8080. Рядом
 поднимаются Postgres (5432), SeaweedFS S3 (8333), Keycloak (8081) и демо-сайт на nginx (5500). При первом старте
@@ -93,11 +94,25 @@ npm run dev
 
 ## Как проверить
 
-Нажмите вход на демо-сайте, затем кнопку помощи, и отправьте отчёт. Подставьте значения из `.env`:
+Нажмите вход на демо-сайте, понажимайте кнопки сбоев (ошибка JS, ответ 500, зависший запрос, запрос с
+`Authorization`), затем кнопку помощи, и отправьте отчёт. Он появится в dashboard. Записи в базе, подставьте значения
+из `.env`:
 
 ```bash
 docker compose exec postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c "select id, title, status from reports"
 ```
+
+## Деплой на сервер
+
+```bash
+cp .env.example .env                                     # пароли, ключи S3 и два адреса ниже
+cp server/src/main/resources/projects-dev.yaml projects.yaml   # добавьте origin демо-сайта и своих сайтов
+docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
+```
+
+В `.env` задайте `KEYCLOAK_PUBLIC_URL` и `PUBLIC_BASE_URL`, это адреса Keycloak и сервиса, которые видит браузер.
+Сервис, Keycloak и демо-сайт слушают только `127.0.0.1:8080`, `:8081` и `:5500`; nginx хоста принимает HTTPS и
+передаёт запросы им. Подробности в [docs/architecture.md](docs/architecture.md#на-сервере).
 
 ## Как добавить сайт
 
