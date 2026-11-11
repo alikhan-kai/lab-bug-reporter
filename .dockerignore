@@ -1,0 +1,13 @@
+.git
+.idea
+.vscode
+.env
+*.env.*
+*.pdf
+Lab_Bug_Reporter_*
+**/node_modules
+**/dist
+**/target
+docs
+demo
+infra

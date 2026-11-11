@@ -5,18 +5,30 @@ import { captureEnvironment, EnvironmentInfo } from './core/environment';
 import { ScreenRecorder, RecordingResult } from './core/capture/recorder';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData } from './widget/widget';
+import { SupportedLang } from './core/i18n';
 
 export interface InitOptions {
   projectKey: string;
   widget?: boolean;
   appVersion?: string;
   apiUrl?: string;
+  lang?: SupportedLang;
 }
 
 export interface UserIdentity {
   id?: string;
   email?: string;
   [key: string]: any;
+}
+
+export interface SubmitPayload {
+  type: 'bug' | 'feature' | 'question';
+  title: string;
+  description?: string;
+  attachments?: {
+    screenshot?: Blob | Blob[];
+    video?: Blob;
+  };
 }
 
 export interface CapturedContext {
@@ -62,31 +74,28 @@ class LabBugReporter {
       this.networkCapture.setIngestEndpoint(this.getIngestUrl());
     }
 
-    // Инициализируем UI виджета (если не выключен флаг widget: false)
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget();
+      this.setupWidget(options.lang);
     }
 
     console.log('[LabReporter] Initialized with options:', this.options);
   }
 
-  private setupWidget(): void {
+  private setupWidget(lang?: SupportedLang): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget();
+    this.widget = new BugReporterWidget(lang);
 
-    // Привязываем методы
     this.widget.onScreenshot(() => this.captureScreenshot());
-    this.widget.onStartRecording(() => this.startRecording(true));
+    this.widget.onStartRecording((opts) => this.startRecording(opts));
     this.widget.onStopRecording(() => this.stopRecording());
-    this.widget.onSubmit((formData) => this.submitReport(formData));
+    this.widget.onSubmit((formData, onProgress) => this.submitReport(formData, onProgress));
   }
 
   identify(user: UserIdentity): void {
     this.user = user;
     console.log('[LabReporter] Identified user:', this.user);
 
-    // Показываем кнопку виджета только после авторизации пользователя (по ТЗ)
     if (this.widget) {
       this.widget.showLauncher();
     }
@@ -94,6 +103,10 @@ class LabBugReporter {
 
   setContext(key: string, value: any): void {
     this.hostMetadata[key] = value;
+  }
+
+  setLanguage(lang: SupportedLang): void {
+    this.widget?.setLanguage(lang);
   }
 
   open(): void {
@@ -106,8 +119,8 @@ class LabBugReporter {
 
   // --- МЕДИА API ---
 
-  async startRecording(withMicrophone: boolean = true): Promise<number> {
-    const startTime = await this.recorder.start(withMicrophone);
+  async startRecording(optionsOrMic?: { microphone?: boolean } | boolean): Promise<number> {
+    const startTime = await this.recorder.start(optionsOrMic);
     console.log('[LabReporter] Запись экрана началась в:', startTime);
     return startTime;
   }
@@ -131,9 +144,36 @@ class LabBugReporter {
     return await captureScreenFrame();
   }
 
-  // --- ОТПРАВКА ОТЧЕТА ---
+  // --- ПУБЛИЧНЫЙ SUBMIT API (по ТЗ раздел 9) ---
 
-  async submitReport(formData: ReportFormData): Promise<string> {
+  async submit(data: SubmitPayload): Promise<string> {
+    const screenshots: Blob[] = [];
+    if (data.attachments?.screenshot) {
+      if (Array.isArray(data.attachments.screenshot)) {
+        screenshots.push(...data.attachments.screenshot.slice(0, 5));
+      } else {
+        screenshots.push(data.attachments.screenshot);
+      }
+    }
+
+    const formData: ReportFormData = {
+      type: data.type,
+      title: data.title,
+      description: data.description || '',
+      screenshots,
+      video: data.attachments?.video,
+      recordingStartTime: this.recorder.getStartTime() || undefined
+    };
+
+    return await this.submitReport(formData);
+  }
+
+  // --- ВНУТРЕННЯЯ ОТПРАВКА ОТЧЕТА ---
+
+  private async submitReport(
+    formData: ReportFormData,
+    onProgress?: (percent: number) => void
+  ): Promise<string> {
     const context = this.getCapturedContext();
     if (formData.recordingStartTime) {
       context.recording_start_time = formData.recordingStartTime;
@@ -158,11 +198,19 @@ class LabBugReporter {
 
     console.group('[LabReporter SUBMIT REPORT]');
     console.log('JSON Payload:', payload);
-    if (formData.screenshot) console.log('Screenshot Blob attached:', formData.screenshot);
+    console.log(`Screenshots attached (${formData.screenshots.length}):`, formData.screenshots);
     if (formData.video) console.log('Video Blob attached:', formData.video);
     console.groupEnd();
 
-    // Если указан реальный бэкенд URL — отправляем multipart на сервер
+    // Симуляция прогресса
+    if (onProgress) {
+      onProgress(35);
+      await new Promise(r => setTimeout(r, 150));
+      onProgress(70);
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    // Если указан реальный бэкенд URL — отправляем multipart
     if (this.options?.apiUrl) {
       const form = new FormData();
       form.append('report', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
@@ -170,9 +218,11 @@ class LabBugReporter {
       if (formData.video) {
         form.append('video', formData.video, 'recording.webm');
       }
-      if (formData.screenshot) {
-        form.append('screenshots', formData.screenshot, 'screenshot.png');
-      }
+
+      // До 5 скриншотов, все в одной части screenshots
+      formData.screenshots.slice(0, 5).forEach((shot, idx) => {
+        form.append('screenshots', shot, `screenshot_${idx}.png`);
+      });
 
       const res = await fetch(this.getIngestUrl(), {
         method: 'POST',
@@ -183,6 +233,7 @@ class LabBugReporter {
         throw new Error(`Ошибка сервера: ${res.status} ${res.statusText}`);
       }
 
+      if (onProgress) onProgress(100);
       const json = await res.json();
       if (!json.reportId) {
         throw new Error('Сервер не вернул номер отчета');
@@ -190,7 +241,7 @@ class LabBugReporter {
       return json.reportId;
     }
 
-    // Если бэкенд напарника еще не поднят — генерируем тестовый номер
+    if (onProgress) onProgress(100);
     const simRef = 'REF-' + Math.floor(10000 + Math.random() * 90000);
     return simRef;
   }

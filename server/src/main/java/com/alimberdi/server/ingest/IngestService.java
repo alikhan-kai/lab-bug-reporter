@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
@@ -60,7 +61,9 @@ public class IngestService {
 		if (video != null) {
 			limitsValidator.checkVideo(video, report.videoDurationMs());
 		}
-		byte[] compressedContext = compressContext(context);
+		byte[] contextJson = readContext(context);
+		ContextCounts contextCounts = ContextCounts.of(parseContext(contextJson));
+		byte[] compressedContext = compress(contextJson);
 		limitsValidator.checkCompressedContext(compressedContext.length);
 
 		UUID reportId = UUID.randomUUID();
@@ -70,7 +73,7 @@ public class IngestService {
 			String contextObjectKey = objectPrefix + CONTEXT_OBJECT_NAME;
 			storeObject(storedObjectKeys, contextObjectKey, new ByteArrayInputStream(compressedContext), compressedContext.length, GZIP_CONTENT_TYPE);
 
-			Report reportEntity = buildReport(reportId, project, report, contextObjectKey);
+			Report reportEntity = buildReport(reportId, project, report, contextObjectKey, contextCounts);
 			for (MultipartFile screenshot : screenshotFiles) {
 				reportEntity.addAttachment(storeAttachment(storedObjectKeys, objectPrefix, screenshot, AttachmentKind.SCREENSHOT, report));
 			}
@@ -91,31 +94,44 @@ public class IngestService {
 				.orElseThrow(() -> new ResourceNotFoundException("Unknown project key"));
 	}
 
-	private byte[] compressContext(MultipartFile context) {
+	private byte[] readContext(MultipartFile context) {
 		try {
-			byte[] json = context.getBytes();
-			validateContextJson(json);
-			ByteArrayOutputStream compressed = new ByteArrayOutputStream();
-			try (GZIPOutputStream gzip = new GZIPOutputStream(compressed)) {
-				gzip.write(json);
-			}
-			return compressed.toByteArray();
+			return context.getBytes();
 		} catch (IOException exception) {
 			throw new UncheckedIOException("Cannot read the context part", exception);
 		}
 	}
 
-	private void validateContextJson(byte[] json) {
+	private JsonNode parseContext(byte[] json) {
+		JsonNode context;
 		try {
-			if (!objectMapper.readTree(json).isObject()) {
-				throw new InvalidReportException("Context must be a JSON object");
-			}
+			context = objectMapper.readTree(json);
 		} catch (JacksonException exception) {
 			throw new InvalidReportException("Context must be valid JSON");
 		}
+		if (!context.isObject()) {
+			throw new InvalidReportException("Context must be a JSON object");
+		}
+		return context;
 	}
 
-	private Report buildReport(UUID reportId, Project project, ReportPayload report, String contextObjectKey) {
+	private byte[] compress(byte[] json) {
+		ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+		try (GZIPOutputStream gzip = new GZIPOutputStream(compressed)) {
+			gzip.write(json);
+		} catch (IOException exception) {
+			throw new UncheckedIOException("Cannot compress the context", exception);
+		}
+		return compressed.toByteArray();
+	}
+
+	private Report buildReport(
+			UUID reportId,
+			Project project,
+			ReportPayload report,
+			String contextObjectKey,
+			ContextCounts contextCounts
+	) {
 		return Report.builder()
 				.id(reportId)
 				.projectSlug(project.slug())
@@ -128,6 +144,8 @@ public class IngestService {
 				.environment(report.environment())
 				.hostMetadata(report.hostMetadata())
 				.contextObjectKey(contextObjectKey)
+				.consoleErrorCount(contextCounts.consoleErrorCount())
+				.failedRequestCount(contextCounts.failedRequestCount())
 				.build();
 	}
 

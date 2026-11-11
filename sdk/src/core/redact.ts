@@ -1,21 +1,17 @@
 /**
  * Модуль безопасности и очистки данных (Data Sanitization & Redaction)
- * Защищает от утечки токенов, паролей, cookies и персональных данных.
+ * По ТЗ (раздел 5): «The SDK replaces the values of Authorization, Cookie and Set-Cookie
+ * with [REDACTED]. This is the only redaction rule.»
  */
 
-const SENSITIVE_HEADERS = new Set([
+const ONLY_AUTH_HEADERS = new Set([
   'authorization',
   'cookie',
-  'set-cookie',
-  'x-api-key',
-  'proxy-authorization',
-  'x-auth-token'
+  'set-cookie'
 ]);
 
-const SENSITIVE_KEY_REGEX = /(password|token|secret|access_token|refresh_token|api_key|credit_card|cvv|auth)/i;
-
 /**
- * Маскирует чувствительные заголовки запросов и ответов
+ * Маскирует ТОЛЬКО заголовки Authorization, Cookie и Set-Cookie
  */
 export function sanitizeHeaders(headers: Record<string, string> | Headers | [string, string][] | undefined): Record<string, string> {
   const result: Record<string, string> = {};
@@ -24,17 +20,17 @@ export function sanitizeHeaders(headers: Record<string, string> | Headers | [str
   if (typeof (headers as Headers).forEach === 'function') {
     (headers as Headers).forEach((value, key) => {
       const lowerKey = key.toLowerCase();
-      result[lowerKey] = SENSITIVE_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
     });
   } else if (Array.isArray(headers)) {
     for (const [key, value] of headers) {
       const lowerKey = key.toLowerCase();
-      result[lowerKey] = SENSITIVE_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
     }
   } else if (typeof headers === 'object') {
     for (const key of Object.keys(headers)) {
       const lowerKey = key.toLowerCase();
-      result[lowerKey] = SENSITIVE_HEADERS.has(lowerKey) ? '[REDACTED]' : String(headers[key]);
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(headers[key]);
     }
   }
 
@@ -42,44 +38,20 @@ export function sanitizeHeaders(headers: Record<string, string> | Headers | [str
 }
 
 /**
- * Очищает тело запроса/ответа от конфиденциальных полей (если это JSON)
+ * Ограничение тела запроса/ответа по размеру (по умолчанию 64 КБ)
  */
 export function sanitizeBody(body: string | null | undefined, maxBytes: number = 64 * 1024): { body: string; truncated: boolean } {
   if (!body) return { body: '', truncated: false };
 
-  let processed = body;
-
-  try {
-    const parsed = JSON.parse(body);
-    if (typeof parsed === 'object' && parsed !== null) {
-      maskSensitiveObject(parsed);
-      processed = JSON.stringify(parsed);
-    }
-  } catch {
-    // Не JSON — оставляем как текст
-  }
-
-  const truncated = processed.length > maxBytes;
+  const truncated = body.length > maxBytes;
   return {
-    body: truncated ? processed.slice(0, maxBytes) : processed,
+    body: truncated ? body.slice(0, maxBytes) : body,
     truncated
   };
 }
 
-function maskSensitiveObject(obj: any): void {
-  if (!obj || typeof obj !== 'object') return;
-
-  for (const key of Object.keys(obj)) {
-    if (SENSITIVE_KEY_REGEX.test(key)) {
-      obj[key] = '[REDACTED]';
-    } else if (typeof obj[key] === 'object') {
-      maskSensitiveObject(obj[key]);
-    }
-  }
-}
-
 /**
- * Безопасное усечение строк логов консоли
+ * Безопасное усечение строк логов консоли (по умолчанию 4 КБ)
  */
 export function truncateString(str: string, maxBytes: number = 4096): string {
   if (!str) return '';

@@ -1,6 +1,8 @@
 package com.alimberdi.server.report;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public enum AttachmentKind {
-	SCREENSHOT,
-	VIDEO
+	@JsonProperty("screenshot") SCREENSHOT,
+	@JsonProperty("video") VIDEO
 }

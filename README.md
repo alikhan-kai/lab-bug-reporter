@@ -10,22 +10,40 @@ Self-hosted сервис баг-репортов для сайтов лабор�
 | [docs/roadmap.md](docs/roadmap.md) | Что готово и что осталось |
 | [AGENTS.md](AGENTS.md) | Правила для AI-агентов и соглашения по коду |
 
-## Что нужно
+## Запуск одной командой
 
-- Docker
-- JDK 21 и Maven (или IntelliJ IDEA)
-- Node.js и npm
-
-## Запуск локально
-
-**1. Настройки и инфраструктура.** Из корня репозитория:
+Нужен только Docker. Из корня репозитория:
 
 ```bash
 cp .env.example .env     # заполните значения; ключи S3 должны совпадать с infra/seaweedfs/s3.json
-docker compose up -d
+docker compose up -d --build
 ```
 
-Поднимутся Postgres (5432), SeaweedFS S3 (8333) и Keycloak (8081).
+Первая сборка образа занимает несколько минут. Когда `docker compose ps` покажет `server` как `healthy`, откройте:
+
+| Адрес | Что там |
+|---|---|
+| `http://localhost:8080` | Dashboard, вход через Keycloak |
+| `http://localhost:5500/demo/` | Демо-сайт с подключённым SDK |
+| `http://localhost:8080/sdk.js` | Скрипт SDK, который подключают сайты |
+| `http://localhost:8081` | Keycloak |
+
+Сервис `server` собирается из `Dockerfile`: один образ отдаёт API, `sdk.js` и dashboard на порту 8080. Рядом
+поднимаются Postgres (5432), SeaweedFS S3 (8333), Keycloak (8081) и демо-сайт на nginx (5500). При первом старте
+Keycloak импортирует dev-realm из `infra/keycloak/`. Если Keycloak уже запускался без него, выполните
+`docker compose restart keycloak`.
+
+После изменений в коде пересоберите сервис: `docker compose up -d --build server`.
+
+## Запуск для разработки
+
+Нужны Docker, JDK 21 и Maven (или IntelliJ IDEA), Node.js и npm. Так код меняется без пересборки образа.
+
+**1. Инфраструктура.** Из корня репозитория:
+
+```bash
+docker compose up -d postgres seaweedfs keycloak
+```
 
 **2. Сервер.** Запустите `ServerApplication` в IDEA или выполните:
 
@@ -44,7 +62,8 @@ npm install
 npm run build
 ```
 
-**4. Демо-сайт.** Из корня репозитория:
+**4. Демо-сайт.** Остановите контейнер `demo`, если он запущен (`docker compose stop demo`), и из корня
+репозитория выполните:
 
 ```bash
 npx serve -l 5500 .
@@ -61,7 +80,16 @@ npm install
 npm run dev
 ```
 
-Откроется `http://localhost:3000`. Пока dashboard показывает моковые данные, а не реальные отчёты.
+Откроется `http://localhost:3000` и перенаправит на вход в Keycloak. Запросы к `/api` dev-сервер передаёт на сервер
+`localhost:8080`, поэтому сервер должен быть запущен. По умолчанию список показывает новые отчёты, сначала свежие.
+
+Пользователи dev-realm, пароли только для разработки:
+
+| Логин и пароль | Роль | Видит проекты |
+|---|---|---|
+| `admin` / `admin` | admin | все |
+| `triager` / `triager` | triager | `demo` |
+| `viewer` / `viewer` | viewer | `demo` |
 
 ## Как проверить
 
@@ -89,7 +117,8 @@ docker compose exec postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c "select
 </script>
 ```
 
-Раздача `sdk.js` с сервера пока не сделана, см. [docs/roadmap.md](docs/roadmap.md).
+В `projects-dev.yaml` разрешены адреса `localhost:3000` и `localhost:5500`. Файл проектов монтируется в контейнер
+(`/app/config/projects.yaml`), поэтому для нового сайта достаточно поправить файл и выполнить `docker compose restart server`.
 
 ## Тесты
 

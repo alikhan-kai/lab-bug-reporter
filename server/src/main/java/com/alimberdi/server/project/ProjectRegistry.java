@@ -20,16 +20,23 @@ import java.util.stream.Collectors;
 @Component
 public class ProjectRegistry {
 
+	private final List<Project> projects;
 	private final Map<String, Project> projectsByKey;
 
 	public ProjectRegistry(ResourceLoader resourceLoader, @Value("${app.projects-file}") String projectsFile) {
 		Resource resource = resourceLoader.getResource(projectsFile);
-		projectsByKey = readProjects(resource).stream()
+		projects = List.copyOf(readProjects(resource));
+		projectsByKey = projects.stream()
 				.collect(Collectors.toUnmodifiableMap(Project::key, Function.identity()));
 	}
 
 	public Optional<Project> findByKey(String projectKey) {
 		return Optional.ofNullable(projectsByKey.get(projectKey));
+	}
+
+	/** Returns the projects in the order of the projects file. */
+	public List<Project> findAll() {
+		return projects;
 	}
 
 	private List<Project> readProjects(Resource resource) {

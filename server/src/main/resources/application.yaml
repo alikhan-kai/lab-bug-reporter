@@ -1,4 +1,5 @@
 server:
+  port: ${PORT:8080}
   tomcat:
     max-swallow-size: -1
 
@@ -24,7 +25,8 @@ spring:
     open-in-view: false
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    # A JDBC URL, for example jdbc:postgresql://postgres:5432/reporter inside Docker Compose.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/${POSTGRES_DB}}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
@@ -32,8 +34,28 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}
+          # Set separately so the service can fetch keys over the Docker network while the
+          # tokens keep the public issuer. It also keeps startup independent of Keycloak.
+          jwk-set-uri: ${OIDC_JWK_SET_URI:${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}/protocol/openid-connect/certs}
+          audiences: ${OIDC_AUDIENCE:lab-bug-reporter-api}
+
 app:
+  dashboard:
+    oidc-issuer: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}
+    client-id: ${OIDC_CLIENT_ID:lab-dashboard}
+
   projects-file: ${PROJECTS_FILE:classpath:projects-dev.yaml}
+
+  # Keycloak role names for each dashboard role, comma-separated.
+  auth:
+    admin-roles: ${ADMIN_ROLES:admin}
+    triager-roles: ${TRIAGER_ROLES:triager}
+    viewer-roles: ${VIEWER_ROLES:viewer}
 
   s3:
     endpoint: ${S3_ENDPOINT:http://localhost:8333}

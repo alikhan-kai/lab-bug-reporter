@@ -10,8 +10,9 @@
 ```mermaid
 flowchart LR
     site["Сайт лаборатории<br/>SDK и виджет"] -->|Submit, multipart| ingest
-    team["Dashboard<br/>в браузере команды"] -.->|Bearer-токен, ещё нет| api
-    team -.->|вход, ещё нет| kc[Keycloak]
+    team["Dashboard<br/>в браузере команды"] -->|Bearer-токен| api
+    team -->|вход, OIDC + PKCE| kc[Keycloak]
+    api -->|ключи подписи| kc
 
     subgraph service[Сервис на Spring Boot]
         ingest[Ingest API]
@@ -23,17 +24,16 @@ flowchart LR
     ingest --> registry
     ingest --> db[(PostgreSQL<br/>отчёты и сведения о файлах)]
     ingest --> s3[(SeaweedFS S3<br/>видео, скриншоты, контекст)]
-    api -.-> db
-    api -.-> s3
+    api --> registry
+    api --> db
+    api --> s3
 ```
-
-Пунктир означает часть, которой пока нет.
 
 ## Где какие данные
 
 | Данные | Хранилище | Класс или объект |
 |---|---|---|
-| Заголовок, тип, статус, URL, пользователь, окружение, метаданные сайта | Postgres, `reports` | `Report` |
+| Заголовок, тип, статус, URL, пользователь, окружение, метаданные сайта, счётчики ошибок console и упавших запросов | Postgres, `reports` | `Report` |
 | Тип файла, размер, длительность, время старта записи, путь в S3 | Postgres, `attachments` | `Attachment` |
 | Скриншоты, видео | S3, `<project>/<report-id>/<attachment-id>` | `ObjectStorage` |
 | Console, network, действия пользователя | S3, `<project>/<report-id>/context.json.gz` | `ObjectStorage` |
@@ -42,6 +42,41 @@ flowchart LR
 Проекты намеренно не в базе (ТЗ, разделы 6 и 12): чтобы добавить сайт, правят файл и перезапускают сервис.
 
 Личность пользователя присылает сайт, сервер хранит её как есть и считает непроверенной.
+
+Счётчики `console_error_count` и `failed_request_count` сервер считает из контекста при приёме (`ContextCounts`):
+список отчётов показывает их бейджами и не читает для этого S3. Упавший запрос это статус 4xx/5xx или запрос без
+статуса, который не помечен `pending`.
+
+## Вход в dashboard и роли
+
+Dashboard входит через Keycloak (realm `lab-bug-reporter`, публичный клиент `lab-dashboard`, Authorization Code + PKCE)
+и шлёт access-токен в заголовке `Authorization: Bearer`. Сервер проверяет подпись, срок, issuer и audience
+(`lab-bug-reporter-api`, его добавляет mapper клиента). Сессий и cookie нет, поэтому CSRF выключен.
+
+`TokenUserConverter` читает роли realm из `realm_access.roles` и превращает токен в `CurrentUser`:
+
+| Роль dashboard | Роли Keycloak по умолчанию | Что может |
+|---|---|---|
+| `admin` | `admin` | Видит все проекты, меняет статус, удаляет отчёты |
+| `triager` | `triager` | Видит свои проекты, меняет статус |
+| `viewer` | `viewer` | Только читает свои проекты |
+
+Какой проект виден пользователю, решает `ProjectAccessService`: admin видит все, остальные только те, в поле `access`
+которых есть одна из их ролей Keycloak. Проект без `access` виден только admin.
+
+Правила в `SecurityConfig`:
+
+| Запрос | Кому разрешён |
+|---|---|
+| `/api/v1/ingest/**` | всем, защищён ключом проекта и `Origin` |
+| `PATCH /api/v1/reports/**` | triager, admin |
+| `DELETE /api/v1/reports/**` | admin |
+| остальное под `/api/**` | любая роль dashboard |
+| всё вне `/api` | всем: `sdk.js` и статика dashboard |
+
+Без токена или с плохим токеном ответ 401, без нужной роли 403, оба в общем JSON-формате ошибок
+(`JsonSecurityErrorHandler`). Отчёт из невидимого проекта отдаёт 404: это проверяет `ReportService`, роль проверяется
+раньше, поэтому viewer получает 403 на `PATCH` даже для чужого отчёта.
 
 ## Как проходит отправка отчёта
 
@@ -108,11 +143,69 @@ flowchart LR
 |---|---|
 | 400 | Некорректные данные или нет пользователя |
 | 403 | `Origin` не разрешён для проекта |
-| 404 | Неизвестный ключ проекта |
+| 404 | Неизвестный ключ проекта, или отчёт не найден либо не виден пользователю |
 | 413 | Превышен лимит |
+| 416 | `Range` вне файла |
 | 503 | S3 недоступен |
 
-Эндпоинты dashboard (`/api/me`, список, карточка, контекст, файлы, статус, удаление) ещё не реализованы.
+### Текущий пользователь
+
+`GET /api/v1/me`, нужен Bearer-токен с ролью dashboard.
+
+```json
+{
+  "id": "5b0c…",
+  "username": "triager",
+  "email": "triager@lab.example",
+  "roles": ["triager"],
+  "projects": [{ "slug": "demo", "name": "Demo website" }]
+}
+```
+
+Роли идут от сильной к слабой. Ключи проектов в ответ не попадают.
+
+| Код | Когда |
+|---|---|
+| 401 | Нет токена, токен просрочен или не прошёл проверку |
+| 403 | В токене нет ни одной роли dashboard |
+
+### Отчёты для dashboard
+
+Все запросы с Bearer-токеном. Отчёт или файл из проекта, который пользователю не виден, отдаёт 404.
+
+| Запрос | Кто | Ответ |
+|---|---|---|
+| `GET /api/v1/reports` | любая роль | Страница `ReportSummaryResponse` |
+| `GET /api/v1/reports/{id}` | любая роль | `ReportDetailResponse` |
+| `GET /api/v1/reports/{id}/context` | любая роль | JSON `{ console, network, breadcrumbs }` в том виде, как его прислал SDK |
+| `GET /api/v1/reports/{id}/attachments/{attachmentId}` | любая роль | Файл, поддерживает `Range` |
+| `PATCH /api/v1/reports/{id}` | triager, admin | `{ "status": "resolved" }`, в ответ `ReportDetailResponse` |
+| `DELETE /api/v1/reports/{id}` | admin | 204, удаляет запись, затем файлы и контекст в S3 |
+
+Параметры списка: `project` (slug), `status` (`new`, `in_progress`, `resolved`, `wont_fix`), `type` (`bug`, `feature`,
+`question`), `q` (поиск без учёта регистра по заголовку и описанию), `page` (с 0) и `size` (по умолчанию 20, не больше
+100). Сортировка всегда от новых к старым. Без `project` ищется во всех видимых проектах.
+
+```json
+{
+  "content": [{
+    "id": "5b0c…", "projectSlug": "demo", "projectName": "Demo website",
+    "type": "bug", "title": "Кнопка загрузки не работает", "status": "new",
+    "pageUrl": "http://localhost:5500/demo/", "reporter": { "id": "u-1842", "email": "alice@lab.example" },
+    "hasVideo": true, "screenshotCount": 1, "consoleErrorCount": 2, "failedRequestCount": 1,
+    "createdAt": "2026-11-10T09:00:00Z"
+  }],
+  "page": 0, "size": 20, "totalElements": 1, "totalPages": 1
+}
+```
+
+Карточка добавляет `description`, `environment`, `hostMetadata`, `attachments` (`id`, `kind`, `contentType`,
+`sizeBytes`, `durationMs`, `recordingStartTime`), `recordingStartTime` видео и `updatedAt`.
+
+Файл отдаётся целиком или по одному диапазону из `Range` (206 с `Content-Range`). Диапазон вне файла отдаёт 416.
+Файлы присылают пользователи сайтов, поэтому ответ идёт с `Content-Security-Policy: sandbox`: загруженный SVG не
+выполнит скрипт на origin dashboard. `<img>` и `<video>` не умеют слать токен, поэтому dashboard скачивает файл через
+API-клиент и показывает его по blob-URL.
 
 ## Лимиты
 
@@ -129,13 +222,42 @@ flowchart LR
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | нет | Подключение к базе на `localhost:5432` |
+| `PORT` | `8080` | Порт сервиса |
+| `DATABASE_URL` | `jdbc:postgresql://localhost:5432/${POSTGRES_DB}` | JDBC-адрес базы |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | нет | Имя базы, логин и пароль |
 | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | нет | Доступ к S3 |
 | `S3_ENDPOINT` | `http://localhost:8333` | Адрес S3 |
 | `S3_BUCKET` | `reports` | Бакет, создаётся при старте |
 | `S3_REGION` | `us-east-1` | Регион |
 | `S3_FORCE_PATH_STYLE` | `true` | Нужен для SeaweedFS |
 | `PROJECTS_FILE` | `classpath:projects-dev.yaml` | Файл проектов. Путь на диске указывается с префиксом `file:` |
+| `OIDC_ISSUER` | `http://localhost:8081/realms/lab-bug-reporter` | Issuer токенов, должен совпадать с `iss` |
+| `OIDC_JWK_SET_URI` | `${OIDC_ISSUER}/protocol/openid-connect/certs` | Откуда брать ключи подписи. Отдельно, чтобы в Docker ходить к Keycloak по внутреннему адресу |
+| `OIDC_AUDIENCE` | `lab-bug-reporter-api` | Обязательное значение в `aud` |
+| `OIDC_CLIENT_ID` | `lab-dashboard` | Клиент Keycloak, через который входит dashboard |
+| `ADMIN_ROLES`, `TRIAGER_ROLES`, `VIEWER_ROLES` | `admin`, `triager`, `viewer` | Роли Keycloak для каждой роли dashboard, через запятую |
+
+Адрес Keycloak dashboard не зашивает при сборке. Перед входом он запрашивает публичный
+`GET /api/v1/dashboard-config` и получает `{ keycloakUrl, keycloakRealm, keycloakClientId }`: сервер берёт их из
+`OIDC_ISSUER` и `OIDC_CLIENT_ID`. Поэтому один образ работает на любом адресе, а адрес задаётся в одном месте.
+Отдельный `PUBLIC_BASE_URL` из ТЗ не нужен: dashboard, API и `sdk.js` отдаются с одного origin по относительным путям.
+
+В dev-режиме Vite проксирует `/api` на `API_PROXY_TARGET` (`http://localhost:8080`), поэтому dashboard и API работают
+с одного origin, как в контейнере. `VITE_API_BASE_URL` (`/api/v1`) меняет базовый путь API.
+
+### Docker Compose
+
+| Сервис | Порт | Что делает |
+|---|---|---|
+| `server` | 8080 | Образ из `Dockerfile`: собирает SDK, dashboard и сервер, отдаёт всё на одном порту |
+| `postgres` | 5432 | База отчётов |
+| `seaweedfs` | 8333 | S3 для файлов и контекста, сервер ждёт его `/healthz` |
+| `keycloak` | 8081 | Вход команды, dev-realm из `infra/keycloak/` |
+| `demo` | 5500 | nginx с `demo/`, `sdk.js` берёт у `server` (`infra/demo/nginx.conf`) |
+
+Внутри сети Compose сервер ходит к базе, S3 и ключам Keycloak по именам сервисов. Issuer токенов остаётся публичным
+адресом Keycloak: его задают `KEYCLOAK_PUBLIC_URL` в `.env` (по умолчанию `http://localhost:8081`), из него же
+собирается `OIDC_ISSUER`. Порты Postgres и SeaweedFS открыты наружу для `mvn test` и запуска сервера из IDE.
 
 Запись в файле проектов:
 
@@ -153,11 +275,14 @@ projects:
 ```text
 server/src/main/java/com/alimberdi/server/
   ingest/      приём отчётов: контроллер, сервис, CORS-фильтр, лимиты
-  report/      сущности Report и Attachment, DTO, репозиторий
-  project/     Project и ProjectRegistry
+  report/      сущности Report и Attachment, DTO, репозиторий, API отчётов для dashboard
+  project/     Project, ProjectRegistry и доступ к проектам
+  security/    проверка токенов Keycloak, роли, CurrentUser
+  user/        GET /api/v1/me
+  dashboard/   GET /api/v1/dashboard-config, настройки входа для dashboard
   storage/     клиент S3 и ObjectStorage
   exception/   исключения и единый формат ошибок
-  config/      настройка JPA Auditing
+  config/      JPA Auditing и разбор status/type в параметрах запроса
 server/src/main/resources/
   application.yaml      настройки
   projects-dev.yaml     проекты для разработки, ключи не для продакшена
@@ -169,9 +294,13 @@ sdk/src/
   core/capture/         скриншот и запись экрана
   widget/               кнопка и боковая панель в Shadow DOM
 
-dashboard/src/          интерфейс разбора отчётов, сейчас на mockData.ts
+dashboard/src/
+  auth/                 вход через Keycloak и текущий пользователь
+  api/                  единый API-клиент и типы ответов сервера
+  hooks/                загрузка списка, отчёта и файлов
+  components/           список и карточка отчёта, skeleton-заглушки
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
-infra/keycloak/         импорт realm, пока пусто
+infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
 docs/                   документация
 ```
