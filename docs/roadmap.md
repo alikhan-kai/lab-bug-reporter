@@ -82,7 +82,8 @@
 - [x] Демо-сайт: ответ 500, зависший запрос и запрос с `Authorization` на своём nginx, без внешнего `httpstat.us`.
 - [x] Описание API в OpenAPI: `/v3/api-docs` и Swagger UI, генерируется из кода.
 - [x] Удалены пустые `application-dev.yaml` и `application-prod.yaml`.
-- [ ] Тесты, которым не нужны запущенные контейнеры (например, Testcontainers).
+- [x] Testcontainers: тестам нужен только Docker, Postgres и SeaweedFS поднимаются на время прогона.
+- [ ] CI в GitHub Actions: `mvn test` на каждый PR.
 
 ## Не входит в первую версию
 
