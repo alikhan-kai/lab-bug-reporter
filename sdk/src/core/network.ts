@@ -52,58 +52,45 @@ export class NetworkCapture {
     const self = this;
 
     window.fetch = async function (...args: Parameters<typeof fetch>): Promise<Response> {
-      const input = args[0];
-      const init = args[1];
-
-      let url = '';
-      if (typeof input === 'string') {
-        url = input;
-      } else if (input instanceof URL) {
-        url = input.toString();
-      } else if (input && typeof (input as Request).url === 'string') {
-        url = (input as Request).url;
+      let capture: ReturnType<typeof self.startFetchCapture>;
+      try {
+        capture = self.startFetchCapture(args);
+      } catch {
+        // The log misses this request, but the site still gets its answer.
+        capture = null;
       }
-
-      // Не перехватываем собственный запрос отправки отчета
-      if (url.includes(self.ingestEndpoint)) {
+      if (!capture) {
         return originalFetch.apply(window, args);
       }
+      const { reqId, method, url, startTime, reqHeaders, sanitizedReqBody } = capture;
 
-      const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
-      const startTime = Date.now();
-      const reqId = `fetch_${++self.reqCounter}_${startTime}`;
-
-      // Санитизируем заголовки и тело запроса
-      const reqHeaders = sanitizeHeaders(init?.headers || (input instanceof Request ? input.headers : undefined));
-      let reqBodyStr = '';
-      if (typeof init?.body === 'string') {
-        reqBodyStr = init.body;
-      }
-      const sanitizedReqBody = sanitizeBody(reqBodyStr);
-
-      // 1. Фиксируем запрос сразу как активный (для отслеживания зависших запросов)
-      const pendingEntry: NetworkEntry = {
-        timestamp: startTime,
-        t_start: startTime,
-        duration_ms: null,
-        method,
-        url,
-        status: null, // пустой статус для незавершенных
-        initiator: 'fetch',
-        pending: true,
-        request: {
-          headers: reqHeaders,
-          body: sanitizedReqBody.body,
-          body_truncated: sanitizedReqBody.truncated
-        },
-        error: null
-      };
-
-      self.inFlightRequests.set(reqId, pendingEntry);
-
+      let response: Response;
       try {
-        const response = await originalFetch.apply(window, args);
+        response = await originalFetch.apply(window, args);
+      } catch (err: any) {
+        // Упавший запрос: статус ОБЯЗАН быть null (empty), а error заполнен (ТЗ раздел 8)
+        self.inFlightRequests.delete(reqId);
+        self.buffer.add({
+          timestamp: startTime,
+          t_start: startTime,
+          duration_ms: Date.now() - startTime,
+          method,
+          url,
+          status: null, // пустой статус
+          initiator: 'fetch',
+          pending: false,
+          request: {
+            headers: reqHeaders,
+            body: sanitizedReqBody.body,
+            body_truncated: sanitizedReqBody.truncated
+          },
+          error: err?.message || 'Network request failed (network error, CORS block or timeout)'
+        });
+        throw err;
+      }
 
+      // Only the site's own failure goes back to the site; a failure while logging the answer stays here.
+      try {
         // Клонируем ответ, чтобы сайт не сломался
         const clone = response.clone();
         const duration = Date.now() - startTime;
@@ -159,30 +146,59 @@ export class NetworkCapture {
               error: null
             });
           });
-
-        return response;
-      } catch (err: any) {
-        // Упавший запрос: статус ОБЯЗАН быть null (empty), а error заполнен (ТЗ раздел 8)
+      } catch {
+        // Logging the answer failed, so the request is left out of the log rather than shown as pending.
         self.inFlightRequests.delete(reqId);
-        self.buffer.add({
-          timestamp: startTime,
-          t_start: startTime,
-          duration_ms: Date.now() - startTime,
-          method,
-          url,
-          status: null, // пустой статус
-          initiator: 'fetch',
-          pending: false,
-          request: {
-            headers: reqHeaders,
-            body: sanitizedReqBody.body,
-            body_truncated: sanitizedReqBody.truncated
-          },
-          error: err?.message || 'Network request failed (network error, CORS block or timeout)'
-        });
-        throw err;
       }
+      return response;
     };
+  }
+
+  /** Reads a fetch call for the log and marks it pending. Returns null for the SDK's own upload. */
+  private startFetchCapture(args: Parameters<typeof fetch>) {
+    const input = args[0];
+    const init = args[1];
+
+    let url = '';
+    if (typeof input === 'string') {
+      url = input;
+    } else if (input instanceof URL) {
+      url = input.toString();
+    } else if (input && typeof (input as Request).url === 'string') {
+      url = (input as Request).url;
+    }
+
+    // Не перехватываем собственный запрос отправки отчета
+    if (url.includes(this.ingestEndpoint)) {
+      return null;
+    }
+
+    const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const startTime = Date.now();
+    const reqId = `fetch_${++this.reqCounter}_${startTime}`;
+
+    // Санитизируем заголовки и тело запроса
+    const reqHeaders = sanitizeHeaders(init?.headers || (input instanceof Request ? input.headers : undefined));
+    const sanitizedReqBody = sanitizeBody(typeof init?.body === 'string' ? init.body : '');
+
+    // Фиксируем запрос сразу как активный (для отслеживания зависших запросов)
+    this.inFlightRequests.set(reqId, {
+      timestamp: startTime,
+      t_start: startTime,
+      duration_ms: null,
+      method,
+      url,
+      status: null, // пустой статус для незавершенных
+      initiator: 'fetch',
+      pending: true,
+      request: {
+        headers: reqHeaders,
+        body: sanitizedReqBody.body,
+        body_truncated: sanitizedReqBody.truncated
+      },
+      error: null
+    });
+    return { reqId, method, url, startTime, reqHeaders, sanitizedReqBody };
   }
 
   private installXhr(): void {
@@ -215,8 +231,15 @@ export class NetworkCapture {
 
       const startTime = Date.now();
       const reqId = `xhr_${++self.reqCounter}_${startTime}`;
-      const sanitizedReqHeaders = sanitizeHeaders(meta.requestHeaders);
-      const sanitizedReqBody = sanitizeBody(typeof body === 'string' ? body : undefined);
+      let sanitizedReqHeaders: Record<string, string>;
+      let sanitizedReqBody: ReturnType<typeof sanitizeBody>;
+      try {
+        sanitizedReqHeaders = sanitizeHeaders(meta.requestHeaders);
+        sanitizedReqBody = sanitizeBody(typeof body === 'string' ? body : undefined);
+      } catch {
+        // The log misses this request, but the site's request still goes out.
+        return originalSend.apply(this, arguments as any);
+      }
 
       // Записываем сразу как pending
       const pendingEntry: NetworkEntry = {
