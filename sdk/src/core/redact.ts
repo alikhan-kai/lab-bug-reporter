@@ -28,9 +28,10 @@ export function sanitizeHeaders(headers: Record<string, string> | Headers | [str
       result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
     }
   } else if (typeof headers === 'object') {
-    for (const key of Object.keys(headers)) {
+    const plainHeaders = headers as Record<string, string>;
+    for (const key of Object.keys(plainHeaders)) {
       const lowerKey = key.toLowerCase();
-      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(headers[key]);
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(plainHeaders[key]);
     }
   }
 

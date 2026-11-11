@@ -89,6 +89,12 @@ export const widgetStyles = `
   display: none !important;
 }
 
+/* Последние секунды перед лимитом записи */
+.lab-recording-bar.warning {
+  background: #b45309;
+  transition: background 0.3s var(--lab-ease);
+}
+
 .lab-rec-dot {
   width: 10px;
   height: 10px;

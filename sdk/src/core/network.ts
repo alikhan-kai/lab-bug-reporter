@@ -265,7 +265,7 @@ export class NetworkCapture {
               body_truncated: sanitizedReqBody.truncated
             },
             response: isFailed ? undefined : {
-              headers: {},
+              headers: sanitizeHeaders(parseResponseHeaders(this.getAllResponseHeaders())),
               body: sanitizedResBody.body,
               body_truncated: sanitizedResBody.truncated
             },
@@ -293,4 +293,16 @@ export class NetworkCapture {
 
     return [...finished, ...hanging].sort((a, b) => a.t_start - b.t_start);
   }
+}
+
+/** Turns the raw `getAllResponseHeaders()` text into name-value pairs. */
+function parseResponseHeaders(raw: string): [string, string][] {
+  return raw
+    .trim()
+    .split(/[\r\n]+/)
+    .filter(Boolean)
+    .map((line): [string, string] => {
+      const separator = line.indexOf(':');
+      return [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+    });
 }

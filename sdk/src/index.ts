@@ -3,6 +3,7 @@ import { NetworkCapture, NetworkEntry } from './core/network';
 import { BreadcrumbsCapture, BreadcrumbEntry } from './core/breadcrumbs';
 import { captureEnvironment, EnvironmentInfo } from './core/environment';
 import { ScreenRecorder, RecordingResult } from './core/capture/recorder';
+import { postReport } from './core/upload';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData } from './widget/widget';
 import { SupportedLang } from './core/i18n';
@@ -11,8 +12,25 @@ export interface InitOptions {
   projectKey: string;
   widget?: boolean;
   appVersion?: string;
+  /** The reporter service. By default, the address sdk.js was loaded from. */
   apiUrl?: string;
   lang?: SupportedLang;
+  /** Logs what the SDK does to the page's console. Off by default, because the logs hold the reporter's data. */
+  debug?: boolean;
+}
+
+// The service serves sdk.js itself, so the script's own address is the default service address. currentScript is
+// only set while the script first runs.
+const SCRIPT_ORIGIN = readScriptOrigin();
+
+function readScriptOrigin(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const script = document.currentScript as HTMLScriptElement | null;
+  try {
+    return script?.src ? new URL(script.src).origin : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface UserIdentity {
@@ -28,6 +46,9 @@ export interface SubmitPayload {
   attachments?: {
     screenshot?: Blob | Blob[];
     video?: Blob;
+    /** Needed for a video made outside the SDK. A video from stopRecording() carries its own. */
+    videoDurationMs?: number;
+    recordingStartTime?: number;
   };
 }
 
@@ -54,6 +75,7 @@ class LabBugReporter {
 
   // Медиа захват
   private recorder = new ScreenRecorder();
+  private lastRecording: RecordingResult | null = null;
 
   // Виджет UI
   private widget: BugReporterWidget | null = null;
@@ -62,6 +84,10 @@ class LabBugReporter {
     this.consoleCapture.install();
     this.networkCapture.install();
     this.breadcrumbsCapture.install();
+    this.recorder.onAutoStop((result) => {
+      this.lastRecording = result;
+      this.widget?.showStoppedRecording(result);
+    });
   }
 
   init(options: InitOptions): void {
@@ -70,15 +96,17 @@ class LabBugReporter {
     if (options.appVersion) {
       this.hostMetadata['app_version'] = options.appVersion;
     }
-    if (options.apiUrl) {
-      this.networkCapture.setIngestEndpoint(this.getIngestUrl());
+    // Without a known address the default ingest path still keeps the SDK's own upload out of the log.
+    const ingestUrl = this.findIngestUrl();
+    if (ingestUrl) {
+      this.networkCapture.setIngestEndpoint(ingestUrl);
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
       this.setupWidget(options.lang);
     }
 
-    console.log('[LabReporter] Initialized with options:', this.options);
+    this.debugLog('Initialized with options:', this.options);
   }
 
   private setupWidget(lang?: SupportedLang): void {
@@ -94,7 +122,7 @@ class LabBugReporter {
 
   identify(user: UserIdentity): void {
     this.user = user;
-    console.log('[LabReporter] Identified user:', this.user);
+    this.debugLog('Identified user:', this.user);
 
     if (this.widget) {
       this.widget.showLauncher();
@@ -121,13 +149,15 @@ class LabBugReporter {
 
   async startRecording(optionsOrMic?: { microphone?: boolean } | boolean): Promise<number> {
     const startTime = await this.recorder.start(optionsOrMic);
-    console.log('[LabReporter] Запись экрана началась в:', startTime);
+    this.lastRecording = null;
+    this.debugLog('Recording started at', startTime);
     return startTime;
   }
 
   async stopRecording(): Promise<RecordingResult> {
     const result = await this.recorder.stop();
-    console.log('[LabReporter] Запись экрана завершена. Длительность (мс):', result.durationMs);
+    this.lastRecording = result;
+    this.debugLog('Recording stopped, duration (ms):', result.durationMs);
     return result;
   }
 
@@ -140,7 +170,7 @@ class LabBugReporter {
   }
 
   async captureScreenshot(): Promise<Blob> {
-    console.log('[LabReporter] Захват скриншота...');
+    this.debugLog('Capturing a screenshot');
     return await captureScreenFrame();
   }
 
@@ -156,13 +186,17 @@ class LabBugReporter {
       }
     }
 
+    // A video from stopRecording() brings its duration and start time; the service checks the duration.
+    const video = data.attachments?.video;
+    const recording = video && video === this.lastRecording?.blob ? this.lastRecording : null;
     const formData: ReportFormData = {
       type: data.type,
       title: data.title,
       description: data.description || '',
       screenshots,
-      video: data.attachments?.video,
-      recordingStartTime: this.recorder.getStartTime() || undefined
+      video,
+      videoDurationMs: video ? data.attachments?.videoDurationMs ?? recording?.durationMs : undefined,
+      recordingStartTime: video ? data.attachments?.recordingStartTime ?? recording?.startTime : undefined
     };
 
     return await this.submitReport(formData);
@@ -196,58 +230,39 @@ class LabBugReporter {
       breadcrumbs: context.breadcrumbs
     };
 
-    console.group('[LabReporter SUBMIT REPORT]');
-    console.log('JSON Payload:', payload);
-    console.log(`Screenshots attached (${formData.screenshots.length}):`, formData.screenshots);
-    if (formData.video) console.log('Video Blob attached:', formData.video);
-    console.groupEnd();
+    this.debugLog('Submitting report:', payload, `screenshots: ${formData.screenshots.length}`, `video: ${Boolean(formData.video)}`);
 
-    // Симуляция прогресса
-    if (onProgress) {
-      onProgress(35);
-      await new Promise(r => setTimeout(r, 150));
-      onProgress(70);
-      await new Promise(r => setTimeout(r, 150));
+    const form = new FormData();
+    form.append('report', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    form.append('context', new Blob([JSON.stringify(capturedLogs)], { type: 'application/json' }), 'context.json');
+    if (formData.video) {
+      form.append('video', formData.video, `recording.${videoExtension(formData.video)}`);
     }
+    // До 5 скриншотов, все в одной части screenshots
+    formData.screenshots.slice(0, 5).forEach((shot, idx) => {
+      form.append('screenshots', shot, `screenshot_${idx}.png`);
+    });
 
-    // Если указан реальный бэкенд URL — отправляем multipart
-    if (this.options?.apiUrl) {
-      const form = new FormData();
-      form.append('report', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      form.append('context', new Blob([JSON.stringify(capturedLogs)], { type: 'application/json' }), 'context.json');
-      if (formData.video) {
-        form.append('video', formData.video, 'recording.webm');
-      }
+    return await postReport(this.getIngestUrl(), form, onProgress);
+  }
 
-      // До 5 скриншотов, все в одной части screenshots
-      formData.screenshots.slice(0, 5).forEach((shot, idx) => {
-        form.append('screenshots', shot, `screenshot_${idx}.png`);
-      });
-
-      const res = await fetch(this.getIngestUrl(), {
-        method: 'POST',
-        body: form
-      });
-
-      if (!res.ok) {
-        throw new Error(`Ошибка сервера: ${res.status} ${res.statusText}`);
-      }
-
-      if (onProgress) onProgress(100);
-      const json = await res.json();
-      if (!json.reportId) {
-        throw new Error('Сервер не вернул номер отчета');
-      }
-      return json.reportId;
-    }
-
-    if (onProgress) onProgress(100);
-    const simRef = 'REF-' + Math.floor(10000 + Math.random() * 90000);
-    return simRef;
+  private findIngestUrl(): string | null {
+    const apiUrl = (this.options?.apiUrl ?? SCRIPT_ORIGIN ?? '').replace(/\/+$/, '');
+    return apiUrl ? `${apiUrl}/api/v1/ingest/${encodeURIComponent(this.projectKey)}/reports` : null;
   }
 
   private getIngestUrl(): string {
-    return `${this.options?.apiUrl}/api/v1/ingest/${encodeURIComponent(this.projectKey)}/reports`;
+    const ingestUrl = this.findIngestUrl();
+    if (!ingestUrl) {
+      throw new Error('LabReporter: set apiUrl in init(), the service address is unknown');
+    }
+    return ingestUrl;
+  }
+
+  private debugLog(...values: unknown[]): void {
+    if (this.options?.debug) {
+      console.log('[LabReporter]', ...values);
+    }
   }
 
   // --- КОНТЕКСТ ДАННЫХ ---
@@ -275,6 +290,10 @@ class LabBugReporter {
     console.log('Recording Start Time:', this.recorder.getStartTime());
     console.groupEnd();
   }
+}
+
+function videoExtension(video: Blob): string {
+  return video.type.includes('mp4') ? 'mp4' : 'webm';
 }
 
 const LabReporter = new LabBugReporter();

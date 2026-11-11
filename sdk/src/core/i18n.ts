@@ -33,6 +33,8 @@ export interface Translations {
   removeAttachment: string;
   screenshotItem: string;
   videoItem: string;
+  /** Shown on the recording bar near the limit; {seconds} becomes the seconds left. */
+  recordingTimeLeft: string;
 }
 
 const translations: Record<SupportedLang, Translations> = {
@@ -62,7 +64,8 @@ const translations: Record<SupportedLang, Translations> = {
     recordingTitle: 'Идет запись экрана',
     removeAttachment: 'Удалить',
     screenshotItem: 'Скриншот',
-    videoItem: 'Видеозапись'
+    videoItem: 'Видеозапись',
+    recordingTimeLeft: 'осталось {seconds} с'
   },
   kk: {
     launcherText: 'Көмек',
@@ -90,7 +93,8 @@ const translations: Record<SupportedLang, Translations> = {
     recordingTitle: 'Экран жазылуда',
     removeAttachment: 'Жою',
     screenshotItem: 'Скриншот',
-    videoItem: 'Бейнежазба'
+    videoItem: 'Бейнежазба',
+    recordingTimeLeft: '{seconds} с қалды'
   },
   en: {
     launcherText: 'Get help',
@@ -118,7 +122,8 @@ const translations: Record<SupportedLang, Translations> = {
     recordingTitle: 'Recording screen',
     removeAttachment: 'Remove',
     screenshotItem: 'Screenshot',
-    videoItem: 'Screen recording'
+    videoItem: 'Screen recording',
+    recordingTimeLeft: '{seconds}s left'
   }
 };
 
