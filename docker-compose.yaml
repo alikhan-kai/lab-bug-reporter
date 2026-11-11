@@ -45,6 +45,8 @@ services:
       # The address browsers use. It becomes the token issuer, so the service checks tokens against it.
       KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # Filled into the dashboard client's redirect URIs when the realm is imported.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
     volumes:
       - ./infra/keycloak:/opt/keycloak/data/import:ro
 

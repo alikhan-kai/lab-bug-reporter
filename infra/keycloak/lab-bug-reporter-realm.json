@@ -22,11 +22,11 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*", "http://localhost:8080/*"],
-      "webOrigins": ["http://localhost:3000", "http://localhost:8080"],
+      "redirectUris": ["http://localhost:3000/*", "${PUBLIC_BASE_URL:http://localhost:8080}/*"],
+      "webOrigins": ["http://localhost:3000", "${PUBLIC_BASE_URL:http://localhost:8080}"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:8080/*"
+        "post.logout.redirect.uris": "http://localhost:3000/*##${PUBLIC_BASE_URL:http://localhost:8080}/*"
       },
       "protocolMappers": [
         {
