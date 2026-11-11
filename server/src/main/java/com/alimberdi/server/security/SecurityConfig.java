@@ -43,7 +43,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.PATCH, "/api/v1/reports/**").hasAnyRole(ADMIN, TRIAGER)
 						.requestMatchers(HttpMethod.DELETE, "/api/v1/reports/**").hasRole(ADMIN)
 						.requestMatchers("/api/**").hasAnyRole(ADMIN, TRIAGER, VIEWER)
-						// Outside the API are only the public SDK script and the dashboard's static files.
+						// Outside the API are only the public SDK script, the dashboard's static files and the API
+						// description (/v3/api-docs, /swagger-ui), which hold nothing secret.
 						.anyRequest().permitAll())
 				.oauth2ResourceServer(resourceServer -> resourceServer
 						.jwt(jwt -> jwt.jwtAuthenticationConverter(new TokenUserConverter(authProperties)))
