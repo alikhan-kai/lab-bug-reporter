@@ -81,6 +81,8 @@
   </style>
 
   <script src="../sdk/dist/sdk.js"></script>
+  <!-- In Docker Compose nginx serves the reporter address here; with npx serve the page falls back to localhost. -->
+  <script src="config.js"></script>
 </head>
 <body>
   <header>
@@ -119,8 +121,14 @@
         <!-- 3. Обычная ошибка -->
         <button class="danger" id="btn-buggy-action">💥 3. Ошибка JS в консоль</button>
 
-        <!-- 4. Проверка Debug State -->
-        <button class="secondary" id="btn-debug-state">🔍 4. Показать логи в консоли F12</button>
+        <!-- 4. Ответ сервера 500 -->
+        <button class="danger" id="btn-server-error">🔥 4. Ответ сервера 500</button>
+
+        <!-- 5. Запрос с заголовком Authorization -->
+        <button class="secondary" id="btn-auth-request">🔑 5. Запрос с Authorization</button>
+
+        <!-- 6. Проверка Debug State -->
+        <button class="secondary" id="btn-debug-state">🔍 6. Показать логи в консоли F12</button>
       </div>
 
       <p id="hang-status" style="font-size: 12px; color: #0284c7; margin-top: 10px; display: none;">
@@ -149,7 +157,7 @@
       projectKey: "pk_sdu_portal_2026",
       widget: true,
       appVersion: "2.15.0",
-      apiUrl: "http://localhost:8080"
+      apiUrl: window.LAB_DEMO_CONFIG?.apiUrl ?? "http://localhost:8080"
     });
 
     // 2. Вход
@@ -177,10 +185,8 @@
     // 4. Зависший запрос (Hanging request)
     document.getElementById('btn-hang-request').addEventListener('click', () => {
       hangStatus.style.display = 'block';
-      // Имитируем запрос к зависшему серверу через вечный Promise
-      fetch('https://httpstat.us/200?sleep=120000', {
-        headers: { 'Authorization': 'Bearer secret_alice' }
-      }).catch(() => {});
+      // nginx демо-сайта держит этот запрос открытым 10 минут
+      fetch('/demo-api/hang').catch(() => {});
     });
 
     // 5. Упавший запрос (status = null)
@@ -190,12 +196,22 @@
       alert("Сетевой запрос упал. В SDK он сохранен со статусом null и текстом ошибки.");
     });
 
-    // 6. Ошибка JS
+    // 6. Ответ 500
+    document.getElementById('btn-server-error').addEventListener('click', () => {
+      fetch('/demo-api/server-error', { method: 'POST', body: JSON.stringify({ file: 'scan-03.tif' }) }).catch(() => {});
+    });
+
+    // 7. Запрос с Authorization: в отчёте значение заголовка будет [REDACTED]
+    document.getElementById('btn-auth-request').addEventListener('click', () => {
+      fetch('/demo-api/profile', { headers: { 'Authorization': 'Bearer secret_alice' } }).catch(() => {});
+    });
+
+    // 8. Ошибка JS
     document.getElementById('btn-buggy-action').addEventListener('click', () => {
       console.error(new TypeError("PaymentGatewayException: Kaspi API timeout"));
     });
 
-    // 7. Debug
+    // 9. Debug
     document.getElementById('btn-debug-state').addEventListener('click', () => {
       LabReporter.getDebugState();
     });
