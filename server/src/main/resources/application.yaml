@@ -41,6 +41,13 @@ spring:
           jwk-set-uri: ${OIDC_JWK_SET_URI:${OIDC_ISSUER:http://localhost:8081/realms/lab-bug-reporter}/protocol/openid-connect/certs}
           audiences: ${OIDC_AUDIENCE:lab-bug-reporter-api}
 
+# The API description at /v3/api-docs and Swagger UI at /swagger-ui/index.html.
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:true}
+
 app:
   dashboard:
     oidc-issuer: ${spring.security.oauth2.resourceserver.jwt.issuer-uri}
