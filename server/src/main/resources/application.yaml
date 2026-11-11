@@ -16,9 +16,6 @@ spring:
   application:
     name: server
 
-  profiles:
-    active: dev
-
   jpa:
     hibernate:
       ddl-auto: validate
