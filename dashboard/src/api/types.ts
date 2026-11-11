@@ -13,6 +13,13 @@ export interface VisibleProject {
   name: string;
 }
 
+/** Login settings from `GET /dashboard-config`, the only call made without a token. */
+export interface DashboardConfig {
+  keycloakUrl: string;
+  keycloakRealm: string;
+  keycloakClientId: string;
+}
+
 export interface CurrentUser {
   id: string;
   username: string;

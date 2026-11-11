@@ -11,7 +11,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * The ingest endpoint is public: the project key and origin check protect it. The rest of the API
+ * The ingest endpoint is public: the project key and origin check protect it. So are the dashboard's login
+ * settings, which hold nothing secret. The rest of the API
  * needs a Keycloak access token with one of the dashboard roles.
  */
 @Configuration
@@ -37,6 +38,8 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/api/v1/ingest/**").permitAll()
+						// The dashboard needs the login settings before it has a token.
+						.requestMatchers(HttpMethod.GET, "/api/v1/dashboard-config").permitAll()
 						.requestMatchers(HttpMethod.PATCH, "/api/v1/reports/**").hasAnyRole(ADMIN, TRIAGER)
 						.requestMatchers(HttpMethod.DELETE, "/api/v1/reports/**").hasRole(ADMIN)
 						.requestMatchers("/api/**").hasAnyRole(ADMIN, TRIAGER, VIEWER)
