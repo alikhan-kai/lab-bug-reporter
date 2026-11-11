@@ -65,9 +65,13 @@ export const api = {
     request<Partial<ReportContext>>(`/reports/${encodeURIComponent(reportId)}/context`),
 
   // <img> and <video> cannot send the bearer token, so the file is fetched here and shown from a blob URL.
-  fetchAttachment: async (reportId: string, attachmentId: string): Promise<Blob> => {
+  fetchAttachment: async (
+    reportId: string,
+    attachmentId: string,
+    onProgress?: (percent: number) => void
+  ): Promise<Blob> => {
     const response = await send(`/reports/${encodeURIComponent(reportId)}/attachments/${encodeURIComponent(attachmentId)}`);
-    return response.blob();
+    return onProgress ? readWithProgress(response, onProgress) : response.blob();
   },
 
   updateReportStatus: (reportId: string, status: ReportStatus) =>
@@ -77,6 +81,25 @@ export const api = {
     await send(`/reports/${encodeURIComponent(reportId)}`, { method: 'DELETE' });
   },
 };
+
+// Reads the body chunk by chunk to report how much of a large file has arrived.
+async function readWithProgress(response: Response, onProgress: (percent: number) => void): Promise<Blob> {
+  const totalBytes = Number(response.headers.get('Content-Length'));
+  if (!response.body || !totalBytes) {
+    return response.blob();
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let receivedBytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    receivedBytes += value.length;
+    onProgress(Math.min(100, Math.round((receivedBytes / totalBytes) * 100)));
+  }
+  return new Blob(chunks, { type: response.headers.get('Content-Type') ?? '' });
+}
 
 /** A message for the user. The API's own message is shown only for errors it answers on purpose. */
 export function describeError(error: unknown): string {

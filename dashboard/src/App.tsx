@@ -1,9 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReportFilters } from './api/types';
 import { Navbar } from './components/Navbar';
 import { ReportDetailPage } from './components/ReportDetailPage';
 import { ReportList } from './components/ReportList';
 import { useReportList } from './hooks/useReportList';
+import { useReportRoute } from './hooks/useReportRoute';
 
 // The team starts from the reports nobody has looked at yet (ТЗ, раздел 10).
 const DEFAULT_FILTERS: ReportFilters = { project: null, status: 'new', type: null, query: '' };
@@ -12,7 +13,7 @@ const ALL_PROJECTS = 'all';
 export const App: React.FC = () => {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const { reportId, openReport, showList } = useReportRoute();
   const { state: listState, reload } = useReportList(filters, page);
 
   const changeFilters = useCallback((newFilters: ReportFilters) => {
@@ -20,11 +21,22 @@ export const App: React.FC = () => {
     setPage(0);
   }, []);
 
-  // A status change or a delete in the detail view changes the list, so it loads again on the way back.
-  const showList = () => {
-    setSelectedReportId(null);
-    reload();
-  };
+  // A delete or a status change can empty the last page; the list then moves to the page that is now last.
+  useEffect(() => {
+    if (listState.status === 'ready' && listState.page.content.length === 0 && page > 0) {
+      setPage(Math.max(0, listState.page.totalPages - 1));
+    }
+  }, [listState, page]);
+
+  // A status change or a delete in the detail view changes the list, so it loads again on the way back,
+  // also when the way back is the browser's back button.
+  const previousReportId = useRef(reportId);
+  useEffect(() => {
+    if (previousReportId.current !== null && reportId === null) {
+      reload();
+    }
+    previousReportId.current = reportId;
+  }, [reportId, reload]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#090d16', color: '#f8fafc' }}>
@@ -32,14 +44,14 @@ export const App: React.FC = () => {
         currentProject={filters.project ?? ALL_PROJECTS}
         onProjectChange={(project) => {
           changeFilters({ ...filters, project: project === ALL_PROJECTS ? null : project });
-          setSelectedReportId(null);
+          showList();
         }}
-        onHomeClick={showList}
+        onHomeClick={() => (reportId ? showList() : reload())}
       />
 
       <main>
-        {selectedReportId ? (
-          <ReportDetailPage reportId={selectedReportId} onBack={showList} onDeleted={showList} />
+        {reportId ? (
+          <ReportDetailPage key={reportId} reportId={reportId} onBack={showList} onDeleted={showList} />
         ) : (
           <ReportList
             state={listState}
@@ -47,7 +59,7 @@ export const App: React.FC = () => {
             onFiltersChange={changeFilters}
             onPageChange={setPage}
             onRetry={reload}
-            onSelectReport={setSelectedReportId}
+            onSelectReport={openReport}
           />
         )}
       </main>

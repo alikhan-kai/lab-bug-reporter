@@ -22,19 +22,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
   const user = useCurrentUser();
 
   return (
+    // On a phone the user block wraps under the logo instead of pushing the page wider than the screen.
     <header style={{
       background: '#090d16',
       borderBottom: '1px solid #1e293b',
-      padding: '0 28px',
-      height: '56px',
+      padding: '10px 16px',
+      minHeight: '56px',
+      boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '10px 16px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px 24px', flexWrap: 'wrap', minWidth: 0 }}>
+        <button
+          type="button"
           onClick={onHomeClick}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+          aria-label="К списку отчетов"
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'transparent', border: 'none', padding: 0, color: 'inherit', font: 'inherit' }}
         >
           {/* Аккуратный логотип в стиле campus.codes */}
           <div style={{
@@ -63,10 +69,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
               bug-reporter
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Выпадающий список проектов */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}>
           <select
             aria-label="Проект"
             value={currentProject}
@@ -81,6 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
               fontWeight: 500,
               outline: 'none',
               cursor: 'pointer',
+              maxWidth: '100%',
               transition: 'border-color 0.2s'
             }}
           >
@@ -93,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
       </div>
 
       {/* Пользователь команды (Keycloak User) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0', display: 'block' }}>
             {user.username}

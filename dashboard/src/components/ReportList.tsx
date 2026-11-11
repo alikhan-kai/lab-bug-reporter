@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { ReportFilters, ReportStatus, ReportSummary, ReportType } from '../api/types';
 import type { ReportListState } from '../hooks/useReportList';
+import { reportHref } from '../hooks/useReportRoute';
 import { Bone, SkeletonStyles } from './Skeleton';
 import { StatusBadge } from './StatusBadge';
 
@@ -235,12 +236,9 @@ const SkeletonRows: React.FC = () => (
 );
 
 const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ report, onSelect }) => (
+  // The title link is the keyboard way in; a click anywhere on the row opens the report too.
   <tr
-    tabIndex={0}
     onClick={onSelect}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') onSelect();
-    }}
     style={{
       borderBottom: '1px solid #1e293b',
       cursor: 'pointer',
@@ -257,9 +255,19 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
     </td>
 
     <td style={cellStyle}>
-      <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: '3px', letterSpacing: '-0.1px' }}>
+      {/* A real link, so the report opens in a new tab or its address can be copied. */}
+      <a
+        href={reportHref(report.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          onSelect();
+        }}
+        style={{ display: 'block', fontWeight: 600, color: '#f1f5f9', marginBottom: '3px', letterSpacing: '-0.1px', textDecoration: 'none' }}
+      >
         {report.title}
-      </div>
+      </a>
       <div style={{ color: '#64748b', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
         {report.pageUrl}
       </div>
@@ -342,7 +350,7 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
     </td>
 
     <td style={{ ...cellStyle, color: '#cbd5e1', whiteSpace: 'nowrap', fontSize: '12px' }}>
-      {report.reporter.email ?? report.reporter.id}
+      {report.reporter.email ?? report.reporter.id ?? '—'}
     </td>
 
     <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
