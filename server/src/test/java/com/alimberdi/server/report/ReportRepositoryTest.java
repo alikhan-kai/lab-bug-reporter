@@ -1,5 +1,6 @@
 package com.alimberdi.server.report;
 
+import com.alimberdi.server.TestcontainersConfiguration;
 import com.alimberdi.server.config.JpaAuditingConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,12 +18,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(JpaAuditingConfig.class)
+@Import({JpaAuditingConfig.class, TestcontainersConfiguration.class})
 class ReportRepositoryTest {
 
 	private static final PageRequest NEWEST_FIRST = PageRequest.of(0, 10, Sort.by(Sort.Order.desc("createdAt")));
 
-	// The tests share the dev database, so their reports live in a project of their own.
+	// Each test rolls back, but the database is shared by every test class, so the reports get a project of their own.
 	private final String project = "test-" + UUID.randomUUID();
 
 	@Autowired
