@@ -67,7 +67,7 @@ class ReportServiceTest {
 
 	@Test
 	void returnsEmptyPageForAProjectTheUserCannotSee() {
-		PageResponse<ReportSummaryResponse> page = reportService.findReports(TRIAGER, new ReportFilter("admin-only", null, null, null), 0, 20);
+		PageResponse<ReportSummaryResponse> page = reportService.findReports(TRIAGER, new ReportFilter(Set.of("admin-only"), null, null, null), 0, 20);
 
 		assertThat(page.content()).isEmpty();
 		assertThat(page.size()).isEqualTo(20);

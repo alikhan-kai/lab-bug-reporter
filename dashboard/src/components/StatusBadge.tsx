@@ -1,28 +1,32 @@
+import { Bug, CircleHelp, Lightbulb, type LucideIcon } from 'lucide-react';
 import React from 'react';
-import type { ReportStatus } from '../api/types';
+import type { ReportStatus, ReportType } from '../api/types';
+import styles from './Badges.module.css';
+import ui from './ui.module.css';
 
-const STATUS_LOOK: Record<ReportStatus, { label: string; color: string; background: string; border: string }> = {
-  new: { label: 'Новый', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', border: 'rgba(56, 189, 248, 0.25)' },
-  in_progress: { label: 'В работе', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.25)' },
-  resolved: { label: 'Решено', color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.25)' },
-  wont_fix: { label: 'Отклонено', color: '#94a3b8', background: 'rgba(100, 116, 139, 0.1)', border: 'rgba(100, 116, 139, 0.25)' },
+export const STATUS_LABELS: Record<ReportStatus, string> = {
+  new: 'New',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+  wont_fix: "Won't fix",
 };
 
+export const TYPE_LABELS: Record<ReportType, string> = { bug: 'Bug', feature: 'Feature', question: 'Question' };
+
+export const TYPE_ICONS: Record<ReportType, LucideIcon> = { bug: Bug, feature: Lightbulb, question: CircleHelp };
+
 /** The status of a report as a coloured pill, the same in the list and the detail view. */
-export const StatusBadge: React.FC<{ status: ReportStatus }> = ({ status }) => {
-  const look = STATUS_LOOK[status];
+export const StatusBadge: React.FC<{ status: ReportStatus }> = ({ status }) => (
+  <span className={`${styles.status} ${styles[status]}`}>{STATUS_LABELS[status]}</span>
+);
+
+/** The report type with its icon. `iconOnly` keeps the label for screen readers and the tooltip. */
+export const TypeBadge: React.FC<{ type: ReportType; iconOnly?: boolean }> = ({ type, iconOnly = false }) => {
+  const Icon = TYPE_ICONS[type];
   return (
-    <span style={{
-      background: look.background,
-      color: look.color,
-      border: `1px solid ${look.border}`,
-      padding: '2px 8px',
-      borderRadius: '9999px',
-      fontSize: '11px',
-      fontWeight: 600,
-      letterSpacing: '0.3px'
-    }}>
-      {look.label}
+    <span className={`${styles.type} ${styles[type]}`} title={TYPE_LABELS[type]}>
+      <Icon size={iconOnly ? 16 : 14} aria-hidden="true" />
+      {iconOnly ? <span className={ui.visuallyHidden}>{TYPE_LABELS[type]}</span> : TYPE_LABELS[type]}
     </span>
   );
 };

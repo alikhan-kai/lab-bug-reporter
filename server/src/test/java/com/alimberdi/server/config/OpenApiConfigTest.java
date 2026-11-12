@@ -83,7 +83,7 @@ class OpenApiConfigTest {
 				.andExpect(jsonPath("$.paths['/api/v1/ingest/{projectKey}/reports'].post.responses['413']").exists())
 				.andExpect(jsonPath("$.paths['/api/v1/reports/{reportId}'].patch.responses['403']").exists())
 				.andExpect(jsonPath("$.paths['/api/v1/reports/{reportId}/attachments/{attachmentId}'].get.responses['206']").exists())
-				.andExpect(jsonPath("$.paths['/api/v1/reports'].get.parameters[?(@.name == 'status')].schema.enum[0]").value("new"));
+				.andExpect(jsonPath("$.paths['/api/v1/reports'].get.parameters[?(@.name == 'status')].schema.items.enum[0]").value("new"));
 	}
 
 }

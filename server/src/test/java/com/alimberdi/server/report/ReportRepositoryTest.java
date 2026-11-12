@@ -10,8 +10,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,10 +61,47 @@ class ReportRepositoryTest {
 		reportRepository.save(resolved);
 		reportRepository.flush();
 
-		ReportFilter filter = new ReportFilter(null, ReportStatus.NEW, ReportType.BUG, null);
+		ReportFilter filter = new ReportFilter(null, Set.of(ReportStatus.NEW), Set.of(ReportType.BUG), null);
 		Page<Report> page = reportRepository.findAll(ReportSpecifications.matching(filter, List.of(project)), NEWEST_FIRST);
 
 		assertThat(page.getContent()).extracting(Report::getId).containsExactly(expected.getId());
+	}
+
+	@Test
+	void keepsReportsOfAnySelectedStatus() {
+		Report open = reportRepository.save(report(project, "Still broken", null));
+		Report inProgress = report(project, "Being fixed", null);
+		inProgress.changeStatus(ReportStatus.IN_PROGRESS);
+		reportRepository.save(inProgress);
+		Report resolved = report(project, "Fixed", null);
+		resolved.changeStatus(ReportStatus.RESOLVED);
+		reportRepository.save(resolved);
+		reportRepository.flush();
+
+		ReportFilter filter = new ReportFilter(null, Set.of(ReportStatus.NEW, ReportStatus.IN_PROGRESS), null, null);
+		Page<Report> page = reportRepository.findAll(ReportSpecifications.matching(filter, List.of(project)), NEWEST_FIRST);
+
+		assertThat(page.getContent()).extracting(Report::getId).containsExactlyInAnyOrder(open.getId(), inProgress.getId());
+	}
+
+	@Test
+	void putsNewReportsFirstAndClosedOnesLast() {
+		Report resolved = report(project, "Fixed long ago", null);
+		resolved.changeStatus(ReportStatus.RESOLVED);
+		reportRepository.saveAndFlush(resolved);
+		Report older = reportRepository.saveAndFlush(report(project, "Older new report", null));
+		Report inProgress = report(project, "Being fixed", null);
+		inProgress.changeStatus(ReportStatus.IN_PROGRESS);
+		reportRepository.saveAndFlush(inProgress);
+		Report newer = reportRepository.saveAndFlush(report(project, "Newer new report", null));
+
+		Specification<Report> query = ReportSpecifications.matching(new ReportFilter(null, null, null, null), List.of(project))
+				.and(ReportSpecifications.inTriageOrder());
+		Page<Report> page = reportRepository.findAll(query, PageRequest.of(0, 10));
+
+		assertThat(page.getTotalElements()).isEqualTo(4);
+		assertThat(page.getContent()).extracting(Report::getId)
+				.containsExactly(newer.getId(), older.getId(), inProgress.getId(), resolved.getId());
 	}
 
 	@Test

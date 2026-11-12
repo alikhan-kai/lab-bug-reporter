@@ -24,7 +24,8 @@ COPY server/src ./src
 # Spring Boot serves everything under static/: the dashboard at / and the SDK at /sdk.js.
 COPY --from=dashboard /build/dashboard/dist/ ./src/main/resources/static/
 COPY --from=sdk /build/sdk/dist/sdk.js ./src/main/resources/static/sdk.js
-# The tests need running Postgres and SeaweedFS, so they run with mvn test, not in the image build.
+COPY --from=sdk /build/sdk/dist/sdk-fonts/ ./src/main/resources/static/sdk-fonts/
+# The tests start their own containers through Docker, so they run with mvn test, not in the image build.
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine

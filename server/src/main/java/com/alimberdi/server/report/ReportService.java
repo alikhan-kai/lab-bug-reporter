@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +19,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -34,7 +34,6 @@ import java.util.zip.GZIPInputStream;
 public class ReportService {
 
 	// The id breaks ties between reports created in the same instant, so that pages do not overlap.
-	private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
 
 	private final ReportRepository reportRepository;
 	private final ProjectAccessService projectAccessService;
@@ -43,13 +42,17 @@ public class ReportService {
 	/** Lists the reports of the projects the user can see, newest first. */
 	@Transactional(readOnly = true)
 	public PageResponse<ReportSummaryResponse> findReports(CurrentUser user, ReportFilter filter, int page, int size) {
-		Pageable pageable = PageRequest.of(page, size, NEWEST_FIRST);
-		Map<String, Project> projectsBySlug = findSearchedProjects(user, filter.projectSlug());
+		// The order comes from the specification, which sorts by status before time.
+		Pageable pageable = PageRequest.of(page, size);
+		Map<String, Project> projectsBySlug = findSearchedProjects(user, filter.projectSlugs());
 		if (projectsBySlug.isEmpty()) {
 			return PageResponse.of(Page.empty(pageable));
 		}
 
-		Page<Report> reports = reportRepository.findAll(ReportSpecifications.matching(filter, projectsBySlug.keySet()), pageable);
+		Page<Report> reports = reportRepository.findAll(
+				ReportSpecifications.matching(filter, projectsBySlug.keySet()).and(ReportSpecifications.inTriageOrder()),
+				pageable
+		);
 		return PageResponse.of(reports.map(report -> ReportSummaryResponse.of(report, projectsBySlug.get(report.getProjectSlug()))));
 	}
 
@@ -93,9 +96,10 @@ public class ReportService {
 		objectStorage.deleteAll(objectKeysOf(report));
 	}
 
-	private Map<String, Project> findSearchedProjects(CurrentUser user, String projectSlug) {
+	// Projects the user cannot see are dropped, so asking for one gives an empty page, not an error.
+	private Map<String, Project> findSearchedProjects(CurrentUser user, Set<String> projectSlugs) {
 		return projectAccessService.findVisible(user).stream()
-				.filter(project -> projectSlug == null || project.slug().equals(projectSlug))
+				.filter(project -> projectSlugs.isEmpty() || projectSlugs.contains(project.slug()))
 				.collect(Collectors.toMap(Project::slug, Function.identity()));
 	}
 

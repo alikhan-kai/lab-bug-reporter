@@ -3,81 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SDU Student Portal — Тестирование обновленного SDK</title>
+  <title>SDU Portal — Курсы</title>
   <style>
+    :root {
+      --canvas: #f8f9fa;
+      --surface: #ffffff;
+      --muted: #f0f1f3;
+      --line: #dee2e6;
+      --ink: #1c1c2e;
+      --ink-muted: #6b7280;
+      --accent: #4c9be8;
+      --accent-hover: #3a80c9;
+      --on-accent: #ffffff;
+      --navy: #1b4b6f;
+      --danger: #b91c1c;
+      --success: #2f6b12;
+      --warning: #b45309;
+      color-scheme: light;
+    }
+    .dark {
+      --canvas: #25272c;
+      --surface: #2b2e34;
+      --muted: #33363d;
+      --line: #3b3f47;
+      --ink: #e8eaed;
+      --ink-muted: #9aa0a9;
+      --accent: #b8f7e4;
+      --accent-hover: #9eebd5;
+      --on-accent: #1e2024;
+      --navy: #e8eaed;
+      --danger: #f5a3a3;
+      --success: #c9e8b0;
+      --warning: #f2c46b;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 20px;
-      color: #1e293b;
-      background: #f8fafc;
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--canvas);
     }
     header {
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+    .bar {
+      max-width: 1080px;
+      margin: 0 auto;
+      height: 56px;
+      padding: 0 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
+      gap: 28px;
     }
-    h1 { margin: 0; font-size: 22px; color: #0f172a; }
-    .card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    .logo { font-weight: 700; font-size: 17px; color: var(--navy); }
+    .logo span { color: var(--accent); }
+    nav { display: flex; gap: 4px; }
+    nav a {
+      padding: 6px 12px;
+      color: var(--ink-muted);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
     }
-    button {
-      padding: 9px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      transition: all 0.2s;
-    }
-    button.primary { background: #0284c7; color: white; }
-    button.primary:hover { background: #0369a1; }
-    button.danger { background: #ef4444; color: white; }
-    button.danger:hover { background: #dc2626; }
-    button.secondary { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
-    button.secondary:hover { background: #e2e8f0; }
-    .lang-switcher {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      background: #e2e8f0;
-      padding: 3px;
-      border-radius: 6px;
-    }
-    .lang-btn {
-      padding: 4px 8px;
-      font-size: 11px;
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .bar-end { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .segmented { display: flex; padding: 2px; border-radius: 6px; background: var(--muted); }
+    .segmented button {
+      height: 26px;
+      padding: 0 8px;
+      border: none;
       border-radius: 4px;
       background: transparent;
-      border: none;
-      color: #475569;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .lang-btn.active {
-      background: white;
-      color: #0284c7;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 6px;
+      color: var(--ink-muted);
+      font: inherit;
       font-size: 12px;
       font-weight: 600;
+      cursor: pointer;
     }
-    .badge-ok { background: #dcfce7; color: #166534; }
+    .segmented button.active { background: var(--surface); color: var(--ink); }
+    main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .lead { margin: 0 0 24px; color: var(--ink-muted); }
+    .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .card h2 { margin: 0; padding: 14px 18px; font-size: 15px; border-bottom: 1px solid var(--line); }
+    .card .body { padding: 16px 18px; }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .row:last-child { border-bottom: none; }
+    .row small { display: block; color: var(--ink-muted); }
+    .btn {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--muted); }
+    .btn.primary { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+    .btn.primary:hover { background: var(--accent-hover); }
+    .note { margin: 10px 0 0; font-size: 13px; color: var(--ink-muted); min-height: 20px; }
+    .note.error { color: var(--danger); }
+    .note.ok { color: var(--success); }
+    .note.wait { color: var(--warning); }
+    dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
+    dt { color: var(--ink-muted); }
+    dd { margin: 0; }
+    footer { margin-top: 32px; color: var(--ink-muted); font-size: 12px; }
+    footer button { padding: 0; border: none; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+    @media (max-width: 760px) {
+      nav { display: none; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 
   <script src="../sdk/dist/sdk.js"></script>
@@ -86,135 +138,168 @@
 </head>
 <body>
   <header>
-    <div>
-      <h1>SDU Student Portal (Демо)</h1>
-      <p style="margin: 4px 0 0 0; color: #64748b; font-size: 13px;">Тестирование доработок SDK и мультиязычности</p>
-    </div>
-    
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <!-- Переключатель языков (i18n) -->
-      <div class="lang-switcher">
-        <button class="lang-btn" data-lang="kk">KZ</button>
-        <button class="lang-btn active" data-lang="ru">RU</button>
-        <button class="lang-btn" data-lang="en">EN</button>
+    <div class="bar">
+      <div class="logo">SDU<span>Portal</span></div>
+      <nav aria-label="Разделы">
+        <a href="#" class="active">Курсы</a>
+        <a href="#">Расписание</a>
+        <a href="#">Оценки</a>
+      </nav>
+      <div class="bar-end">
+        <div class="segmented" role="group" aria-label="Язык виджета">
+          <button type="button" class="lang-btn" data-lang="kk">KZ</button>
+          <button type="button" class="lang-btn active" data-lang="ru">RU</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <div class="segmented" role="group" aria-label="Тема">
+          <button type="button" class="theme-btn active" data-theme="light">Светлая</button>
+          <button type="button" class="theme-btn" data-theme="dark">Темная</button>
+        </div>
+        <button type="button" class="btn primary" id="btn-login">Войти</button>
+        <span id="auth-status" hidden></span>
       </div>
-
-      <button class="primary" id="btn-login">Войти как Alice</button>
-      <span id="auth-status" class="badge badge-ok" style="display: none;"></span>
     </div>
   </header>
 
   <main>
-    <div class="card">
-      <h3>Тестирование доработок:</h3>
-      <p style="font-size: 13px; color: #64748b;">
-        Нажмите эти кнопки для проверки перехвата сбоев и зависших запросов по обновленным требованиям:
-      </p>
+    <h1>Алгоритмы и структуры данных</h1>
+    <p class="lead">Осенний семестр 2026 · преподаватель А. Нурланов</p>
 
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <!-- 1. Зависший запрос -->
-        <button class="secondary" id="btn-hang-request">⏳ 1. Запустить зависший запрос (Hanging)</button>
-        
-        <!-- 2. Упавший запрос с пустым статусом -->
-        <button class="secondary" id="btn-failed-request">⚡ 2. Упавший запрос сети (status = null)</button>
-        
-        <!-- 3. Обычная ошибка -->
-        <button class="danger" id="btn-buggy-action">💥 3. Ошибка JS в консоль</button>
-
-        <!-- 4. Ответ сервера 500 -->
-        <button class="danger" id="btn-server-error">🔥 4. Ответ сервера 500</button>
-
-        <!-- 5. Запрос с заголовком Authorization -->
-        <button class="secondary" id="btn-auth-request">🔑 5. Запрос с Authorization</button>
-
-        <!-- 6. Проверка Debug State -->
-        <button class="secondary" id="btn-debug-state">🔍 6. Показать логи в консоли F12</button>
+    <div class="grid">
+      <div class="card">
+        <h2>Задания</h2>
+        <div class="row">
+          <div>Лабораторная 3: деревья отрезков<small>Срок сдачи 14 ноября, 23:59</small></div>
+          <!-- The upload endpoint of the demo site answers 500. -->
+          <button type="button" class="btn primary" id="btn-server-error">Загрузить решение</button>
+        </div>
+        <div class="row">
+          <div>Расписание консультаций<small>Обновляется из деканата</small></div>
+          <!-- The demo nginx keeps this request open for ten minutes. -->
+          <button type="button" class="btn" id="btn-hang-request">Обновить</button>
+        </div>
+        <div class="row">
+          <div>Календарь курса<small>Синхронизация с внешним календарем</small></div>
+          <!-- The calendar host does not exist, so the request fails with a network error. -->
+          <button type="button" class="btn" id="btn-failed-request">Синхронизировать</button>
+        </div>
+        <div class="row">
+          <div>Оплата за семестр<small>Kaspi, 450 000 ₸</small></div>
+          <!-- Logs a payment error to the console. -->
+          <button type="button" class="btn" id="btn-buggy-action">Оплатить</button>
+        </div>
+        <div class="body">
+          <p class="note" id="action-status" role="status"></p>
+          <p class="note wait" id="hang-status" hidden>
+            Расписание еще загружается. Если сейчас отправить отчет, запрос попадет в него как незавершенный.
+          </p>
+        </div>
       </div>
 
-      <p id="hang-status" style="font-size: 12px; color: #0284c7; margin-top: 10px; display: none;">
-        ⏳ Зависший запрос активен и слушается в фоне. Если прямо сейчас нажать «Отправить отчет» в виджете, запрос попадет в отчет с пометкой <code>pending: true</code> и пустым <code>status: null</code>!
-      </p>
+      <div class="card">
+        <h2>Профиль</h2>
+        <div class="body">
+          <dl>
+            <dt>Студент</dt><dd id="profile-name">—</dd>
+            <dt>Группа</dt><dd>CS-23-2</dd>
+            <dt>Почта</dt><dd id="profile-email">—</dd>
+          </dl>
+          <p class="note">Не работает что-то на странице? Нажмите «Помощь» в правом нижнем углу.</p>
+          <!-- Sends a token in Authorization; the report shows it as [REDACTED]. -->
+          <button type="button" class="btn" id="btn-auth-request">Обновить профиль</button>
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>Что изменилось в виджете «Помощь»:</h3>
-      <ul style="font-size: 13px; color: #475569; line-height: 1.8;">
-        <li><strong>Мультиязычность:</strong> Нажмите KZ / RU / EN в шапке — интерфейс виджета мгновенно переведется на казахский, русский или английский!</li>
-        <li><strong>До 5 скриншотов:</strong> Теперь можно прикреплять до 5 снимков экрана с индикатором <code>(X/5)</code>.</li>
-        <li><strong>Прогресс-бар и Retry:</strong> При отправке плавно бежит полоса загрузки, а при сбое вместо <code>alert()</code> появляется аккуратный блок ошибки и кнопка «Повторить».</li>
-        <li><strong>Точечная маскировка:</strong> Маскируются <em>только</em> заголовки <code>Authorization</code>, <code>Cookie</code> и <code>Set-Cookie</code>.</li>
-      </ul>
-    </div>
+    <footer>
+      Демо-сайт Lab Bug Reporter. <button type="button" id="btn-debug-state">Показать состояние SDK в консоли</button>
+    </footer>
   </main>
 
   <script>
-    const loginBtn = document.getElementById('btn-login');
+    const loginButton = document.getElementById('btn-login');
     const authStatus = document.getElementById('auth-status');
+    const actionStatus = document.getElementById('action-status');
     const hangStatus = document.getElementById('hang-status');
 
-    // 1. Инициализация SDK с автоопределением языка
+    function showStatus(text, kind) {
+      actionStatus.textContent = text;
+      actionStatus.className = 'note ' + (kind || '');
+    }
+
     LabReporter.init({
-      projectKey: "pk_sdu_portal_2026",
-      widget: true,
-      appVersion: "2.15.0",
-      apiUrl: window.LAB_DEMO_CONFIG?.apiUrl ?? "http://localhost:8080"
+      projectKey: 'pk_sdu_portal_2026',
+      appVersion: '2.15.0',
+      apiUrl: window.LAB_DEMO_CONFIG?.apiUrl ?? 'http://localhost:8080'
     });
 
-    // 2. Вход
-    loginBtn.addEventListener('click', () => {
-      LabReporter.identify({
-        id: "u-1842",
-        email: "alice@sdu.edu.kz"
-      });
-
-      loginBtn.style.display = 'none';
-      authStatus.style.display = 'inline-block';
-      authStatus.innerText = "Alice (alice@sdu.edu.kz)";
+    // The "Помощь" button appears only for a signed-in student.
+    loginButton.addEventListener('click', () => {
+      LabReporter.identify({ id: 'u-1842', email: 'alice@sdu.edu.kz' });
+      loginButton.hidden = true;
+      authStatus.hidden = false;
+      authStatus.textContent = 'Алиса Серикова';
+      document.getElementById('profile-name').textContent = 'Алиса Серикова';
+      document.getElementById('profile-email').textContent = 'alice@sdu.edu.kz';
     });
 
-    // 3. Переключатель языка
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const lang = btn.getAttribute('data-lang');
-        LabReporter.setLanguage(lang);
+    document.querySelectorAll('.lang-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.lang-btn').forEach((other) => other.classList.toggle('active', other === button));
+        LabReporter.setLanguage(button.dataset.lang);
       });
     });
 
-    // 4. Зависший запрос (Hanging request)
+    // The page and the widget switch theme together, as a site with its own theme switch would do.
+    document.querySelectorAll('.theme-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.theme-btn').forEach((other) => other.classList.toggle('active', other === button));
+        document.documentElement.classList.toggle('dark', button.dataset.theme === 'dark');
+        LabReporter.setTheme(button.dataset.theme);
+      });
+    });
+
+    document.getElementById('btn-server-error').addEventListener('click', async () => {
+      showStatus('Загружаем решение…');
+      try {
+        const response = await fetch('/demo-api/server-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assignment: 'lab-3', file: 'segment-tree.cpp' })
+        });
+        if (!response.ok) throw new Error(`Upload failed with status ${response.status}`);
+        showStatus('Решение загружено.', 'ok');
+      } catch (error) {
+        console.error(error);
+        showStatus('Не удалось загрузить решение. Попробуйте позже.', 'error');
+      }
+    });
+
     document.getElementById('btn-hang-request').addEventListener('click', () => {
-      hangStatus.style.display = 'block';
-      // nginx демо-сайта держит этот запрос открытым 10 минут
+      hangStatus.hidden = false;
       fetch('/demo-api/hang').catch(() => {});
     });
 
-    // 5. Упавший запрос (status = null)
-    document.getElementById('btn-failed-request').addEventListener('click', () => {
-      // Запрос на несуществующий домен гарантирует ошибку сети
-      fetch('https://non-existent-domain-sdu-test.kz/api/fail').catch(() => {});
-      alert("Сетевой запрос упал. В SDK он сохранен со статусом null и текстом ошибки.");
+    document.getElementById('btn-failed-request').addEventListener('click', async () => {
+      try {
+        await fetch('https://calendar.sdu-portal.invalid/api/sync');
+      } catch (error) {
+        console.warn('Calendar sync failed', error);
+        showStatus('Календарь недоступен. Синхронизация не выполнена.', 'error');
+      }
     });
 
-    // 6. Ответ 500
-    document.getElementById('btn-server-error').addEventListener('click', () => {
-      fetch('/demo-api/server-error', { method: 'POST', body: JSON.stringify({ file: 'scan-03.tif' }) }).catch(() => {});
+    document.getElementById('btn-auth-request').addEventListener('click', async () => {
+      const response = await fetch('/demo-api/profile', { headers: { Authorization: 'Bearer secret_alice' } });
+      showStatus(response.ok ? 'Профиль обновлен.' : 'Профиль не обновился.', response.ok ? 'ok' : 'error');
     });
 
-    // 7. Запрос с Authorization: в отчёте значение заголовка будет [REDACTED]
-    document.getElementById('btn-auth-request').addEventListener('click', () => {
-      fetch('/demo-api/profile', { headers: { 'Authorization': 'Bearer secret_alice' } }).catch(() => {});
-    });
-
-    // 8. Ошибка JS
     document.getElementById('btn-buggy-action').addEventListener('click', () => {
-      console.error(new TypeError("PaymentGatewayException: Kaspi API timeout"));
+      console.error(new TypeError('PaymentGatewayException: Kaspi API timeout'));
+      showStatus('Платеж не прошел. Попробуйте еще раз через несколько минут.', 'error');
     });
 
-    // 9. Debug
-    document.getElementById('btn-debug-state').addEventListener('click', () => {
-      LabReporter.getDebugState();
-    });
+    document.getElementById('btn-debug-state').addEventListener('click', () => LabReporter.getDebugState());
   </script>
 </body>
 </html>

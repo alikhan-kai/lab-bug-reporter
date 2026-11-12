@@ -1,0 +1,489 @@
+/* Top bar: back link and actions */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statusControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink-muted);
+}
+
+.actionError {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}
+
+/* Header: like the title block of a campus.codes problem */
+
+.header {
+  margin-bottom: 24px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 6px;
+  color: var(--color-ink-muted);
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.description {
+  margin: 16px 0 0;
+  max-width: 900px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 24px;
+  margin: 20px 0 0;
+  padding: 14px 18px;
+}
+
+.facts dt {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-bottom: 2px;
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Two columns: media and logs */
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-line);
+  font-weight: 600;
+}
+
+.panelBody {
+  padding: 16px;
+}
+
+.clock {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  background: var(--color-muted);
+  color: var(--color-ink-secondary);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: #000;
+}
+
+.mediaMessage {
+  padding: 56px 16px;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  background: var(--color-muted);
+  color: var(--color-ink-muted);
+}
+
+.mediaError {
+  composes: mediaMessage;
+  color: var(--color-danger);
+}
+
+.videoLoading {
+  position: relative;
+}
+
+.videoProgress {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-secondary);
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.gallery {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+
+.thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thumbnail {
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.thumbnail img {
+  display: block;
+  max-width: 100%;
+  max-height: 140px;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.8);
+  cursor: zoom-out;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+/* Logs: tabs like the campus.codes navigation */
+
+.logs {
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  max-height: 640px;
+}
+
+/* In the fixed-height panel a long log would squeeze the tab bar and push the underline into the labels. */
+.tabs {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--color-line);
+  overflow-x: auto;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 12px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  color: var(--color-ink-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-ink);
+}
+
+.tabActive {
+  composes: tab;
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.tabCount {
+  margin-left: 4px;
+  color: var(--color-ink-muted);
+  font-weight: 400;
+}
+
+.tabPanel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.timeNote {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.filterBar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.filterButtonActive {
+  background: var(--color-accent-soft) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+
+/* Entries: rows like the campus.codes table */
+
+.entry {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-line);
+  border-left: 3px solid transparent;
+}
+
+.entrySeekable {
+  composes: entry;
+  cursor: pointer;
+}
+
+.entrySeekable:hover {
+  background: var(--color-muted);
+}
+
+.entryPlaying {
+  background: var(--color-accent-soft) !important;
+  border-left-color: var(--color-accent);
+}
+
+.entryFailed {
+  border-left-color: var(--color-danger);
+}
+
+.entryPending {
+  border-left-color: var(--color-warning);
+}
+
+.entryLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.entryTime {
+  composes: clock;
+  flex-shrink: 0;
+}
+
+.method {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  color: var(--color-ink-secondary);
+}
+
+.httpStatus {
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: var(--text-xs);
+}
+
+.succeeded {
+  color: var(--color-success);
+}
+
+.failed {
+  color: var(--color-danger);
+}
+
+.pending {
+  color: var(--color-warning);
+}
+
+.url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.entryEnd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.level {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.levelError {
+  composes: level;
+  color: var(--color-danger);
+}
+
+.levelWarn {
+  composes: level;
+  color: var(--color-warning);
+}
+
+.consoleMessage {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.entryDetails {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  cursor: text;
+}
+
+.breadcrumbKind {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.environment {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+/* Code blocks: the input and output boxes of a campus.codes problem */
+
+.codeBlock {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.codeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background: var(--color-muted);
+  border-bottom: 1px solid var(--color-line);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.codeBody {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 320px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--color-sample);
+  background: var(--color-surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.notice {
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+}
+
+@media (max-width: 640px) {
+  .logs {
+    max-height: 520px;
+  }
+
+  .entryLine {
+    flex-wrap: wrap;
+  }
+
+  .url {
+    flex-basis: 100%;
+    order: 5;
+  }
+}

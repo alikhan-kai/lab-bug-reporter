@@ -92,10 +92,10 @@ export interface ReportDetail {
   updatedAt: string;
 }
 
-/** Filters of the report list. `null` means any value. */
+/** Filters of the report list. A report matches any value of a list; an empty list does not filter. */
 export interface ReportFilters {
-  project: string | null;
-  status: ReportStatus | null;
-  type: ReportType | null;
+  projects: string[];
+  statuses: ReportStatus[];
+  types: ReportType[];
   query: string;
 }

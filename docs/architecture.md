@@ -187,7 +187,9 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 
 Параметры списка: `project` (slug), `status` (`new`, `in_progress`, `resolved`, `wont_fix`), `type` (`bug`, `feature`,
 `question`), `q` (поиск без учёта регистра по заголовку и описанию), `page` (с 0) и `size` (по умолчанию 20, не больше
-100). Сортировка всегда от новых к старым. Без `project` ищется во всех видимых проектах.
+100). `project`, `status` и `type` можно повторить, например `?status=new&status=in_progress`: тогда подходит любое из
+значений. Порядок для разбора: сначала `new`, затем `in_progress`, `resolved`, `wont_fix`, внутри статуса от новых к
+старым. Без `project` ищется во всех видимых проектах.
 
 ```json
 {
@@ -331,13 +333,16 @@ sdk/src/
   index.ts              публичный API: init, identify, submitReport и другие
   core/                 буферы, перехват console и network, окружение, маскировка
   core/capture/         скриншот и запись экрана
-  widget/               кнопка и боковая панель в Shadow DOM
+  widget/               кнопка и боковая панель в Shadow DOM: токены campus.codes, иконки lucide, шрифт Inter
+sdk/scripts/            копирование шрифта Inter в dist/sdk-fonts при сборке
 
 dashboard/src/
   auth/                 вход через Keycloak и текущий пользователь
   api/                  единый API-клиент и типы ответов сервера
-  hooks/                загрузка списка, отчёта и файлов
-  components/           список и карточка отчёта, skeleton-заглушки
+  hooks/                загрузка списка, отчёта и файлов, адрес отчёта, тема
+  report/               расчёт времени событий и описание окружения
+  styles/tokens.css     токены campus.codes: цвета светлой и тёмной темы, радиусы, тени, шрифт
+  components/           список и карточка отчёта, skeleton-заглушки; стили в CSS Modules рядом
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
 infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
