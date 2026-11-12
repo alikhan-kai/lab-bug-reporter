@@ -187,7 +187,8 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 
 Параметры списка: `project` (slug), `status` (`new`, `in_progress`, `resolved`, `wont_fix`), `type` (`bug`, `feature`,
 `question`), `q` (поиск без учёта регистра по заголовку и описанию), `page` (с 0) и `size` (по умолчанию 20, не больше
-100). Сортировка всегда от новых к старым. Без `project` ищется во всех видимых проектах.
+100). `project`, `status` и `type` можно повторить, например `?status=new&status=in_progress`: тогда подходит любое из
+значений. Сортировка всегда от новых к старым. Без `project` ищется во всех видимых проектах.
 
 ```json
 {

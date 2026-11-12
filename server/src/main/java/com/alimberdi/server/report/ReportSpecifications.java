@@ -16,16 +16,16 @@ final class ReportSpecifications {
 	private ReportSpecifications() {
 	}
 
-	/** Reports from the given projects that match the status, type and text search of the filter. */
+	/** Reports from the given projects that match the statuses, types and text search of the filter. */
 	static Specification<Report> matching(ReportFilter filter, Collection<String> projectSlugs) {
 		return (root, query, builder) -> {
 			List<Predicate> predicates = new ArrayList<>();
 			predicates.add(root.get("projectSlug").in(projectSlugs));
-			if (filter.status() != null) {
-				predicates.add(builder.equal(root.get("status"), filter.status()));
+			if (!filter.statuses().isEmpty()) {
+				predicates.add(root.get("status").in(filter.statuses()));
 			}
-			if (filter.type() != null) {
-				predicates.add(builder.equal(root.get("type"), filter.type()));
+			if (!filter.types().isEmpty()) {
+				predicates.add(root.get("type").in(filter.types()));
 			}
 			if (filter.hasQuery()) {
 				String pattern = "%" + escapeLike(filter.query().trim().toLowerCase(Locale.ROOT)) + "%";

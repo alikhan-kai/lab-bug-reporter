@@ -20,6 +20,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,7 +45,7 @@ public class ReportService {
 	@Transactional(readOnly = true)
 	public PageResponse<ReportSummaryResponse> findReports(CurrentUser user, ReportFilter filter, int page, int size) {
 		Pageable pageable = PageRequest.of(page, size, NEWEST_FIRST);
-		Map<String, Project> projectsBySlug = findSearchedProjects(user, filter.projectSlug());
+		Map<String, Project> projectsBySlug = findSearchedProjects(user, filter.projectSlugs());
 		if (projectsBySlug.isEmpty()) {
 			return PageResponse.of(Page.empty(pageable));
 		}
@@ -93,9 +94,10 @@ public class ReportService {
 		objectStorage.deleteAll(objectKeysOf(report));
 	}
 
-	private Map<String, Project> findSearchedProjects(CurrentUser user, String projectSlug) {
+	// Projects the user cannot see are dropped, so asking for one gives an empty page, not an error.
+	private Map<String, Project> findSearchedProjects(CurrentUser user, Set<String> projectSlugs) {
 		return projectAccessService.findVisible(user).stream()
-				.filter(project -> projectSlug == null || project.slug().equals(projectSlug))
+				.filter(project -> projectSlugs.isEmpty() || projectSlugs.contains(project.slug()))
 				.collect(Collectors.toMap(Project::slug, Function.identity()));
 	}
 

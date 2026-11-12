@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Set;
 import java.util.UUID;
 
 /** Reports for the dashboard. Which roles may call what is set in {@code SecurityConfig}. */
@@ -50,9 +51,9 @@ public class ReportController {
 	@GetMapping
 	public PageResponse<ReportSummaryResponse> getReports(
 			@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user,
-			@Parameter(description = "Project slug") @RequestParam(required = false) String project,
-			@RequestParam(required = false) ReportStatus status,
-			@RequestParam(required = false) ReportType type,
+			@Parameter(description = "Project slugs; repeat the parameter for several") @RequestParam(required = false) Set<String> project,
+			@Parameter(description = "Statuses; repeat the parameter for several") @RequestParam(required = false) Set<ReportStatus> status,
+			@Parameter(description = "Types; repeat the parameter for several") @RequestParam(required = false) Set<ReportType> type,
 			@Parameter(description = "Case-insensitive search in title and description") @RequestParam(required = false) String q,
 			@RequestParam(defaultValue = "0") @Min(0) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(MAX_PAGE_SIZE) int size

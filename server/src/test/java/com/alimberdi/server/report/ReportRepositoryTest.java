@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,10 +60,27 @@ class ReportRepositoryTest {
 		reportRepository.save(resolved);
 		reportRepository.flush();
 
-		ReportFilter filter = new ReportFilter(null, ReportStatus.NEW, ReportType.BUG, null);
+		ReportFilter filter = new ReportFilter(null, Set.of(ReportStatus.NEW), Set.of(ReportType.BUG), null);
 		Page<Report> page = reportRepository.findAll(ReportSpecifications.matching(filter, List.of(project)), NEWEST_FIRST);
 
 		assertThat(page.getContent()).extracting(Report::getId).containsExactly(expected.getId());
+	}
+
+	@Test
+	void keepsReportsOfAnySelectedStatus() {
+		Report open = reportRepository.save(report(project, "Still broken", null));
+		Report inProgress = report(project, "Being fixed", null);
+		inProgress.changeStatus(ReportStatus.IN_PROGRESS);
+		reportRepository.save(inProgress);
+		Report resolved = report(project, "Fixed", null);
+		resolved.changeStatus(ReportStatus.RESOLVED);
+		reportRepository.save(resolved);
+		reportRepository.flush();
+
+		ReportFilter filter = new ReportFilter(null, Set.of(ReportStatus.NEW, ReportStatus.IN_PROGRESS), null, null);
+		Page<Report> page = reportRepository.findAll(ReportSpecifications.matching(filter, List.of(project)), NEWEST_FIRST);
+
+		assertThat(page.getContent()).extracting(Report::getId).containsExactlyInAnyOrder(open.getId(), inProgress.getId());
 	}
 
 	@Test
