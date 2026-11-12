@@ -23,11 +23,12 @@ interface ReportLogsProps {
 export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canSeek, hasVideo, currentTime, onSeek }) => {
   const [activeTab, setActiveTab] = useState<LogTab>('network');
 
+  // Events from before the recording keep a negative time, so they do not all read as 0:00 and light up with it.
   const timeline: Timeline = {
-    offsetOf: (time) => (timeOrigin === null ? 0 : Math.max(0, (time - timeOrigin) / 1000)),
-    isPlayingAt: (offset) => canSeek && Math.abs(currentTime - offset) < 1.5,
+    offsetOf: (time) => (timeOrigin === null ? 0 : (time - timeOrigin) / 1000),
+    isPlayingAt: (offset) => canSeek && offset >= 0 && Math.abs(currentTime - offset) < 1.5,
     canSeek,
-    onSeek,
+    onSeek: (offset) => onSeek(Math.max(0, offset)),
   };
 
   const tabs: { id: LogTab; label: string; count?: number }[] = [

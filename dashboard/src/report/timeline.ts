@@ -18,11 +18,13 @@ export function describeRequestDuration(entry: NetworkEntry): string {
   return entry.duration_ms !== null ? formatDuration(entry.duration_ms) : '—';
 }
 
-/** Seconds as m:ss, the way the video player shows time. */
+/** Seconds as m:ss, the way the video player shows time; a moment before the recording gets a minus. */
 export function formatClock(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const restSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${restSeconds < 10 ? '0' : ''}${restSeconds}`;
+  const sign = seconds < 0 ? '-' : '';
+  const wholeSeconds = Math.floor(Math.abs(seconds));
+  const minutes = Math.floor(wholeSeconds / 60);
+  const restSeconds = wholeSeconds % 60;
+  return `${sign}${minutes}:${restSeconds < 10 ? '0' : ''}${restSeconds}`;
 }
 
 /**
