@@ -1,0 +1,56 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.new {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+}
+
+.in_progress {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning-line);
+}
+
+.resolved {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  border-color: var(--color-success-line);
+}
+
+.wont_fix {
+  color: var(--color-ink-secondary);
+  background: var(--color-muted);
+  border-color: var(--color-line);
+}
+
+.type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-ink-secondary);
+}
+
+.bug {
+  color: var(--color-danger);
+}
+
+.feature {
+  color: var(--color-accent);
+}
+
+.question {
+  color: var(--color-ink-secondary);
+}

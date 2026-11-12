@@ -41,9 +41,10 @@ async function toRequestError(response: Response): Promise<ApiRequestError> {
 
 function toReportQuery(filters: ReportFilters, page: number): string {
   const query = new URLSearchParams({ page: String(page), size: String(REPORT_PAGE_SIZE) });
-  if (filters.project) query.set('project', filters.project);
-  if (filters.status) query.set('status', filters.status);
-  if (filters.type) query.set('type', filters.type);
+  // A repeated parameter selects several values.
+  filters.projects.forEach((project) => query.append('project', project));
+  filters.statuses.forEach((status) => query.append('status', status));
+  filters.types.forEach((type) => query.append('type', type));
   if (filters.query.trim()) query.set('q', filters.query.trim());
   return query.toString();
 }
@@ -104,10 +105,10 @@ async function readWithProgress(response: Response, onProgress: (percent: number
 /** A message for the user. The API's own message is shown only for errors it answers on purpose. */
 export function describeError(error: unknown): string {
   if (error instanceof ApiRequestError) {
-    if (error.status === 404) return 'Отчёт не найден или у вас нет доступа к его проекту.';
-    if (error.status === 403) return 'Вашей роли это действие недоступно.';
-    if (error.status >= 500) return 'Сервер не смог выполнить запрос. Попробуйте ещё раз.';
+    if (error.status === 404) return 'Report not found, or you have no access to its project.';
+    if (error.status === 403) return 'Your role does not allow this.';
+    if (error.status >= 500) return 'The server could not complete the request. Try again.';
     return error.message;
   }
-  return 'Не удалось связаться с сервером. Проверьте подключение.';
+  return 'Cannot reach the server. Check your connection.';
 }

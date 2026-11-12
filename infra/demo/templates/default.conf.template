@@ -25,6 +25,11 @@ server {
         proxy_pass http://server:8080/sdk.js;
     }
 
+    # The widget loads its font from next to sdk.js.
+    location /sdk/dist/sdk-fonts/ {
+        proxy_pass http://server:8080/sdk-fonts/;
+    }
+
     location = /demo-api/server-error {
         default_type application/json;
         return 500 '{"error":"internal"}';

@@ -2,9 +2,14 @@ import { widgetStyles } from './tokens.css';
 import { detectLanguage, getTranslations, SupportedLang, Translations } from '../core/i18n';
 import { MAX_RECORDING_SECONDS, RecordingResult } from '../core/capture/recorder';
 import { SubmitError } from '../core/upload';
+import { loadWidgetFont } from './font';
+import { icons } from './icons';
 
 // The recording bar warns this many seconds before the recording stops at the limit.
 const RECORDING_WARNING_SECONDS = 30;
+
+/** light and dark are fixed; system follows the visitor's system setting. */
+export type WidgetTheme = 'light' | 'dark' | 'system';
 
 export interface ReportFormData {
   type: 'bug' | 'feature' | 'question';
@@ -70,10 +75,16 @@ export class BugReporterWidget {
   private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
-  constructor(preferredLang?: string) {
+  constructor(preferredLang?: string, theme: WidgetTheme = 'light') {
     this.lang = detectLanguage(preferredLang);
     this.t = getTranslations(this.lang);
     this.initDOM();
+    this.setTheme(theme);
+  }
+
+  setTheme(theme: WidgetTheme): void {
+    // The styles pick their colours from this attribute on the shadow host.
+    this.host?.setAttribute('data-theme', theme);
   }
 
   setLanguage(lang: SupportedLang): void {
@@ -84,6 +95,7 @@ export class BugReporterWidget {
 
   private initDOM(): void {
     if (typeof document === 'undefined') return;
+    loadWidgetFont();
 
     this.host = document.createElement('div');
     this.host.id = 'lab-reporter-root';
@@ -99,11 +111,7 @@ export class BugReporterWidget {
     container.innerHTML = `
       <!-- Кнопка-лаунчер -->
       <button class="lab-launcher hidden" id="lab-launcher">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
+        ${icons.help(16)}
         <span id="lab-launcher-text">${this.t.launcherText}</span>
       </button>
 
@@ -112,9 +120,7 @@ export class BugReporterWidget {
         <div class="lab-rec-dot"></div>
         <span class="lab-rec-time" id="lab-bar-timer">0:00</span>
         <button class="lab-bar-stop-btn" id="lab-bar-stop" type="button">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <rect width="18" height="18" rx="2"></rect>
-          </svg>
+          ${icons.stop(12)}
           <span id="lab-bar-stop-text">${this.t.btnRecordStop}</span>
         </button>
       </div>
@@ -127,10 +133,7 @@ export class BugReporterWidget {
         <div class="lab-header">
           <h2 id="lab-header-title">${this.t.headerTitle}</h2>
           <button class="lab-close-btn" id="lab-close" type="button" title="${this.t.btnClose}" aria-label="${this.t.btnClose}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ${icons.close(18)}
           </button>
         </div>
 
@@ -138,11 +141,7 @@ export class BugReporterWidget {
         <div class="lab-body" id="lab-form-view">
           <!-- Блок ошибки загрузки (Inline Error с Retry) -->
           <div class="lab-error-banner hidden" id="lab-error-banner">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 1px;">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
+            <span class="lab-error-icon">${icons.alert(16)}</span>
             <span id="lab-error-text">${this.t.errorUploadText}</span>
           </div>
 
@@ -171,17 +170,11 @@ export class BugReporterWidget {
             <label id="lab-label-attachments">${this.t.attachmentsLabel}</label>
             <div class="lab-media-actions">
               <button class="lab-btn-outline" id="lab-btn-screenshot" type="button">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                  <circle cx="12" cy="13" r="4"></circle>
-                </svg>
+                ${icons.camera(16)}
                 <span id="lab-btn-screenshot-text">${this.t.btnScreenshot}</span>
               </button>
               <button class="lab-btn-outline" id="lab-btn-record" type="button">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                </svg>
+                ${icons.video(16)}
                 <span id="lab-record-text">${this.t.btnRecord}</span>
               </button>
             </div>
@@ -193,7 +186,7 @@ export class BugReporterWidget {
 
         <!-- Экран успеха -->
         <div class="lab-success-view" id="lab-success-view">
-          <div class="lab-success-icon">✓</div>
+          <div class="lab-success-icon">${icons.check(26)}</div>
           <h2 style="margin: 0 0 6px 0; font-size: 18px;" id="lab-success-title">${this.t.successTitle}</h2>
           <p style="color: var(--lab-text-muted); font-size: 13px; margin: 0;" id="lab-success-desc">${this.t.successDesc}</p>
           <div class="lab-ref-badge" id="lab-ref-badge"></div>
@@ -524,10 +517,7 @@ export class BugReporterWidget {
       item.className = 'lab-attachment-item';
       item.innerHTML = `
         <div class="lab-attachment-name">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          </svg>
+          ${icons.image(14)}
           <span>${this.t.screenshotItem} ${idx + 1} (${(blob.size / 1024).toFixed(0)} KB)</span>
         </div>
         <button class="lab-btn-remove" data-idx="${idx}">${this.t.removeAttachment}</button>
@@ -545,10 +535,7 @@ export class BugReporterWidget {
       item.className = 'lab-attachment-item';
       item.innerHTML = `
         <div class="lab-attachment-name">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23 7 16 12 23 17 23 7"></polygon>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-          </svg>
+          ${icons.video(14)}
           <span>${this.t.videoItem} (${(this.currentVideoDuration / 1000).toFixed(0)}s)</span>
         </div>
         <button class="lab-btn-remove" id="del-video">${this.t.removeAttachment}</button>

@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -57,9 +58,24 @@ class ReportControllerTest {
 	private ProjectRegistry projectRegistry;
 
 	@Test
+	void takesSeveralValuesOfAFilter() throws Exception {
+		givenToken("viewer-token", "viewer");
+		ReportFilter filter = new ReportFilter(null, Set.of(ReportStatus.NEW, ReportStatus.IN_PROGRESS), Set.of(ReportType.BUG, ReportType.QUESTION), null);
+		when(reportService.findReports(any(), eq(filter), eq(0), eq(20)))
+				.thenReturn(new PageResponse<>(List.of(summary()), 0, 20, 1, 1));
+
+		mockMvc.perform(get(URL)
+						.param("status", "new", "in_progress")
+						.param("type", "bug", "question")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer viewer-token"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1));
+	}
+
+	@Test
 	void listsReportsWithLowercaseFilterValues() throws Exception {
 		givenToken("viewer-token", "viewer");
-		ReportFilter filter = new ReportFilter("demo", ReportStatus.IN_PROGRESS, ReportType.BUG, "upload");
+		ReportFilter filter = new ReportFilter(Set.of("demo"), Set.of(ReportStatus.IN_PROGRESS), Set.of(ReportType.BUG), "upload");
 		when(reportService.findReports(any(), eq(filter), eq(1), eq(10)))
 				.thenReturn(new PageResponse<>(List.of(summary()), 1, 10, 11, 2));
 
