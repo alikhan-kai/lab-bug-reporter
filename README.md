@@ -133,6 +133,9 @@ docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
 </script>
 ```
 
+Виджет оформлен по токенам campus.codes. Сайт может поменять любой из них, например акцент:
+`#lab-reporter-root { --lab-primary: #7c3aed; }`.
+
 В `projects-dev.yaml` разрешены адреса `localhost:3000` и `localhost:5500`. Файл проектов монтируется в контейнер
 (`/app/config/projects.yaml`), поэтому для нового сайта достаточно поправить файл и выполнить `docker compose restart server`.
 

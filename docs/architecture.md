@@ -331,7 +331,8 @@ sdk/src/
   index.ts              публичный API: init, identify, submitReport и другие
   core/                 буферы, перехват console и network, окружение, маскировка
   core/capture/         скриншот и запись экрана
-  widget/               кнопка и боковая панель в Shadow DOM
+  widget/               кнопка и боковая панель в Shadow DOM: токены campus.codes, иконки lucide, шрифт Inter
+sdk/scripts/            копирование шрифта Inter в dist/sdk-fonts при сборке
 
 dashboard/src/
   auth/                 вход через Keycloak и текущий пользователь
