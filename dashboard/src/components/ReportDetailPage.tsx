@@ -6,7 +6,9 @@ import { canChangeStatus, canDeleteReports } from '../auth/permissions';
 import { useReportMedia, useReportView } from '../hooks/useReportView';
 import type { ReportView } from '../types';
 import { ReportDetail } from './ReportDetail';
-import { Bone, SkeletonStyles } from './Skeleton';
+import styles from './ReportDetail.module.css';
+import { Bone } from './Skeleton';
+import ui from './ui.module.css';
 
 interface ReportDetailPageProps {
   reportId: string;
@@ -23,9 +25,11 @@ export const ReportDetailPage: React.FC<ReportDetailPageProps> = ({ reportId, on
   }
   if (state.status === 'error') {
     return (
-      <div role="alert" style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '14px' }}>
-        <p style={{ margin: '0 0 16px' }}>{state.message}</p>
-        <button type="button" onClick={onBack} style={backButtonStyle}>Вернуться к списку</button>
+      <div className={ui.page}>
+        <div role="alert" className={`${ui.card} ${ui.errorMessage}`}>
+          <p className={styles.description}>{state.message}</p>
+          <button type="button" className={ui.button} onClick={onBack}>Все отчеты</button>
+        </div>
       </div>
     );
   }
@@ -83,32 +87,25 @@ const LoadedReport: React.FC<LoadedReportProps> = ({ report, onBack, onDeleted, 
   );
 };
 
-const backButtonStyle: React.CSSProperties = {
-  background: 'var(--color-canvas)',
-  border: '1px solid var(--color-line)',
-  color: 'var(--color-ink-secondary)',
-  padding: '7px 14px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '12px'
-};
-
+// Shaped like the loaded report: the toolbar, the title block, the facts, then the two panels.
 const ReportDetailSkeleton: React.FC = () => (
-  <div aria-busy="true" aria-label="Загрузка отчета" style={{ padding: '28px 16px', maxWidth: '1440px', margin: '0 auto', display: 'grid', gap: '24px' }}>
-    <SkeletonStyles />
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <Bone width={150} height={30} radius={6} />
-      <Bone width={180} height={30} radius={6} />
+  <div aria-busy="true" aria-label="Загрузка отчета" className={ui.page}>
+    <div className={styles.toolbar}>
+      <Bone width={120} height={32} radius={6} />
+      <Bone width={320} height={32} radius={6} />
     </div>
-    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: '10px', padding: '20px 24px', display: 'grid', gap: '12px' }}>
-      <Bone width={280} height={14} />
-      <Bone width="60%" height={22} />
-      <Bone width="90%" height={14} />
-      <Bone width="100%" height={56} radius={8} />
+    <div className={styles.header}>
+      <Bone width="45%" height={30} />
+      <p className={styles.description}><Bone width="70%" height={14} /></p>
+      <div className={`${ui.card} ${styles.facts}`}>
+        <Bone width="80%" height={30} />
+        <Bone width="80%" height={30} />
+        <Bone width="80%" height={30} />
+      </div>
     </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '24px' }}>
-      <Bone width="100%" height={360} radius={10} />
-      <Bone width="100%" height={360} radius={10} />
+    <div className={styles.columns}>
+      <Bone width="100%" height={360} radius={12} />
+      <Bone width="100%" height={360} radius={12} />
     </div>
   </div>
 );

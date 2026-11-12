@@ -8,7 +8,6 @@ import { useReportRoute } from './hooks/useReportRoute';
 
 // The team starts from the reports nobody has looked at yet (ТЗ, раздел 10).
 const DEFAULT_FILTERS: ReportFilters = { project: null, status: 'new', type: null, query: '' };
-const ALL_PROJECTS = 'all';
 
 export const App: React.FC = () => {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
@@ -39,15 +38,8 @@ export const App: React.FC = () => {
   }, [reportId, reload]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-canvas)', color: 'var(--color-ink)' }}>
-      <Navbar
-        currentProject={filters.project ?? ALL_PROJECTS}
-        onProjectChange={(project) => {
-          changeFilters({ ...filters, project: project === ALL_PROJECTS ? null : project });
-          showList();
-        }}
-        onHomeClick={() => (reportId ? showList() : reload())}
-      />
+    <>
+      <Navbar onHomeClick={() => (reportId ? showList() : reload())} />
 
       <main>
         {reportId ? (
@@ -63,7 +55,7 @@ export const App: React.FC = () => {
           />
         )}
       </main>
-    </div>
+    </>
   );
 };
 

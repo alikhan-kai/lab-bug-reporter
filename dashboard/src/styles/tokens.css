@@ -32,6 +32,8 @@
   --color-success: #2f6b12;
   --color-success-soft: #eaf3de;
   --color-success-line: #c6e2a8;
+  /* Captured values in code blocks, like the samples on campus.codes problem pages. */
+  --color-sample: #c0392b;
 
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -79,6 +81,7 @@
   --color-success: #c9e8b0;
   --color-success-soft: #2d3b26;
   --color-success-line: #3f5434;
+  --color-sample: #f2998f;
 
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.35);

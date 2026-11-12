@@ -1,13 +1,22 @@
+import { CircleX, Image, Unplug, Video } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import type { ReportFilters, ReportStatus, ReportSummary, ReportType } from '../api/types';
+import { useCurrentUser } from '../auth/AuthProvider';
 import type { ReportListState } from '../hooks/useReportList';
 import { reportHref } from '../hooks/useReportRoute';
-import { Bone, SkeletonStyles } from './Skeleton';
-import { StatusBadge } from './StatusBadge';
+import styles from './ReportList.module.css';
+import { Bone } from './Skeleton';
+import { STATUS_LABELS, StatusBadge, TYPE_LABELS, TypeBadge } from './StatusBadge';
+import ui from './ui.module.css';
 
 const SEARCH_DELAY_MS = 300;
 const SKELETON_ROWS = 6;
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 5;
+
+const STATUS_OPTIONS: ReportStatus[] = ['new', 'in_progress', 'resolved', 'wont_fix'];
+const TYPE_OPTIONS: ReportType[] = ['bug', 'feature', 'question'];
+
+const dateFormat = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 interface ReportListProps {
   state: ReportListState;
@@ -18,37 +27,165 @@ interface ReportListProps {
   onSelectReport: (reportId: string) => void;
 }
 
-const selectStyle: React.CSSProperties = {
-  background: 'var(--color-canvas)',
-  border: '1px solid var(--color-line)',
-  color: 'var(--color-ink-secondary)',
-  padding: '7px 10px',
-  borderRadius: '6px',
-  fontSize: '12px',
-  outline: 'none',
-  cursor: 'pointer'
+/** The list of reports in the campus.codes Problems layout: the table, and the filters in a card beside it. */
+export const ReportList: React.FC<ReportListProps> = ({ state, filters, onFiltersChange, onPageChange, onRetry, onSelectReport }) => {
+  const totalElements = state.status === 'ready' ? state.page.totalElements : null;
+
+  return (
+    <div className={ui.page}>
+      <div className={styles.heading}>
+        <h1 className={ui.pageTitle}>Отчеты</h1>
+        {totalElements !== null && <span className={styles.count}>{totalElements}</span>}
+      </div>
+
+      <div className={styles.layout}>
+        <div>
+          <div className={`${ui.card} ${styles.tableCard}`}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.typeCell}><span className={ui.visuallyHidden}>Тип</span></th>
+                  <th>Отчет</th>
+                  <th className={styles.sideCell}>Статус</th>
+                  <th className={`${styles.sideCell} ${styles.reporterCell}`}>Автор</th>
+                  <th className={styles.sideCell}>Создан</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.status === 'loading' && <SkeletonRows />}
+                {state.status === 'error' && (
+                  <tr>
+                    <td colSpan={COLUMN_COUNT} role="alert" className={ui.errorMessage}>
+                      <p className={styles.errorText}>{state.message}</p>
+                      <button type="button" className={ui.button} onClick={onRetry}>Повторить</button>
+                    </td>
+                  </tr>
+                )}
+                {state.status === 'ready' && state.page.content.length === 0 && (
+                  <tr>
+                    <td colSpan={COLUMN_COUNT} className={ui.message}>Отчетов с такими фильтрами нет</td>
+                  </tr>
+                )}
+                {state.status === 'ready' && state.page.content.map((report) => (
+                  <ReportRow key={report.id} report={report} onSelect={() => onSelectReport(report.id)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {state.status === 'ready' && state.page.totalPages > 1 && (
+            <nav aria-label="Страницы" className={styles.pager}>
+              <button type="button" className={ui.button} disabled={state.page.page === 0} onClick={() => onPageChange(state.page.page - 1)}>
+                Назад
+              </button>
+              <span>Страница {state.page.page + 1} из {state.page.totalPages}</span>
+              <button
+                type="button"
+                className={ui.button}
+                disabled={state.page.page + 1 >= state.page.totalPages}
+                onClick={() => onPageChange(state.page.page + 1)}
+              >
+                Вперед
+              </button>
+            </nav>
+          )}
+        </div>
+
+        <ReportFiltersCard filters={filters} onFiltersChange={onFiltersChange} />
+      </div>
+    </div>
+  );
 };
 
-const pagerButtonStyle: React.CSSProperties = {
-  background: 'var(--color-canvas)',
-  border: '1px solid var(--color-line)',
-  color: 'var(--color-ink-secondary)',
-  padding: '6px 12px',
-  borderRadius: '6px',
-  fontSize: '12px',
-  cursor: 'pointer'
-};
+const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ report, onSelect }) => (
+  // The title link is the keyboard way in; a click anywhere on the row opens the report too.
+  <tr className={styles.row} onClick={onSelect}>
+    <td className={styles.typeCell}><TypeBadge type={report.type} iconOnly /></td>
+    <td className={styles.titleCell}>
+      <div className={styles.titleLine}>
+        {/* A real link, so the report opens in a new tab or its address can be copied. */}
+        <a
+          href={reportHref(report.id)}
+          className={`${ui.link} ${styles.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            onSelect();
+          }}
+        >
+          {report.title}
+        </a>
+        <ReportSignals report={report} />
+      </div>
+      <div className={styles.subLine}>{report.projectName} · {report.pageUrl}</div>
+    </td>
+    <td className={styles.sideCell}><StatusBadge status={report.status} /></td>
+    <td className={`${styles.sideCell} ${styles.reporterCell}`}>{report.reporter.email ?? report.reporter.id ?? '—'}</td>
+    <td className={`${styles.sideCell} ${styles.date}`}>
+      <time dateTime={report.createdAt}>{dateFormat.format(new Date(report.createdAt))}</time>
+    </td>
+  </tr>
+);
 
-const cellStyle: React.CSSProperties = { padding: '14px 18px' };
+/** What came with the report and what went wrong on the page, as small icons with counts. */
+const ReportSignals: React.FC<{ report: ReportSummary }> = ({ report }) => (
+  <span className={styles.signals}>
+    {report.hasVideo && (
+      <span className={styles.signal} title="Есть запись экрана">
+        <Video size={14} aria-hidden="true" />
+        <span className={ui.visuallyHidden}>Видео</span>
+      </span>
+    )}
+    {report.screenshotCount > 0 && (
+      <span className={styles.signal} title={`Скриншотов: ${report.screenshotCount}`}>
+        <Image size={14} aria-hidden="true" />
+        {report.screenshotCount}
+        <span className={ui.visuallyHidden}>скриншотов</span>
+      </span>
+    )}
+    {report.consoleErrorCount > 0 && (
+      <span className={styles.signalDanger} title={`Ошибок в консоли: ${report.consoleErrorCount}`}>
+        <CircleX size={14} aria-hidden="true" />
+        {report.consoleErrorCount}
+        <span className={ui.visuallyHidden}>ошибок в консоли</span>
+      </span>
+    )}
+    {report.failedRequestCount > 0 && (
+      <span className={styles.signalWarning} title={`Упавших запросов (4xx, 5xx или ошибка сети): ${report.failedRequestCount}`}>
+        <Unplug size={14} aria-hidden="true" />
+        {report.failedRequestCount}
+        <span className={ui.visuallyHidden}>упавших запросов</span>
+      </span>
+    )}
+  </span>
+);
 
-export const ReportList: React.FC<ReportListProps> = ({
-  state,
-  filters,
-  onFiltersChange,
-  onPageChange,
-  onRetry,
-  onSelectReport
-}) => {
+const SkeletonRows: React.FC = () => (
+  <>
+    {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+      <tr key={index} aria-hidden="true" className={styles.row}>
+        <td className={styles.typeCell}><Bone width={16} height={16} /></td>
+        <td className={styles.titleCell}>
+          <Bone width="60%" height={14} />
+          <span className={styles.skeletonSubLine}><Bone width="35%" height={10} /></span>
+        </td>
+        <td className={styles.sideCell}><Bone width={72} height={22} radius={11} /></td>
+        <td className={`${styles.sideCell} ${styles.reporterCell}`}><Bone width={120} height={14} /></td>
+        <td className={styles.sideCell}><Bone width={90} height={14} /></td>
+      </tr>
+    ))}
+  </>
+);
+
+interface ReportFiltersCardProps {
+  filters: ReportFilters;
+  onFiltersChange: (filters: ReportFilters) => void;
+}
+
+/** Search, project, status and type, in the sectioned card campus.codes uses for its filters. */
+const ReportFiltersCard: React.FC<ReportFiltersCardProps> = ({ filters, onFiltersChange }) => {
+  const user = useCurrentUser();
   const [searchText, setSearchText] = useState(filters.query);
 
   // The search goes to the server, so it waits until the user stops typing.
@@ -58,346 +195,72 @@ export const ReportList: React.FC<ReportListProps> = ({
     return () => window.clearTimeout(timer);
   }, [searchText, filters, onFiltersChange]);
 
-  const totalElements = state.status === 'ready' ? state.page.totalElements : null;
-
   return (
-    <div style={{ padding: '32px 16px', maxWidth: '1360px', margin: '0 auto' }}>
-      <SkeletonStyles />
-      {/* Шапка списка */}
-      <div style={{
-        marginBottom: '24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
-            Входящие отчеты
-          </h1>
-          <p style={{ margin: 0, color: 'var(--color-ink-muted)', fontSize: '13px', minHeight: '18px' }}>
-            {totalElements !== null && (
-              <>Найдено отчетов: <strong style={{ color: 'var(--color-ink-secondary)' }}>{totalElements}</strong></>
-            )}
-          </p>
-        </div>
-
-        {/* Фильтры и поиск */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <input
-              type="search"
-              aria-label="Поиск по названию и описанию"
-              placeholder="Поиск по названию и описанию..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                background: 'var(--color-canvas)',
-                border: '1px solid var(--color-line)',
-                color: 'var(--color-ink)',
-                padding: '7px 12px 7px 32px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                width: '240px',
-                maxWidth: '100%',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-            />
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--color-ink-muted)"
-              strokeWidth="2"
-              aria-hidden="true"
-              style={{ position: 'absolute', left: '10px', top: '9px' }}
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-
-          <select
-            aria-label="Статус"
-            value={filters.status ?? ''}
-            onChange={(e) => onFiltersChange({ ...filters, status: (e.target.value || null) as ReportStatus | null })}
-            style={selectStyle}
-          >
-            <option value="">Все статусы</option>
-            <option value="new">Только новые</option>
-            <option value="in_progress">В работе</option>
-            <option value="resolved">Решенные</option>
-            <option value="wont_fix">Отклоненные</option>
-          </select>
-
-          <select
-            aria-label="Тип"
-            value={filters.type ?? ''}
-            onChange={(e) => onFiltersChange({ ...filters, type: (e.target.value || null) as ReportType | null })}
-            style={selectStyle}
-          >
-            <option value="">Все типы</option>
-            <option value="bug">Только баги</option>
-            <option value="feature">Предложения</option>
-            <option value="question">Вопросы</option>
-          </select>
-        </div>
+    <aside className={`${ui.card} ${styles.filters}`} aria-label="Фильтры">
+      <div className={styles.filterSection}>
+        <label htmlFor="report-search" className={`${ui.sectionLabel} ${styles.blockLabel}`}>Поиск</label>
+        <input
+          id="report-search"
+          type="search"
+          className={`${ui.input} ${styles.searchInput}`}
+          placeholder="Найти отчет…"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
       </div>
 
-      {/* Таблица отчетов campus.codes style */}
-      <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: '10px',
-        border: '1px solid var(--color-line)',
-        overflowX: 'auto',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-          <thead>
-            <tr style={{ background: 'var(--color-canvas)', color: 'var(--color-ink-muted)', borderBottom: '1px solid var(--color-line)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>ID / Тип</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Тема отчета</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Проект</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Вложения и сбои</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Автор</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Статус</th>
-              <th style={{ padding: '12px 18px', fontWeight: 600 }}>Дата</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.status === 'loading' && <SkeletonRows />}
-
-            {state.status === 'error' && (
-              <tr>
-                <td colSpan={COLUMN_COUNT} role="alert" style={{ padding: '48px', textAlign: 'center', color: 'var(--color-danger)' }}>
-                  <div style={{ marginBottom: '12px' }}>{state.message}</div>
-                  <button type="button" onClick={onRetry} style={pagerButtonStyle}>Повторить</button>
-                </td>
-              </tr>
-            )}
-
-            {state.status === 'ready' && state.page.content.length === 0 && (
-              <tr>
-                <td colSpan={COLUMN_COUNT} style={{ padding: '48px', textAlign: 'center', color: 'var(--color-ink-muted)' }}>
-                  Отчетов по выбранным фильтрам не найдено
-                </td>
-              </tr>
-            )}
-
-            {state.status === 'ready' && state.page.content.map((report) => (
-              <ReportRow key={report.id} report={report} onSelect={() => onSelectReport(report.id)} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {state.status === 'ready' && state.page.totalPages > 1 && (
-        <nav aria-label="Страницы" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '16px', color: 'var(--color-ink-muted)', fontSize: '12px' }}>
-          <button
-            type="button"
-            style={pagerButtonStyle}
-            disabled={state.page.page === 0}
-            onClick={() => onPageChange(state.page.page - 1)}
-          >
-            Назад
-          </button>
-          <span>Страница {state.page.page + 1} из {state.page.totalPages}</span>
-          <button
-            type="button"
-            style={pagerButtonStyle}
-            disabled={state.page.page + 1 >= state.page.totalPages}
-            onClick={() => onPageChange(state.page.page + 1)}
-          >
-            Вперед
-          </button>
-        </nav>
+      {user.projects.length > 1 && (
+        <FilterOptions
+          legend="Проект"
+          name="project"
+          options={user.projects.map((project) => ({ value: project.slug, label: project.name }))}
+          value={filters.project}
+          onChange={(project) => onFiltersChange({ ...filters, project })}
+        />
       )}
-    </div>
+
+      <FilterOptions
+        legend="Статус"
+        name="status"
+        options={STATUS_OPTIONS.map((status) => ({ value: status, label: STATUS_LABELS[status] }))}
+        value={filters.status}
+        onChange={(status) => onFiltersChange({ ...filters, status })}
+      />
+
+      <FilterOptions
+        legend="Тип"
+        name="type"
+        options={TYPE_OPTIONS.map((type) => ({ value: type, label: TYPE_LABELS[type] }))}
+        value={filters.type}
+        onChange={(type) => onFiltersChange({ ...filters, type })}
+      />
+    </aside>
   );
 };
 
-const SkeletonRows: React.FC = () => (
-  <>
-    {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-      <tr key={index} aria-hidden="true" style={{ borderBottom: '1px solid var(--color-line)' }}>
-        <td style={cellStyle}><Bone width={70} height={14} /></td>
-        <td style={cellStyle}><Bone width="80%" height={14} /></td>
-        <td style={cellStyle}><Bone width={90} height={14} /></td>
-        <td style={cellStyle}><Bone width={110} height={14} /></td>
-        <td style={cellStyle}><Bone width={120} height={14} /></td>
-        <td style={cellStyle}><Bone width={70} height={18} radius={9} /></td>
-        <td style={cellStyle}><Bone width={100} height={14} /></td>
-      </tr>
-    ))}
-  </>
-);
-
-const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ report, onSelect }) => (
-  // The title link is the keyboard way in; a click anywhere on the row opens the report too.
-  <tr
-    onClick={onSelect}
-    style={{
-      borderBottom: '1px solid var(--color-line)',
-      cursor: 'pointer',
-      transition: 'background 0.15s ease'
-    }}
-    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-muted)')}
-    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-  >
-    <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
-      <span title={report.id} style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-accent)', fontSize: '12px' }}>
-        {shortId(report.id)}
-      </span>
-      <div style={{ marginTop: '3px' }}><TypeBadge type={report.type} /></div>
-    </td>
-
-    <td style={cellStyle}>
-      {/* A real link, so the report opens in a new tab or its address can be copied. */}
-      <a
-        href={reportHref(report.id)}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-          e.preventDefault();
-          onSelect();
-        }}
-        style={{ display: 'block', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '3px', letterSpacing: '-0.1px', textDecoration: 'none' }}
-      >
-        {report.title}
-      </a>
-      <div style={{ color: 'var(--color-ink-muted)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
-        {report.pageUrl}
-      </div>
-    </td>
-
-    <td style={{ ...cellStyle, color: 'var(--color-ink-secondary)', whiteSpace: 'nowrap', fontSize: '12px' }}>
-      {report.projectName}
-    </td>
-
-    <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-        {report.hasVideo && (
-          <span title="Видеозапись экрана" style={{
-            background: 'var(--color-accent-soft)',
-            color: 'var(--color-accent)',
-            border: '1px solid var(--color-accent)',
-            padding: '2px 7px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Видео
-          </span>
-        )}
-
-        {report.screenshotCount > 0 && (
-          <span title="Скриншоты" style={{
-            background: 'var(--color-line)',
-            color: 'var(--color-ink-secondary)',
-            border: '1px solid var(--color-ink-muted)',
-            padding: '2px 7px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            </svg>
-            {report.screenshotCount > 1 ? `Снимки: ${report.screenshotCount}` : 'Снимок'}
-          </span>
-        )}
-
-        {report.consoleErrorCount > 0 && (
-          <span title="Ошибок в консоли" style={{
-            background: 'var(--color-danger-soft)',
-            color: 'var(--color-danger)',
-            border: '1px solid var(--color-danger-line)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 700
-          }}>
-            ✕ {report.consoleErrorCount}
-          </span>
-        )}
-
-        {report.failedRequestCount > 0 && (
-          <span title="Упавших запросов (4xx, 5xx или ошибка сети)" style={{
-            background: 'var(--color-warning-soft)',
-            color: 'var(--color-warning)',
-            border: '1px solid var(--color-warning-line)',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 700
-          }}>
-            HTTP ✕ {report.failedRequestCount}
-          </span>
-        )}
-      </div>
-    </td>
-
-    <td style={{ ...cellStyle, color: 'var(--color-ink-secondary)', whiteSpace: 'nowrap', fontSize: '12px' }}>
-      {report.reporter.email ?? report.reporter.id ?? '—'}
-    </td>
-
-    <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
-      <StatusBadge status={report.status} />
-    </td>
-
-    <td style={{ ...cellStyle, color: 'var(--color-ink-muted)', fontSize: '12px', whiteSpace: 'nowrap' }}>
-      {new Date(report.createdAt).toLocaleDateString()} {new Date(report.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    </td>
-  </tr>
-);
-
-// The full id is in the tooltip and the detail view; eight characters are enough to tell reports apart.
-function shortId(reportId: string): string {
-  return reportId.slice(0, 8);
+interface FilterOptionsProps<T extends string> {
+  legend: string;
+  name: string;
+  options: { value: T; label: string }[];
+  value: T | null;
+  onChange: (value: T | null) => void;
 }
 
-const TypeBadge: React.FC<{ type: ReportType }> = ({ type }) => {
-  switch (type) {
-    case 'bug':
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)', fontSize: '11px', fontWeight: 600 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4"/>
-          </svg>
-          Баг
-        </span>
-      );
-    case 'feature':
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 600 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 2v8M4.93 4.93l5.66 5.66M2 12h8M4.93 19.07l5.66-5.66M12 22v-8M19.07 19.07l-5.66-5.66M22 12h-8M19.07 4.93l-5.66 5.66"/>
-          </svg>
-          Предложение
-        </span>
-      );
-    case 'question':
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-ink-secondary)', fontSize: '11px', fontWeight: 600 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          Вопрос
-        </span>
-      );
-  }
-};
+// One value at a time, as the API filters by one; "Все" clears the filter.
+function FilterOptions<T extends string>({ legend, name, options, value, onChange }: FilterOptionsProps<T>) {
+  return (
+    <fieldset className={styles.filterSection}>
+      <legend className={ui.sectionLabel}>{legend}</legend>
+      <label className={styles.option}>
+        <input type="radio" name={name} checked={value === null} onChange={() => onChange(null)} />
+        Все
+      </label>
+      {options.map((option) => (
+        <label key={option.value} className={styles.option}>
+          <input type="radio" name={name} checked={value === option.value} onChange={() => onChange(option.value)} />
+          {option.label}
+        </label>
+      ))}
+    </fieldset>
+  );
+}

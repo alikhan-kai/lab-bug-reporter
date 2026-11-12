@@ -1,0 +1,288 @@
+.heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.count {
+  color: var(--color-ink-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 224px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Table */
+
+.tableCard {
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-line);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.row:hover {
+  background: var(--color-muted);
+}
+
+.typeCell {
+  width: 20px;
+  border-right: 1px solid var(--color-line);
+  text-align: center;
+}
+
+.sideCell {
+  border-left: 1px solid var(--color-line);
+  white-space: nowrap;
+}
+
+.titleCell {
+  width: 100%;
+  min-width: 0;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subLine {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 520px;
+}
+
+.signals {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+}
+
+.signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.signalDanger {
+  composes: signal;
+  color: var(--color-danger);
+}
+
+.signalWarning {
+  composes: signal;
+  color: var(--color-warning);
+}
+
+.date {
+  color: var(--color-ink-secondary);
+}
+
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  color: var(--color-ink-muted);
+}
+
+/* Filters */
+
+.filters {
+  overflow: hidden;
+}
+
+.filterSection {
+  padding: 14px 16px;
+  border: none;
+  margin: 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.filterSection:last-child {
+  border-bottom: none;
+}
+
+.filterSection legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+}
+
+.option {
+  clear: both;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.option input {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.searchInput {
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Filters come first on a narrow screen, as a row of compact groups. */
+  .filters {
+    order: -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .filterSection,
+  .filterSection:last-child {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  /* Options run in a line, so the filters do not push the reports below the first screen. */
+  .option {
+    display: inline-flex;
+    margin-right: 14px;
+  }
+
+  .filterSection legend + .option {
+    clear: both;
+  }
+
+  .option + .option {
+    clear: none;
+  }
+}
+
+/* On a phone every report becomes a small card instead of a table row. */
+@media (max-width: 720px) {
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .row {
+    display: block;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .table td {
+    display: block;
+    padding: 0;
+    border: none;
+  }
+
+  .typeCell {
+    grid-row: span 2;
+  }
+
+  .titleCell {
+    grid-column: 2 / 4;
+  }
+
+  .titleLine {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .sideCell {
+    border: none;
+    font-size: var(--text-xs);
+  }
+
+  .reporterCell {
+    display: none !important;
+  }
+}
+
+.errorText {
+  margin: 0 0 12px;
+}
+
+.blockLabel {
+  display: block;
+}
+
+.skeletonSubLine {
+  display: block;
+  margin-top: 6px;
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.skeletonRow:last-child {
+  border-bottom: none;
+}

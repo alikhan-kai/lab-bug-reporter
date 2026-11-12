@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api, ApiRequestError } from '../api/client';
 import type { CurrentUser } from '../api/types';
 import { DashboardSkeleton } from '../components/DashboardSkeleton';
+import ui from '../components/ui.module.css';
+import styles from './AuthError.module.css';
 import { signIn, signOut } from './keycloak';
 
 type AuthState =
@@ -64,46 +66,18 @@ export function useCurrentUser(): CurrentUser {
   return user;
 }
 
-const buttonStyle: React.CSSProperties = {
-  background: 'var(--color-line)',
-  border: '1px solid var(--color-ink-muted)',
-  color: 'var(--color-ink)',
-  borderRadius: '6px',
-  padding: '8px 14px',
-  fontSize: '13px',
-  fontWeight: 500,
-  cursor: 'pointer',
-};
-
 const AuthError: React.FC<{ message: string; isAccessDenied: boolean }> = ({ message, isAccessDenied }) => (
-  <main style={{
-    minHeight: '100vh',
-    background: 'var(--color-muted)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '16px',
-  }}>
-    <section role="alert" style={{
-      maxWidth: '420px',
-      width: '100%',
-      background: 'var(--color-canvas)',
-      border: '1px solid var(--color-line)',
-      borderRadius: '8px',
-      padding: '24px',
-      color: 'var(--color-ink)',
-    }}>
-      <h1 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 8px' }}>
-        {isAccessDenied ? 'Нет доступа' : 'Ошибка входа'}
-      </h1>
-      <p style={{ fontSize: '13px', color: 'var(--color-ink-secondary)', margin: '0 0 20px', lineHeight: 1.5 }}>{message}</p>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+  <main className={styles.screen}>
+    <section role="alert" className={`${ui.card} ${styles.box}`}>
+      <h1 className={styles.title}>{isAccessDenied ? 'Нет доступа' : 'Ошибка входа'}</h1>
+      <p className={styles.text}>{message}</p>
+      <div className={styles.buttons}>
         {!isAccessDenied && (
-          <button type="button" style={buttonStyle} onClick={() => window.location.reload()}>
+          <button type="button" className={ui.buttonPrimary} onClick={() => window.location.reload()}>
             Повторить
           </button>
         )}
-        <button type="button" style={buttonStyle} onClick={() => void signOut()}>
+        <button type="button" className={ui.button} onClick={() => void signOut()}>
           Войти под другим пользователем
         </button>
       </div>

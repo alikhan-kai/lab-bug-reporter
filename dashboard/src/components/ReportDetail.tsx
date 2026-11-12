@@ -1,56 +1,19 @@
+import { ArrowLeft, Calendar, Check, FolderOpen, Link2, Trash2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { ReportStatus, ReportType } from '../api/types';
+import type { ReportStatus } from '../api/types';
 import { reportHref } from '../hooks/useReportRoute';
-import type { ConsoleEntry, NetworkEntry, ReportMedia, ReportView } from '../types';
-import { Bone, SkeletonStyles } from './Skeleton';
-import { StatusBadge } from './StatusBadge';
+import { describeEnvironment, findTimeOrigin, formatClock, isWebUrl } from '../report/timeline';
+import type { ReportMedia, ReportView } from '../types';
+import { useCopy } from './CodeBlock';
+import styles from './ReportDetail.module.css';
+import { ReportLogs } from './ReportLogs';
+import { ScreenshotGallery, VideoPlayer } from './ReportMedia';
+import { STATUS_LABELS, StatusBadge, TypeBadge } from './StatusBadge';
+import ui from './ui.module.css';
 
-const REPORT_TYPE_LABELS: Record<ReportType, string> = { bug: 'Баг', feature: 'Предложение', question: 'Вопрос' };
-const COPIED_NOTICE_MS = 2000;
+const STATUS_OPTIONS: ReportStatus[] = ['new', 'in_progress', 'resolved', 'wont_fix'];
 
-type RequestOutcome = 'succeeded' | 'failed' | 'pending';
-
-// A request still waiting when the report was sent is not a failure: it may be the hang the user reports.
-function requestOutcomeOf(entry: NetworkEntry): RequestOutcome {
-  if (entry.pending) return 'pending';
-  if (entry.status === null || entry.status >= 400) return 'failed';
-  return 'succeeded';
-}
-
-const REQUEST_OUTCOME_COLORS: Record<RequestOutcome, string> = {
-  succeeded: 'var(--color-success)',
-  failed: 'var(--color-danger)',
-  pending: 'var(--color-warning)'
-};
-
-const REQUEST_OUTCOME_BORDERS: Record<RequestOutcome, string> = {
-  succeeded: '1px solid var(--color-line)',
-  failed: '1px solid var(--color-danger)',
-  pending: '1px solid var(--color-warning)'
-};
-
-function formatDuration(milliseconds: number): string {
-  return milliseconds < 1000 ? `${milliseconds} мс` : `${(milliseconds / 1000).toFixed(1)} с`;
-}
-
-function describeRequestDuration(entry: NetworkEntry): string {
-  if (entry.pending) return entry.duration_ms !== null ? `без ответа ${formatDuration(entry.duration_ms)}` : 'без ответа';
-  return entry.duration_ms !== null ? formatDuration(entry.duration_ms) : '—';
-}
-
-/**
- * The moment log times count from. With a video it is the recording start, so a time matches the video. Without
- * one it is the first captured event, so the entries still read as a timeline instead of all showing 0:00.
- */
-function findTimeOrigin(report: ReportView): number | null {
-  if (report.recordingStartTime) return report.recordingStartTime;
-  const times = [
-    ...report.console.map((entry) => entry.t),
-    ...report.network.map((entry) => entry.t_start),
-    ...report.breadcrumbs.map((entry) => entry.t)
-  ].filter(Number.isFinite);
-  return times.length > 0 ? Math.min(...times) : null;
-}
+const dateFormat = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
 
 interface ReportDetailProps {
   report: ReportView;
@@ -64,20 +27,7 @@ interface ReportDetailProps {
   onDelete: () => void;
 }
 
-// Values come from the reporting website. Only web links become clickable, so a javascript: URL stays text.
-function isWebUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
-}
-
-function describeEnvironment(environment: Record<string, unknown> | null): { platform: string; viewport: string } {
-  const text = (value: unknown) => (typeof value === 'string' && value ? value : null);
-  const viewport = environment?.viewport;
-  return {
-    platform: [text(environment?.browser), text(environment?.os)].filter(Boolean).join(' • ') || '—',
-    viewport: Array.isArray(viewport) && viewport.length === 2 ? `${viewport[0]}x${viewport[1]}` : '—'
-  };
-}
-
+/** One report laid out like a campus.codes problem page: the title block, then the media beside the logs. */
 export const ReportDetail: React.FC<ReportDetailProps> = ({
   report,
   media,
@@ -87,32 +37,15 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
   actionError,
   onBack,
   onStatusChange,
-  onDelete
+  onDelete,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'network' | 'console' | 'actions' | 'environment'>('network');
-  const [expandedNetworkIdx, setExpandedNetworkIdx] = useState<number | null>(null);
-  const [expandedConsoleIdx, setExpandedConsoleIdx] = useState<number | null>(null);
-  const [consoleFilter, setConsoleFilter] = useState<'all' | 'error' | 'warn'>('all');
-  const [enlargedScreenshotUrl, setEnlargedScreenshotUrl] = useState<string | null>(null);
-  const [isLinkCopied, setIsLinkCopied] = useState(false);
-  const environment = describeEnvironment(report.environment);
+  const [currentTime, setCurrentTime] = useState(0);
   const hasVideo = report.attachments.some((attachment) => attachment.kind === 'video');
   const timeOrigin = findTimeOrigin(report);
   // Entries move the video only when there is one to move and the times are measured from its start.
   const canSeek = media.video.status === 'ready' && media.video.value !== null && report.recordingStartTime !== null;
 
-  const getOffset = (t: number): number => (timeOrigin === null ? 0 : Math.max(0, (t - timeOrigin) / 1000));
-  const isPlayingAt = (offset: number): boolean => canSeek && Math.abs(currentTime - offset) < 1.5;
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  // Перемотка видео при клике на строку лога (Jam.dev синхронизация)
   const seekVideo = (offsetSeconds: number) => {
     if (!canSeek || !videoRef.current) return;
     videoRef.current.currentTime = offsetSeconds;
@@ -122,890 +55,166 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
     });
   };
 
-  // An entry that moves the video works like a button, also from the keyboard.
-  const seekProps = (offset: number): React.HTMLAttributes<HTMLDivElement> => canSeek
-    ? {
-        role: 'button',
-        tabIndex: 0,
-        onClick: () => seekVideo(offset),
-        onKeyDown: (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            seekVideo(offset);
-          }
-        }
-      }
-    : {};
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(reportHref(report.id))
-      .then(() => {
-        setIsLinkCopied(true);
-        window.setTimeout(() => setIsLinkCopied(false), COPIED_NOTICE_MS);
-      })
-      .catch((error: unknown) => console.error('Cannot copy the report link', error));
-  };
-
-  // Entries keep their place in the whole list, so an expanded stack trace stays with its entry across filters.
-  const filteredConsole: { entry: ConsoleEntry; index: number }[] = report.console
-    .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => consoleFilter === 'all' || entry.level === consoleFilter);
-  const consoleCount = (level: ConsoleEntry['level']) => report.console.filter((entry) => entry.level === level).length;
-
   return (
-    <div style={{ padding: '28px 16px', maxWidth: '1440px', margin: '0 auto' }}>
-      {/* The video and the screenshots show bones while they load. */}
-      <SkeletonStyles />
-      {/* Верхняя навигация и статус */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            background: 'var(--color-canvas)',
-            border: '1px solid var(--color-line)',
-            color: 'var(--color-ink-secondary)',
-            padding: '7px 14px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          Вернуться к списку
+    <div className={ui.page}>
+      <ReportToolbar
+        report={report}
+        canChangeStatus={canChangeStatus}
+        canDelete={canDelete}
+        isSaving={isSaving}
+        actionError={actionError}
+        onBack={onBack}
+        onStatusChange={onStatusChange}
+        onDelete={onDelete}
+      />
+      <ReportHeader report={report} />
+
+      <div className={styles.columns}>
+        <section className={`${ui.card} ${styles.panel}`} aria-label="Запись экрана и скриншоты">
+          <div className={styles.panelHeader}>
+            <span>Запись экрана</span>
+            {hasVideo && <span className={styles.clock}>{formatClock(currentTime)}</span>}
+          </div>
+          <div className={styles.panelBody}>
+            <VideoPlayer
+              video={media.video}
+              hasVideo={hasVideo}
+              canSeek={canSeek}
+              videoRef={videoRef}
+              onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime ?? 0)}
+            />
+            <ScreenshotGallery screenshots={media.screenshots} />
+          </div>
+        </section>
+
+        <ReportLogs
+          report={report}
+          timeOrigin={timeOrigin}
+          canSeek={canSeek}
+          hasVideo={hasVideo}
+          currentTime={currentTime}
+          onSeek={seekVideo}
+        />
+      </div>
+    </div>
+  );
+};
+
+type ReportToolbarProps = Omit<ReportDetailProps, 'media'>;
+
+const ReportToolbar: React.FC<ReportToolbarProps> = ({
+  report,
+  canChangeStatus,
+  canDelete,
+  isSaving,
+  actionError,
+  onBack,
+  onStatusChange,
+  onDelete,
+}) => {
+  const { isCopied, copy } = useCopy();
+  return (
+    <div className={styles.toolbar}>
+      <button type="button" className={ui.buttonGhost} onClick={onBack}>
+        <ArrowLeft size={16} aria-hidden="true" />
+        Все отчеты
+      </button>
+
+      <div className={styles.actions}>
+        {actionError && <span role="alert" className={styles.actionError}>{actionError}</span>}
+
+        <button type="button" className={ui.button} onClick={() => copy(reportHref(report.id))}>
+          {isCopied ? <Check size={16} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
+          {isCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
         </button>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={copyLink}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-line)',
-              color: 'var(--color-ink-secondary)',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 500
-            }}
-          >
-            {isLinkCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-          </button>
-
-          {actionError && (
-            <span role="alert" style={{ fontSize: '12px', color: 'var(--color-danger)' }}>{actionError}</span>
-          )}
-
-          {/* Смена статуса доступна admin и triager, сервер проверяет это сам */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-ink-muted)' }}>Статус:</span>
-            {canChangeStatus ? (
+        {/* The server checks the role too; this only hides what the user cannot do. */}
+        <div className={styles.statusControl}>
+          {canChangeStatus ? (
+            <>
+              <label htmlFor="report-status">Статус</label>
               <select
-                aria-label="Статус отчета"
+                id="report-status"
+                className={ui.select}
                 value={report.status}
                 disabled={isSaving}
-                onChange={(e) => onStatusChange(e.target.value as ReportStatus)}
-                style={{
-                  background: 'var(--color-canvas)',
-                  border: '1px solid var(--color-line)',
-                  color: 'var(--color-accent)',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
+                onChange={(event) => onStatusChange(event.target.value as ReportStatus)}
               >
-                <option value="new">Новый</option>
-                <option value="in_progress">В работе</option>
-                <option value="resolved">Решено</option>
-                <option value="wont_fix">Отклонено</option>
+                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}
               </select>
-            ) : (
-              <StatusBadge status={report.status} />
-            )}
-          </div>
-
-          {/* Удаление доступно только admin */}
-          {canDelete && (
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => {
-                if (confirm('Удалить отчет и все его файлы?')) {
-                  onDelete();
-                }
-              }}
-              style={{
-                background: 'transparent',
-                color: 'var(--color-danger)',
-                border: '1px solid var(--color-danger-line)',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 500,
-                transition: 'background 0.15s'
-              }}
-            >
-              Удалить отчет
-            </button>
+            </>
+          ) : (
+            <StatusBadge status={report.status} />
           )}
         </div>
-      </div>
 
-      {/* Метаданные отчета */}
-      <div style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '10px',
-        padding: '20px 24px',
-        marginBottom: '24px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-ink)' }}>{REPORT_TYPE_LABELS[report.type]}</span>
-          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
-          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-accent)', fontSize: '13px', wordBreak: 'break-all' }}>{report.id}</span>
-          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
-          <span style={{ color: 'var(--color-ink-secondary)', fontSize: '12px' }}>{report.projectName}</span>
-          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
-          <span style={{ fontSize: '12px', color: 'var(--color-ink-muted)' }}>{new Date(report.createdAt).toLocaleString()}</span>
-        </div>
-
-        {/* Защищенный вывод названия (plain text) */}
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.2px' }}>
-          {report.title}
-        </h1>
-        <p style={{ margin: '0 0 16px 0', color: 'var(--color-ink-secondary)', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-          {report.description || 'Без описания'}
-        </p>
-
-        {/* Компактный блок метаданных */}
-        <div style={{
-          background: 'var(--color-canvas)',
-          borderRadius: '8px',
-          padding: '12px 18px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '12px',
-          fontSize: '12px',
-          border: '1px solid var(--color-line)'
-        }}>
-          <div>
-            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Пользователь</span>
-            <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>{report.reporter.email ?? report.reporter.id ?? 'Не указан'}</span>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Страница</span>
-            {isWebUrl(report.pageUrl) ? (
-              <a href={report.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
-                {report.pageUrl}
-              </a>
-            ) : (
-              <span style={{ color: 'var(--color-ink)', wordBreak: 'break-all' }}>{report.pageUrl}</span>
-            )}
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Окружение</span>
-            <span style={{ color: 'var(--color-ink)' }}>{environment.platform}</span>
-          </div>
-          <div>
-            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Разрешение</span>
-            <span style={{ color: 'var(--color-ink)' }}>{environment.viewport}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* РАЗДЕЛЕНИЕ 50/50: Плеер слева, Синхронизированные логи справа */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '24px', alignItems: 'start' }}>
-        {/* ЛЕВАЯ КОЛОНКА: ВИДЕО */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-line)',
-          borderRadius: '10px',
-          padding: '20px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-              Запись экрана
-            </span>
-            {hasVideo && (
-              <span style={{
-                background: 'var(--color-canvas)',
-                border: '1px solid var(--color-line)',
-                color: 'var(--color-accent)',
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '4px'
-              }}>
-                {formatTime(currentTime)}
-              </span>
-            )}
-          </div>
-
-          <MediaPanel
-            media={media}
-            hasVideo={hasVideo}
-            videoRef={videoRef}
-            onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
-            onEnlargeScreenshot={setEnlargedScreenshotUrl}
-          />
-        </div>
-
-        {/* ПРАВАЯ КОЛОНКА: СИНХРОНИЗИРОВАННЫЕ ЛОГИ (ВРЕМЯ ОТ НАЧАЛА ЗАПИСИ) */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-line)',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '620px'
-        }}>
-          {/* Вкладки */}
-          <div role="tablist" aria-label="Данные отчета" style={{
-            background: 'var(--color-canvas)',
-            borderBottom: '1px solid var(--color-line)',
-            display: 'flex',
-            padding: '0 8px'
-          }}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'network'}
-              onClick={() => setActiveTab('network')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'network' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                color: activeTab === 'network' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
-                padding: '12px 14px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Сеть ({report.network.length})
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'console'}
-              onClick={() => setActiveTab('console')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'console' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                color: activeTab === 'console' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
-                padding: '12px 14px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Консоль ({report.console.length})
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'actions'}
-              onClick={() => setActiveTab('actions')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'actions' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                color: activeTab === 'actions' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
-                padding: '12px 14px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Действия ({report.breadcrumbs.length})
-            </button>
-
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'environment'}
-              onClick={() => setActiveTab('environment')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'environment' ? '2px solid var(--color-accent)' : '2px solid transparent',
-                color: activeTab === 'environment' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
-                padding: '12px 14px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              Окружение
-            </button>
-          </div>
-
-          {/* Содержимое вкладки */}
-          <div role="tabpanel" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-            {activeTab !== 'environment' && timeOrigin !== null && (
-              <p style={{ margin: '0 0 12px', fontSize: '11px', color: 'var(--color-ink-muted)' }}>
-                {canSeek
-                  ? 'Время от начала записи. Клик по событию перематывает видео.'
-                  : hasVideo
-                    ? 'Время от начала записи.'
-                    : 'Видео нет, время отсчитывается от первого события отчета.'}
-              </p>
-            )}
-            {/* ВКЛАДКА: СЕТЬ */}
-            {activeTab === 'network' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {report.network.length === 0 ? (
-                  <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Запросов не зафиксировано</div>
-                ) : (
-                  report.network.map((req, idx) => {
-                    const offset = getOffset(req.t_start);
-                    const isSynced = isPlayingAt(offset);
-                    const outcome = requestOutcomeOf(req);
-                    const isExpanded = expandedNetworkIdx === idx;
-
-                    return (
-                      <div
-                        key={idx}
-                        {...seekProps(offset)}
-                        style={{
-                          background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
-                          border: isSynced ? '1px solid var(--color-accent)' : REQUEST_OUTCOME_BORDERS[outcome],
-                          borderRadius: '6px',
-                          padding: '9px 12px',
-                          cursor: canSeek ? 'pointer' : 'default',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                            <span style={{
-                              background: 'var(--color-line)',
-                              color: 'var(--color-accent)',
-                              padding: '1px 5px',
-                              borderRadius: '3px',
-                              fontFamily: 'monospace',
-                              fontSize: '11px',
-                              fontWeight: 600
-                            }}>
-                              {formatTime(offset)}
-                            </span>
-                            <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--color-ink-secondary)' }}>{req.method}</span>
-                            <span style={{
-                              color: REQUEST_OUTCOME_COLORS[outcome],
-                              fontWeight: 600,
-                              fontSize: '11px'
-                            }}>
-                              {req.pending ? 'PENDING' : req.status === null ? 'ERROR' : req.status}
-                            </span>
-                            <span title={req.url} style={{
-                              fontSize: '12px',
-                              color: 'var(--color-ink)',
-                              minWidth: 0,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {req.url}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                            <span style={{ fontSize: '11px', color: 'var(--color-ink-muted)', whiteSpace: 'nowrap' }}>
-                              {describeRequestDuration(req)}
-                            </span>
-                            <button
-                              type="button"
-                              aria-expanded={isExpanded}
-                              onKeyDown={(e) => e.stopPropagation()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedNetworkIdx(isExpanded ? null : idx);
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--color-accent)',
-                                fontSize: '11px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {isExpanded ? 'Скрыть' : 'Детали'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Заголовки и тела запроса и ответа, как текст */}
-                        {isExpanded && <RequestDetails entry={req} outcome={outcome} />}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
-            {/* ВКЛАДКА: КОНСОЛЬ (С ЗАЩИТОЙ ОТ XSS: <img src=x onerror=...> ВЫВОДИТСЯ ТЕКСТОМ) */}
-            {activeTab === 'console' && (
-              <div>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-                  <button
-                    type="button"
-                    aria-pressed={consoleFilter === 'all'}
-                    onClick={() => setConsoleFilter('all')}
-                    style={{
-                      background: consoleFilter === 'all' ? 'var(--color-accent)' : 'var(--color-canvas)',
-                      border: '1px solid var(--color-line)',
-                      color: consoleFilter === 'all' ? 'var(--color-on-accent)' : 'var(--color-ink)',
-                      borderRadius: '4px',
-                      padding: '3px 8px',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Все ({report.console.length})
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={consoleFilter === 'error'}
-                    onClick={() => setConsoleFilter('error')}
-                    style={{
-                      background: consoleFilter === 'error' ? 'var(--color-danger-soft)' : 'var(--color-canvas)',
-                      border: '1px solid var(--color-danger-line)',
-                      color: 'var(--color-danger)',
-                      borderRadius: '4px',
-                      padding: '3px 8px',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Ошибки ({consoleCount('error')})
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={consoleFilter === 'warn'}
-                    onClick={() => setConsoleFilter('warn')}
-                    style={{
-                      background: consoleFilter === 'warn' ? 'var(--color-warning-soft)' : 'var(--color-canvas)',
-                      border: '1px solid var(--color-warning-line)',
-                      color: 'var(--color-warning)',
-                      borderRadius: '4px',
-                      padding: '3px 8px',
-                      fontSize: '11px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Предупреждения ({consoleCount('warn')})
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {filteredConsole.length === 0 ? (
-                    <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Записей консоли нет</div>
-                  ) : (
-                    filteredConsole.map(({ entry: log, index: idx }) => {
-                      const offset = getOffset(log.t);
-                      const isSynced = isPlayingAt(offset);
-                      const isError = log.level === 'error';
-                      const isExpanded = expandedConsoleIdx === idx;
-
-                      return (
-                        <div
-                          key={idx}
-                          {...seekProps(offset)}
-                          style={{
-                            background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
-                            border: isSynced ? '1px solid var(--color-accent)' : isError ? '1px solid var(--color-danger-line)' : '1px solid var(--color-line)',
-                            borderRadius: '6px',
-                            padding: '9px 12px',
-                            cursor: canSeek ? 'pointer' : 'default',
-                            fontSize: '12px'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                            <span style={{
-                              background: 'var(--color-line)',
-                              color: 'var(--color-accent)',
-                              padding: '1px 5px',
-                              borderRadius: '3px',
-                              fontFamily: 'monospace',
-                              fontSize: '11px',
-                              fontWeight: 600
-                            }}>
-                              {formatTime(offset)}
-                            </span>
-                            <span style={{
-                              fontWeight: 600,
-                              fontSize: '11px',
-                              color: isError ? 'var(--color-danger)' : log.level === 'warn' ? 'var(--color-warning)' : 'var(--color-accent)'
-                            }}>
-                              [{log.level.toUpperCase()}]
-                            </span>
-
-                            {/* ВАЖНО: React рендерит {log.message} строго как чистый текст через textContent.
-                                Никакие теги <img src=x onerror=...> физически не выполняются! */}
-                            <span style={{ color: 'var(--color-ink)', flex: 1, wordBreak: 'break-word', fontFamily: 'monospace', fontSize: '11px' }}>
-                              {log.message}
-                            </span>
-                          </div>
-
-                          {log.stack && (
-                            <div style={{ marginTop: '6px' }}>
-                              <button
-                                type="button"
-                                aria-expanded={isExpanded}
-                                onKeyDown={(e) => e.stopPropagation()}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedConsoleIdx(isExpanded ? null : idx);
-                                }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: 'var(--color-accent)',
-                                  fontSize: '10px',
-                                  cursor: 'pointer',
-                                  padding: 0
-                                }}
-                              >
-                                {isExpanded ? 'Скрыть Stack Trace' : 'Показать Stack Trace'}
-                              </button>
-                              {isExpanded && (
-                                <pre style={{
-                                  margin: '6px 0 0 0',
-                                  background: 'var(--color-muted)',
-                                  padding: '8px',
-                                  borderRadius: '4px',
-                                  fontSize: '10px',
-                                  color: 'var(--color-danger)',
-                                  overflowX: 'auto',
-                                  fontFamily: 'monospace'
-                                }}>
-                                  {log.stack}
-                                </pre>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* ВКЛАДКА: ДЕЙСТВИЯ (BREADCRUMBS С ВРЕМЕНЕМ) */}
-            {activeTab === 'actions' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {report.breadcrumbs.length === 0 && (
-                  <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Действий не зафиксировано</div>
-                )}
-                {report.breadcrumbs.map((b, idx) => {
-                  const offset = getOffset(b.t);
-                  const isSynced = isPlayingAt(offset);
-
-                  return (
-                    <div
-                      key={idx}
-                      {...seekProps(offset)}
-                      style={{
-                        background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
-                        border: isSynced ? '1px solid var(--color-accent)' : '1px solid var(--color-line)',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        cursor: canSeek ? 'pointer' : 'default',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '12px'
-                      }}
-                    >
-                      <span style={{
-                        background: 'var(--color-line)',
-                        color: 'var(--color-accent)',
-                        padding: '1px 5px',
-                        borderRadius: '3px',
-                        fontFamily: 'monospace',
-                        fontSize: '11px',
-                        fontWeight: 600
-                      }}>
-                        {formatTime(offset)}
-                      </span>
-                      <span style={{ color: 'var(--color-ink-muted)', fontSize: '11px' }}>{b.kind}</span>
-                      <span style={{ fontFamily: 'monospace', color: 'var(--color-ink)', fontSize: '11px', wordBreak: 'break-all' }}>{b.target || b.url}</span>
-                      {b.text && <span style={{ color: 'var(--color-ink-secondary)' }}>("{b.text}")</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* ВКЛАДКА: ОКРУЖЕНИЕ */}
-            {activeTab === 'environment' && (
-              <div style={{
-                background: 'var(--color-canvas)',
-                padding: '14px',
-                borderRadius: '6px',
-                border: '1px solid var(--color-line)',
-                fontSize: '11px',
-                fontFamily: 'monospace'
-              }}>
-                <pre style={{ margin: 0, color: 'var(--color-ink-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {JSON.stringify(report.environment ?? {}, null, 2)}
-                </pre>
-                <div style={{ color: 'var(--color-ink-muted)', margin: '14px 0 6px' }}>Метаданные сайта:</div>
-                <pre style={{ margin: 0, color: 'var(--color-ink-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {JSON.stringify(report.hostMetadata ?? {}, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Модальное окно скриншота */}
-      {enlargedScreenshotUrl && (
-        <div
-          role="dialog"
-          aria-label="Скриншот"
-          onClick={() => setEnlargedScreenshotUrl(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            cursor: 'zoom-out'
-          }}
-        >
-          <img
-            src={enlargedScreenshotUrl}
-            alt="Скриншот"
-            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '6px' }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface MediaPanelProps {
-  media: ReportMedia;
-  hasVideo: boolean;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  onTimeUpdate: () => void;
-  onEnlargeScreenshot: (url: string) => void;
-}
-
-const MediaPanel: React.FC<MediaPanelProps> = ({ media, hasVideo, videoRef, onTimeUpdate, onEnlargeScreenshot }) => (
-  <>
-    <VideoPlayer video={media.video} hasVideo={hasVideo} videoRef={videoRef} onTimeUpdate={onTimeUpdate} />
-    <ScreenshotGallery screenshots={media.screenshots} onEnlarge={onEnlargeScreenshot} />
-  </>
-);
-
-const mediaMessageStyle: React.CSSProperties = {
-  padding: '60px 16px',
-  textAlign: 'center',
-  background: 'var(--color-canvas)',
-  borderRadius: '6px',
-  fontSize: '13px'
-};
-
-interface VideoPlayerProps {
-  video: ReportMedia['video'];
-  hasVideo: boolean;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  onTimeUpdate: () => void;
-}
-
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, videoRef, onTimeUpdate }) => {
-  if (!hasVideo) {
-    return <div style={{ ...mediaMessageStyle, color: 'var(--color-ink-muted)' }}>Видеозапись отсутствует</div>;
-  }
-  if (video.status === 'error') {
-    return <div role="alert" style={{ ...mediaMessageStyle, color: 'var(--color-danger)' }}>Не удалось загрузить видео</div>;
-  }
-  if (video.status === 'loading') {
-    return (
-      <div aria-busy="true" aria-label="Загрузка видео" style={{ position: 'relative' }}>
-        <Bone width="100%" height={280} radius={6} />
-        {video.progress !== null && (
-          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-ink-secondary)', fontSize: '12px' }}>
-            Загрузка видео: {video.progress}%
-          </span>
+        {canDelete && (
+          <button
+            type="button"
+            className={ui.buttonDanger}
+            disabled={isSaving}
+            onClick={() => {
+              if (window.confirm('Удалить отчет и все его файлы?')) onDelete();
+            }}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+            Удалить
+          </button>
         )}
       </div>
-    );
-  }
-  return (
-    <video
-      ref={videoRef}
-      src={video.value ?? undefined}
-      controls
-      onLoadedMetadata={(event) => revealDuration(event.currentTarget)}
-      onTimeUpdate={onTimeUpdate}
-      style={{
-        width: '100%',
-        borderRadius: '6px',
-        background: '#000000',
-        boxShadow: 'var(--shadow-sm)',
-        display: 'block'
-      }}
-    />
-  );
-};
-
-/**
- * MediaRecorder writes WebM without a duration, so the player shows no timeline until it has read to the end.
- * Seeking far past the end makes it find the real duration; it then goes back to the start.
- */
-function revealDuration(video: HTMLVideoElement): void {
-  if (video.duration !== Infinity) return;
-  const returnToStart = () => {
-    if (!Number.isFinite(video.duration)) return;
-    video.removeEventListener('durationchange', returnToStart);
-    video.currentTime = 0;
-  };
-  video.addEventListener('durationchange', returnToStart);
-  video.currentTime = Number.MAX_SAFE_INTEGER;
-}
-
-interface ScreenshotGalleryProps {
-  screenshots: ReportMedia['screenshots'];
-  onEnlarge: (url: string) => void;
-}
-
-const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({ screenshots, onEnlarge }) => {
-  if (screenshots.status === 'ready' && screenshots.value.length === 0) {
-    return null;
-  }
-  return (
-    <div style={{ marginTop: '20px', borderTop: '1px solid var(--color-line)', paddingTop: '16px' }}>
-      {screenshots.status === 'loading' && (
-        <div aria-busy="true" aria-label="Загрузка скриншотов" style={{ display: 'flex', gap: '8px' }}>
-          <Bone width={160} height={90} radius={6} />
-          <Bone width={160} height={90} radius={6} />
-        </div>
-      )}
-      {screenshots.status === 'error' && (
-        <div role="alert" style={{ color: 'var(--color-danger)', fontSize: '12px' }}>Не удалось загрузить скриншоты</div>
-      )}
-      {screenshots.status === 'ready' && (
-        <>
-          <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px', color: 'var(--color-ink-secondary)' }}>
-            Скриншоты ({screenshots.value.length}):
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {screenshots.value.map((url, index) => (
-              <button
-                key={url}
-                type="button"
-                aria-label={`Увеличить скриншот ${index + 1}`}
-                onClick={() => onEnlarge(url)}
-                style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'zoom-in' }}
-              >
-                <img
-                  src={url}
-                  alt={`Скриншот ${index + 1}`}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '160px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--color-line)',
-                    display: 'block'
-                  }}
-                />
-              </button>
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 };
 
-const detailLabelStyle: React.CSSProperties = { color: 'var(--color-ink-muted)' };
-const detailBlockStyle: React.CSSProperties = {
-  margin: '4px 0 8px',
-  background: 'var(--color-muted)',
-  padding: '6px',
-  borderRadius: '4px',
-  overflowX: 'auto',
-  whiteSpace: 'pre-wrap',
-  wordBreak: 'break-word'
+const ReportHeader: React.FC<{ report: ReportView }> = ({ report }) => {
+  const environment = describeEnvironment(report.environment);
+  return (
+    <header className={styles.header}>
+      <div className={styles.titleRow}>
+        <h1 className={styles.title}>{report.title}</h1>
+        <div className={styles.meta}>
+          <TypeBadge type={report.type} />
+          <span className={styles.metaItem}>
+            <FolderOpen size={14} aria-hidden="true" />
+            {report.projectName}
+          </span>
+          <span className={styles.metaItem}>
+            <Calendar size={14} aria-hidden="true" />
+            <time dateTime={report.createdAt}>{dateFormat.format(new Date(report.createdAt))}</time>
+          </span>
+        </div>
+      </div>
+
+      <p className={report.description ? styles.description : `${styles.description} ${ui.muted}`}>
+        {report.description || 'Без описания'}
+      </p>
+
+      <dl className={`${ui.card} ${styles.facts}`}>
+        <div>
+          <dt>Пользователь</dt>
+          <dd>{report.reporter.email ?? report.reporter.id ?? 'Не указан'}</dd>
+        </div>
+        <div>
+          <dt>Страница</dt>
+          <dd>
+            {isWebUrl(report.pageUrl)
+              ? <a href={report.pageUrl} target="_blank" rel="noreferrer" className={ui.link}>{report.pageUrl}</a>
+              : report.pageUrl}
+          </dd>
+        </div>
+        <div>
+          <dt>Браузер и система</dt>
+          <dd>{environment.platform}</dd>
+        </div>
+        <div>
+          <dt>Окно браузера</dt>
+          <dd>{environment.viewport}</dd>
+        </div>
+        <div>
+          <dt>Номер отчета</dt>
+          <dd className={ui.mono}>{report.id}</dd>
+        </div>
+      </dl>
+    </header>
+  );
 };
-
-function hasEntries(headers: Record<string, string> | undefined): headers is Record<string, string> {
-  return headers !== undefined && Object.keys(headers).length > 0;
-}
-
-// Captured values come from the reporting website, so every part is shown as text, never as markup.
-const RequestDetails: React.FC<{ entry: NetworkEntry; outcome: RequestOutcome }> = ({ entry, outcome }) => (
-  <div
-    onClick={(e) => e.stopPropagation()}
-    style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-line)', fontSize: '11px', fontFamily: 'monospace', cursor: 'text' }}
-  >
-    <div style={detailLabelStyle}>URL:</div>
-    <pre style={detailBlockStyle}>{entry.method} {entry.url}</pre>
-
-    {entry.error && (
-      <>
-        <div style={detailLabelStyle}>Ошибка:</div>
-        <pre style={{ ...detailBlockStyle, color: 'var(--color-danger)' }}>{entry.error}</pre>
-      </>
-    )}
-    {outcome === 'pending' && (
-      <div style={{ color: 'var(--color-warning)', marginBottom: '8px' }}>Ответа не было, когда отчет отправили.</div>
-    )}
-
-    {hasEntries(entry.request?.headers) && (
-      <>
-        <div style={detailLabelStyle}>Заголовки запроса:</div>
-        <pre style={detailBlockStyle}>{JSON.stringify(entry.request.headers, null, 2)}</pre>
-      </>
-    )}
-    {entry.request?.body && (
-      <>
-        <div style={detailLabelStyle}>Тело запроса{entry.request.body_truncated ? ' (обрезано)' : ''}:</div>
-        <pre style={detailBlockStyle}>{entry.request.body}</pre>
-      </>
-    )}
-
-    {hasEntries(entry.response?.headers) && (
-      <>
-        <div style={detailLabelStyle}>Заголовки ответа:</div>
-        <pre style={detailBlockStyle}>{JSON.stringify(entry.response.headers, null, 2)}</pre>
-      </>
-    )}
-    {entry.response && (
-      <>
-        <div style={detailLabelStyle}>Ответ сервера{entry.response.body_truncated ? ' (обрезан)' : ''}:</div>
-        <pre style={{ ...detailBlockStyle, color: outcome === 'failed' ? 'var(--color-danger)' : 'var(--color-success)' }}>
-          {entry.response.body || '[пусто]'}
-        </pre>
-      </>
-    )}
-  </div>
-);

@@ -336,8 +336,10 @@ sdk/src/
 dashboard/src/
   auth/                 вход через Keycloak и текущий пользователь
   api/                  единый API-клиент и типы ответов сервера
-  hooks/                загрузка списка, отчёта и файлов
-  components/           список и карточка отчёта, skeleton-заглушки
+  hooks/                загрузка списка, отчёта и файлов, адрес отчёта, тема
+  report/               расчёт времени событий и описание окружения
+  styles/tokens.css     токены campus.codes: цвета светлой и тёмной темы, радиусы, тени, шрифт
+  components/           список и карточка отчёта, skeleton-заглушки; стили в CSS Modules рядом
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки
 infra/keycloak/         dev-realm, импортируется при первом старте Keycloak
