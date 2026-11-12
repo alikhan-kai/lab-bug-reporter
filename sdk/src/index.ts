@@ -6,7 +6,7 @@ import { ScreenRecorder, RecordingResult } from './core/capture/recorder';
 import { postReport } from './core/upload';
 import { SCRIPT_URL } from './core/script-url';
 import { captureScreenFrame } from './core/capture/screenshot';
-import { BugReporterWidget, ReportFormData } from './widget/widget';
+import { BugReporterWidget, ReportFormData, WidgetTheme } from './widget/widget';
 import { SupportedLang } from './core/i18n';
 
 export interface InitOptions {
@@ -18,6 +18,8 @@ export interface InitOptions {
   lang?: SupportedLang;
   /** Logs what the SDK does to the page's console. Off by default, because the logs hold the reporter's data. */
   debug?: boolean;
+  /** The widget's colours: light (the default), dark, or system to follow the visitor's system setting. */
+  theme?: WidgetTheme;
 }
 
 // The service serves sdk.js itself, so the script's own address is the default service address.
@@ -93,16 +95,16 @@ class LabBugReporter {
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget(options.lang);
+      this.setupWidget(options.lang, options.theme);
     }
 
     this.debugLog('Initialized with options:', this.options);
   }
 
-  private setupWidget(lang?: SupportedLang): void {
+  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget(lang);
+    this.widget = new BugReporterWidget(lang, theme);
 
     this.widget.onScreenshot(() => this.captureScreenshot());
     this.widget.onStartRecording((opts) => this.startRecording(opts));
@@ -121,6 +123,11 @@ class LabBugReporter {
 
   setContext(key: string, value: any): void {
     this.hostMetadata[key] = value;
+  }
+
+  /** Switches the widget's colours, for sites with their own light and dark switch. */
+  setTheme(theme: WidgetTheme): void {
+    this.widget?.setTheme(theme);
   }
 
   setLanguage(lang: SupportedLang): void {

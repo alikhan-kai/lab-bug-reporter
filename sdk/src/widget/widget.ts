@@ -8,6 +8,9 @@ import { icons } from './icons';
 // The recording bar warns this many seconds before the recording stops at the limit.
 const RECORDING_WARNING_SECONDS = 30;
 
+/** light and dark are fixed; system follows the visitor's system setting. */
+export type WidgetTheme = 'light' | 'dark' | 'system';
+
 export interface ReportFormData {
   type: 'bug' | 'feature' | 'question';
   title: string;
@@ -72,10 +75,16 @@ export class BugReporterWidget {
   private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
-  constructor(preferredLang?: string) {
+  constructor(preferredLang?: string, theme: WidgetTheme = 'light') {
     this.lang = detectLanguage(preferredLang);
     this.t = getTranslations(this.lang);
     this.initDOM();
+    this.setTheme(theme);
+  }
+
+  setTheme(theme: WidgetTheme): void {
+    // The styles pick their colours from this attribute on the shadow host.
+    this.host?.setAttribute('data-theme', theme);
   }
 
   setLanguage(lang: SupportedLang): void {

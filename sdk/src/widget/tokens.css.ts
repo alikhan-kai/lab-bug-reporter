@@ -1,5 +1,33 @@
 import { WIDGET_FONT_FAMILY } from './font';
 
+// The campus.codes dark theme. Used by theme: 'dark', and by theme: 'system' when the visitor's system is dark.
+const DARK_TOKENS = `
+  --lab-primary: #b8f7e4;
+  --lab-primary-hover: #9eebd5;
+  --lab-primary-soft: #2e3a38;
+  --lab-on-primary: #1e2024;
+
+  --lab-bg: #2b2e34;
+  --lab-surface: #25272c;
+  --lab-muted: #33363d;
+  --lab-border: #3b3f47;
+  --lab-border-strong: #4b5059;
+  --lab-text: #e8eaed;
+  --lab-text-secondary: #b3b8c0;
+  --lab-text-muted: #9aa0a9;
+
+  --lab-danger: #f5a3a3;
+  --lab-danger-bg: #3a2629;
+  --lab-danger-border: #5e3338;
+  --lab-success: #c9e8b0;
+  --lab-success-bg: #2d3b26;
+  --lab-bar-bg: #33363d;
+
+  --lab-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --lab-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+`;
+
 /**
  * The widget's styles, inside its shadow root, so they never leak into the host site.
  * The tokens are the campus.codes ones (ТЗ, раздел 9). A site can override any --lab-* variable on
@@ -31,6 +59,9 @@ export const widgetStyles = `
   --lab-success: #2f6b12;
   --lab-success-bg: #eaf3de;
   --lab-recording: #ef4444;
+  /* The recording bar stays dark on light pages, and turns amber near the limit in both themes. */
+  --lab-bar-bg: #1c1c2e;
+  --lab-bar-warning: #b45309;
 
   --lab-radius-md: 0.375rem;
   --lab-radius-lg: 0.5rem;
@@ -47,6 +78,16 @@ export const widgetStyles = `
   color: var(--lab-text);
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
+}
+
+:host([data-theme='dark']) {
+${DARK_TOKENS}
+}
+
+@media (prefers-color-scheme: dark) {
+  :host([data-theme='system']) {
+${DARK_TOKENS}
+  }
 }
 
 *, *:before, *:after {
@@ -112,7 +153,7 @@ svg {
   gap: 12px;
   padding: 6px 6px 6px 14px;
   border-radius: var(--lab-radius-xl);
-  background: var(--lab-text);
+  background: var(--lab-bar-bg);
   color: #ffffff;
   box-shadow: var(--lab-shadow);
   z-index: 2147483647;
@@ -130,7 +171,7 @@ svg {
 
 /* The last seconds before the recording limit */
 .lab-recording-bar.warning {
-  background: var(--lab-warning);
+  background: var(--lab-bar-warning);
   transition: background-color 0.3s var(--lab-ease);
 }
 
@@ -529,11 +570,11 @@ svg {
 .lab-submit-btn.retry-mode {
   border-color: var(--lab-danger);
   background: var(--lab-danger);
+  color: var(--lab-bg);
 }
 
 .lab-submit-btn.retry-mode:hover:not(:disabled) {
-  border-color: #991b1b;
-  background: #991b1b;
+  opacity: 0.9;
 }
 
 .lab-submit-btn:disabled {
