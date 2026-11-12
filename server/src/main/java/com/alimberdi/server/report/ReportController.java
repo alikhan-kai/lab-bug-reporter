@@ -96,7 +96,7 @@ public class ReportController {
 		ByteRange range = attachment.range();
 
 		ResponseEntity.BodyBuilder response = ResponseEntity.status(range.isPartial() ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK)
-				.contentType(MediaType.parseMediaType(attachment.contentType()))
+				.contentType(AttachmentMediaType.of(attachment.contentType()))
 				.contentLength(range.length())
 				.header(HttpHeaders.ACCEPT_RANGES, "bytes")
 				.header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline().build().toString())

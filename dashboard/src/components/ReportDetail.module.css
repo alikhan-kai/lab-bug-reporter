@@ -230,7 +230,9 @@
   max-height: 640px;
 }
 
+/* In the fixed-height panel a long log would squeeze the tab bar and push the underline into the labels. */
 .tabs {
+  flex-shrink: 0;
   display: flex;
   gap: 4px;
   padding: 0 8px;
@@ -239,6 +241,7 @@
 }
 
 .tab {
+  flex-shrink: 0;
   padding: 12px 10px;
   border: none;
   border-bottom: 2px solid transparent;

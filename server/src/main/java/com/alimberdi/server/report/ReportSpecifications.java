@@ -1,5 +1,6 @@
 package com.alimberdi.server.report;
 
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -35,6 +36,26 @@ final class ReportSpecifications {
 				));
 			}
 			return builder.and(predicates.toArray(Predicate[]::new));
+		};
+	}
+
+	/**
+	 * Orders the list for triage: new reports first, then in progress, resolved and won't fix, newest first within
+	 * each status. It filters nothing.
+	 */
+	static Specification<Report> inTriageOrder() {
+		return (root, query, builder) -> {
+			// The count query of a page has no order.
+			if (Long.class.equals(query.getResultType())) {
+				return null;
+			}
+			Expression<Integer> statusRank = builder.<Integer>selectCase()
+					.when(builder.equal(root.get("status"), ReportStatus.NEW), 0)
+					.when(builder.equal(root.get("status"), ReportStatus.IN_PROGRESS), 1)
+					.when(builder.equal(root.get("status"), ReportStatus.RESOLVED), 2)
+					.otherwise(3);
+			query.orderBy(builder.asc(statusRank), builder.desc(root.get("createdAt")), builder.desc(root.get("id")));
+			return null;
 		};
 	}
 

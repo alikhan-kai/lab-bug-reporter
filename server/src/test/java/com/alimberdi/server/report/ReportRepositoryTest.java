@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Set;
@@ -81,6 +82,26 @@ class ReportRepositoryTest {
 		Page<Report> page = reportRepository.findAll(ReportSpecifications.matching(filter, List.of(project)), NEWEST_FIRST);
 
 		assertThat(page.getContent()).extracting(Report::getId).containsExactlyInAnyOrder(open.getId(), inProgress.getId());
+	}
+
+	@Test
+	void putsNewReportsFirstAndClosedOnesLast() {
+		Report resolved = report(project, "Fixed long ago", null);
+		resolved.changeStatus(ReportStatus.RESOLVED);
+		reportRepository.saveAndFlush(resolved);
+		Report older = reportRepository.saveAndFlush(report(project, "Older new report", null));
+		Report inProgress = report(project, "Being fixed", null);
+		inProgress.changeStatus(ReportStatus.IN_PROGRESS);
+		reportRepository.saveAndFlush(inProgress);
+		Report newer = reportRepository.saveAndFlush(report(project, "Newer new report", null));
+
+		Specification<Report> query = ReportSpecifications.matching(new ReportFilter(null, null, null, null), List.of(project))
+				.and(ReportSpecifications.inTriageOrder());
+		Page<Report> page = reportRepository.findAll(query, PageRequest.of(0, 10));
+
+		assertThat(page.getTotalElements()).isEqualTo(4);
+		assertThat(page.getContent()).extracting(Report::getId)
+				.containsExactly(newer.getId(), older.getId(), inProgress.getId(), resolved.getId());
 	}
 
 	@Test
