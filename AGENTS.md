@@ -35,7 +35,7 @@ Lab Bug Reporter: свой сервис баг-репортов для сайт�
 ```bash
 docker compose up -d                 # Postgres, SeaweedFS, Keycloak
 
-cd server && mvn test                # нужны запущенные Postgres и SeaweedFS
+cd server && mvn test                # нужен запущенный Docker: Testcontainers сам поднимает Postgres и SeaweedFS
 cd sdk && npm run build              # npm run dev только пересобирает файл при изменениях
 cd dashboard && npm run dev          # http://localhost:3000
 ```
@@ -46,7 +46,7 @@ cd dashboard && npm run dev          # http://localhost:3000
 
 - Сначала прочитайте соседний код и пишите так же. В Java отступы табами, Lombok, DTO как `record`.
 - Слои: контроллер (только HTTP) → сервис (логика) → репозиторий (данные). Сущности не отдаются через API.
-- Код организован по фичам: `ingest`, `report`, `project`, `storage`, `exception`, `config`.
+- Код организован по фичам: `ingest`, `report`, `project`, `storage`, `security`, `user`, `exception`, `config`.
 - Понятные английские имена, без сокращений вроде `uid`. Одна сущность называется одинаково во всех слоях.
 - Комментарии объясняют «почему», а не «что».
 - Новая логика идёт вместе с тестом рядом.

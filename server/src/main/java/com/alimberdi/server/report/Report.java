@@ -14,9 +14,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -72,17 +74,31 @@ public class Report implements Persistable<UUID> {
 	@Column(nullable = false)
 	private String contextObjectKey;
 
+	private int consoleErrorCount;
+
+	private int failedRequestCount;
+
 	@CreatedDate
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
+	@LastModifiedDate
+	@Column(nullable = false)
+	private Instant updatedAt;
+
+	// The report list reads the attachments of a whole page; batching avoids one query per report.
 	@OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+	@BatchSize(size = 100)
 	@Builder.Default
 	private List<Attachment> attachments = new ArrayList<>();
 
 	public void addAttachment(Attachment attachment) {
 		attachment.attachTo(this);
 		attachments.add(attachment);
+	}
+
+	public void changeStatus(ReportStatus newStatus) {
+		status = newStatus;
 	}
 
 	@Override

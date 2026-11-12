@@ -1,47 +1,65 @@
-import React, { useState } from 'react';
-import { initialReports } from './mockData';
-import { ReportItem, ReportStatus } from './types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReportFilters } from './api/types';
 import { Navbar } from './components/Navbar';
+import { ReportDetailPage } from './components/ReportDetailPage';
 import { ReportList } from './components/ReportList';
-import { ReportDetail } from './components/ReportDetail';
+import { useReportList } from './hooks/useReportList';
+import { useReportRoute } from './hooks/useReportRoute';
+
+// The team starts from the reports nobody has looked at yet (ТЗ, раздел 10).
+const DEFAULT_FILTERS: ReportFilters = { project: null, status: 'new', type: null, query: '' };
+const ALL_PROJECTS = 'all';
 
 export const App: React.FC = () => {
-  const [reports, setReports] = useState<ReportItem[]>(initialReports);
-  const [selectedProject, setSelectedProject] = useState<string>('all');
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [page, setPage] = useState(0);
+  const { reportId, openReport, showList } = useReportRoute();
+  const { state: listState, reload } = useReportList(filters, page);
 
-  const handleStatusChange = (id: string, newStatus: ReportStatus) => {
-    setReports(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
-  };
+  const changeFilters = useCallback((newFilters: ReportFilters) => {
+    setFilters(newFilters);
+    setPage(0);
+  }, []);
 
-  const handleDeleteReport = (id: string) => {
-    setReports(prev => prev.filter(r => r.id !== id));
-    setSelectedReportId(null);
-  };
+  // A delete or a status change can empty the last page; the list then moves to the page that is now last.
+  useEffect(() => {
+    if (listState.status === 'ready' && listState.page.content.length === 0 && page > 0) {
+      setPage(Math.max(0, listState.page.totalPages - 1));
+    }
+  }, [listState, page]);
 
-  const selectedReport = reports.find(r => r.id === selectedReportId);
+  // A status change or a delete in the detail view changes the list, so it loads again on the way back,
+  // also when the way back is the browser's back button.
+  const previousReportId = useRef(reportId);
+  useEffect(() => {
+    if (previousReportId.current !== null && reportId === null) {
+      reload();
+    }
+    previousReportId.current = reportId;
+  }, [reportId, reload]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', background: '#090d16', color: '#f8fafc' }}>
       <Navbar
-        currentProject={selectedProject}
-        onProjectChange={setSelectedProject}
-        onHomeClick={() => setSelectedReportId(null)}
+        currentProject={filters.project ?? ALL_PROJECTS}
+        onProjectChange={(project) => {
+          changeFilters({ ...filters, project: project === ALL_PROJECTS ? null : project });
+          showList();
+        }}
+        onHomeClick={() => (reportId ? showList() : reload())}
       />
 
       <main>
-        {selectedReport ? (
-          <ReportDetail
-            report={selectedReport}
-            onBack={() => setSelectedReportId(null)}
-            onStatusChange={handleStatusChange}
-            onDeleteReport={handleDeleteReport}
-          />
+        {reportId ? (
+          <ReportDetailPage key={reportId} reportId={reportId} onBack={showList} onDeleted={showList} />
         ) : (
           <ReportList
-            reports={reports}
-            onSelectReport={(r) => setSelectedReportId(r.id)}
-            selectedProject={selectedProject}
+            state={listState}
+            filters={filters}
+            onFiltersChange={changeFilters}
+            onPageChange={setPage}
+            onRetry={reload}
+            onSelectReport={openReport}
           />
         )}
       </main>

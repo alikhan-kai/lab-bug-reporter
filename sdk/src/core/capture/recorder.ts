@@ -11,6 +11,9 @@ export interface RecordingResult {
   mimeType: string;
 }
 
+/** The longest recording the service accepts (MAX_VIDEO_SECONDS on the server). */
+export const MAX_RECORDING_SECONDS = 300;
+
 export class ScreenRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
@@ -21,14 +24,27 @@ export class ScreenRecorder {
   private audioContext: AudioContext | null = null;
   private isRecording: boolean = false;
   private maxDurationTimer: any = null;
+  // One stop per recording: a stop by the limit or by the browser's "Stop sharing" hands the same result to a later stop().
+  private stopPromise: Promise<RecordingResult> | null = null;
+  private autoStopListener?: (result: RecordingResult) => void;
+
+  /** Called when the recording stops without stop(): at the time limit or from the browser's sharing bar. */
+  onAutoStop(listener: (result: RecordingResult) => void): void {
+    this.autoStopListener = listener;
+  }
 
   /**
    * Начать запись экрана с опциональным микрофоном
+   * @param optionsOrMic - объект { microphone?: boolean } или булево значение
    */
-  async start(withMicrophone: boolean = true, maxDurationSeconds: number = 300): Promise<number> {
+  async start(optionsOrMic?: { microphone?: boolean } | boolean, maxDurationSeconds: number = MAX_RECORDING_SECONDS): Promise<number> {
     if (this.isRecording) {
       throw new Error('Запись уже идет');
     }
+
+    const withMicrophone = typeof optionsOrMic === 'object' 
+      ? optionsOrMic?.microphone !== false 
+      : (optionsOrMic !== false);
 
     // 1. Захват экрана
     this.displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -75,6 +91,7 @@ export class ScreenRecorder {
     }
 
     this.recordedChunks = [];
+    this.stopPromise = null;
     this.startTime = Date.now(); // ЯКОРЬ ВРЕМЕНИ ДЛЯ JAM.DEV
 
     let mimeType = 'video/webm;codecs=vp8,opus';
@@ -91,21 +108,13 @@ export class ScreenRecorder {
     };
 
     // Если пользователь сам нажал "Закрыть доступ" в панели браузера
-    this.displayStream.getVideoTracks()[0].addEventListener('ended', () => {
-      if (this.isRecording) {
-        this.stop();
-      }
-    });
+    this.displayStream.getVideoTracks()[0].addEventListener('ended', () => this.stopByItself());
 
     this.mediaRecorder.start(1000);
     this.isRecording = true;
 
     // Лимит 5 минут
-    this.maxDurationTimer = setTimeout(() => {
-      if (this.isRecording) {
-        this.stop();
-      }
-    }, maxDurationSeconds * 1000);
+    this.maxDurationTimer = setTimeout(() => this.stopByItself(), maxDurationSeconds * 1000);
 
     return this.startTime;
   }
@@ -114,19 +123,35 @@ export class ScreenRecorder {
    * Остановить запись и ПОЛНОСТЬЮ освободить микрофон и экран
    */
   stop(): Promise<RecordingResult> {
-    return new Promise((resolve, reject) => {
-      if (!this.mediaRecorder || !this.isRecording) {
-        return reject(new Error('Запись не была запущена'));
-      }
+    if (this.stopPromise) {
+      return this.stopPromise;
+    }
+    if (!this.mediaRecorder || !this.isRecording) {
+      return Promise.reject(new Error('Запись не была запущена'));
+    }
+    this.stopPromise = this.stopMediaRecorder(this.mediaRecorder);
+    return this.stopPromise;
+  }
 
+  private stopByItself(): void {
+    if (!this.isRecording || this.stopPromise) return;
+    this.stop()
+      .then((result) => this.autoStopListener?.(result))
+      .catch(() => {
+        // The recorder failed to stop; there is no video to hand over.
+      });
+  }
+
+  private stopMediaRecorder(mediaRecorder: MediaRecorder): Promise<RecordingResult> {
+    return new Promise((resolve) => {
       if (this.maxDurationTimer) {
         clearTimeout(this.maxDurationTimer);
         this.maxDurationTimer = null;
       }
 
-      this.mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = async () => {
         const durationMs = Date.now() - this.startTime;
-        const mimeType = this.mediaRecorder?.mimeType || 'video/webm';
+        const mimeType = mediaRecorder.mimeType || 'video/webm';
         const finalBlob = new Blob(this.recordedChunks, { type: mimeType });
 
         // 1. Полностью глушим и останавливаем дорожки микрофона
@@ -175,7 +200,7 @@ export class ScreenRecorder {
         });
       };
 
-      this.mediaRecorder.stop();
+      mediaRecorder.stop();
     });
   }
 

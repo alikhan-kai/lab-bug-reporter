@@ -1,4 +1,7 @@
 import React from 'react';
+import { useCurrentUser } from '../auth/AuthProvider';
+import { signOut } from '../auth/keycloak';
+import type { CurrentUser } from '../api/types';
 
 interface NavbarProps {
   currentProject: string;
@@ -6,21 +9,38 @@ interface NavbarProps {
   onHomeClick: () => void;
 }
 
+// The dashboard shows only the strongest role; roles come from the server in this order.
+function describeRole(user: CurrentUser): string {
+  return user.roles[0] ?? 'no role';
+}
+
+function initialsOf(username: string): string {
+  return username.slice(0, 2).toUpperCase();
+}
+
 export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange, onHomeClick }) => {
+  const user = useCurrentUser();
+
   return (
+    // On a phone the user block wraps under the logo instead of pushing the page wider than the screen.
     <header style={{
       background: '#090d16',
       borderBottom: '1px solid #1e293b',
-      padding: '0 28px',
-      height: '56px',
+      padding: '10px 16px',
+      minHeight: '56px',
+      boxSizing: 'border-box',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '10px 16px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px 24px', flexWrap: 'wrap', minWidth: 0 }}>
+        <button
+          type="button"
           onClick={onHomeClick}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+          aria-label="К списку отчетов"
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'transparent', border: 'none', padding: 0, color: 'inherit', font: 'inherit' }}
         >
           {/* Аккуратный логотип в стиле campus.codes */}
           <div style={{
@@ -49,11 +69,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
               bug-reporter
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Выпадающий список проектов */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', minWidth: 0, maxWidth: '100%' }}>
           <select
+            aria-label="Проект"
             value={currentProject}
             onChange={(e) => onProjectChange(e.target.value)}
             style={{
@@ -66,21 +87,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
               fontWeight: 500,
               outline: 'none',
               cursor: 'pointer',
+              maxWidth: '100%',
               transition: 'border-color 0.2s'
             }}
           >
-            <option value="all">Все проекты лаборатории</option>
-            <option value="sdu-portal">SDU Student Portal</option>
-            <option value="sdu-library">SDU Library System</option>
+            <option value="all">Все доступные проекты</option>
+            {user.projects.map(project => (
+              <option key={project.slug} value={project.slug}>{project.name}</option>
+            ))}
           </select>
         </div>
       </div>
 
       {/* Пользователь команды (Keycloak User) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
         <div style={{ textAlign: 'right' }}>
           <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0', display: 'block' }}>
-            Assylbek Sabyrzhan
+            {user.username}
           </span>
           <span style={{
             fontSize: '10px',
@@ -88,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
             color: '#38bdf8',
             letterSpacing: '0.5px'
           }}>
-            ROLE_ADMIN
+            {describeRole(user)}
           </span>
         </div>
         <div style={{
@@ -104,8 +127,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
           fontWeight: 600,
           fontSize: '12px'
         }}>
-          AS
+          {initialsOf(user.username)}
         </div>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          style={{
+            background: 'transparent',
+            border: '1px solid #1e293b',
+            color: '#94a3b8',
+            borderRadius: '6px',
+            padding: '5px 10px',
+            fontSize: '12px',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          Выйти
+        </button>
       </div>
     </header>
   );

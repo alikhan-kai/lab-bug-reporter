@@ -11,6 +11,11 @@ public record Project(
 		List<String> access
 ) {
 
+	// A project without an access list is visible to admins only.
+	public Project {
+		access = access != null ? List.copyOf(access) : List.of();
+	}
+
 	public boolean isOriginAllowed(String origin) {
 		return origin != null && allowedOrigins.contains(origin);
 	}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SDU Student Portal — Демо сайт</title>
+  <title>SDU Student Portal — Тестирование обновленного SDK</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -20,8 +20,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
     }
-    h1 { margin: 0; font-size: 24px; color: #0f172a; }
+    h1 { margin: 0; font-size: 22px; color: #0f172a; }
     .card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
@@ -31,87 +33,134 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     button {
-      padding: 10px 18px;
-      font-size: 14px;
+      padding: 9px 16px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: 6px;
       border: 1px solid transparent;
       transition: all 0.2s;
     }
-    button.primary {
-      background: #0284c7;
-      color: white;
+    button.primary { background: #0284c7; color: white; }
+    button.primary:hover { background: #0369a1; }
+    button.danger { background: #ef4444; color: white; }
+    button.danger:hover { background: #dc2626; }
+    button.secondary { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+    button.secondary:hover { background: #e2e8f0; }
+    .lang-switcher {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      background: #e2e8f0;
+      padding: 3px;
+      border-radius: 6px;
     }
-    button.primary:hover {
-      background: #0369a1;
+    .lang-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: #475569;
+      cursor: pointer;
+      font-weight: 700;
     }
-    button.danger {
-      background: #ef4444;
-      color: white;
-    }
-    button.danger:hover {
-      background: #dc2626;
+    .lang-btn.active {
+      background: white;
+      color: #0284c7;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     .badge {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
     }
     .badge-ok { background: #dcfce7; color: #166534; }
-    .badge-wait { background: #fef3c7; color: #92400e; }
   </style>
 
-  <!-- Подключаем наш готовый SDK одной строчкой -->
   <script src="../sdk/dist/sdk.js"></script>
+  <!-- In Docker Compose nginx serves the reporter address here; with npx serve the page falls back to localhost. -->
+  <script src="config.js"></script>
 </head>
 <body>
   <header>
     <div>
-      <h1>SDU Student Portal (Личный кабинет)</h1>
-      <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Система регистрации на курсы и оценок</p>
+      <h1>SDU Student Portal (Демо)</h1>
+      <p style="margin: 4px 0 0 0; color: #64748b; font-size: 13px;">Тестирование доработок SDK и мультиязычности</p>
     </div>
-    <div id="user-profile">
+    
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <!-- Переключатель языков (i18n) -->
+      <div class="lang-switcher">
+        <button class="lang-btn" data-lang="kk">KZ</button>
+        <button class="lang-btn active" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+
       <button class="primary" id="btn-login">Войти как Alice</button>
-      <span id="auth-status" class="badge badge-wait" style="display: none;"></span>
+      <span id="auth-status" class="badge badge-ok" style="display: none;"></span>
     </div>
   </header>
 
   <main>
     <div class="card">
-      <h2>Мои курсы на семестр</h2>
-      <p>Здесь отображается обычный интерфейс университетского сайта.</p>
-      <ul>
-        <li>Software Engineering — <strong>A</strong></li>
-        <li>Distributed Systems — <strong>A-</strong></li>
-        <li>Database Management — <strong>B+</strong></li>
-      </ul>
+      <h3>Тестирование доработок:</h3>
+      <p style="font-size: 13px; color: #64748b;">
+        Нажмите эти кнопки для проверки перехвата сбоев и зависших запросов по обновленным требованиям:
+      </p>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <!-- 1. Зависший запрос -->
+        <button class="secondary" id="btn-hang-request">⏳ 1. Запустить зависший запрос (Hanging)</button>
+        
+        <!-- 2. Упавший запрос с пустым статусом -->
+        <button class="secondary" id="btn-failed-request">⚡ 2. Упавший запрос сети (status = null)</button>
+        
+        <!-- 3. Обычная ошибка -->
+        <button class="danger" id="btn-buggy-action">💥 3. Ошибка JS в консоль</button>
+
+        <!-- 4. Ответ сервера 500 -->
+        <button class="danger" id="btn-server-error">🔥 4. Ответ сервера 500</button>
+
+        <!-- 5. Запрос с заголовком Authorization -->
+        <button class="secondary" id="btn-auth-request">🔑 5. Запрос с Authorization</button>
+
+        <!-- 6. Проверка Debug State -->
+        <button class="secondary" id="btn-debug-state">🔍 6. Показать логи в консоли F12</button>
+      </div>
+
+      <p id="hang-status" style="font-size: 12px; color: #0284c7; margin-top: 10px; display: none;">
+        ⏳ Зависший запрос активен и слушается в фоне. Если прямо сейчас нажать «Отправить отчет» в виджете, запрос попадет в отчет с пометкой <code>pending: true</code> и пустым <code>status: null</code>!
+      </p>
     </div>
 
-    <div class="card" style="border-left: 4px solid #ef4444;">
-      <h3>Имитация реального бага на сайте:</h3>
-      <p style="color: #64748b; font-size: 14px;">
-        Представь, что эта кнопка сломана программистами портала. Нажми её, чтобы на странице упала ошибка, а затем протестируй виджет «Помощь» в нижнем правом углу!
-      </p>
-      <button class="danger" id="btn-buggy-action">Оплатить общежитие (кнопка с ошибкой)</button>
+    <div class="card">
+      <h3>Что изменилось в виджете «Помощь»:</h3>
+      <ul style="font-size: 13px; color: #475569; line-height: 1.8;">
+        <li><strong>Мультиязычность:</strong> Нажмите KZ / RU / EN в шапке — интерфейс виджета мгновенно переведется на казахский, русский или английский!</li>
+        <li><strong>До 5 скриншотов:</strong> Теперь можно прикреплять до 5 снимков экрана с индикатором <code>(X/5)</code>.</li>
+        <li><strong>Прогресс-бар и Retry:</strong> При отправке плавно бежит полоса загрузки, а при сбое вместо <code>alert()</code> появляется аккуратный блок ошибки и кнопка «Повторить».</li>
+        <li><strong>Точечная маскировка:</strong> Маскируются <em>только</em> заголовки <code>Authorization</code>, <code>Cookie</code> и <code>Set-Cookie</code>.</li>
+      </ul>
     </div>
   </main>
 
   <script>
     const loginBtn = document.getElementById('btn-login');
     const authStatus = document.getElementById('auth-status');
+    const hangStatus = document.getElementById('hang-status');
 
-    // 1. Инициализация SDK (на реальном сайте это делается сразу при загрузке)
+    // 1. Инициализация SDK с автоопределением языка
     LabReporter.init({
       projectKey: "pk_sdu_portal_2026",
       widget: true,
-      appVersion: "2.14.0",
-      apiUrl: "http://localhost:8080"
+      appVersion: "2.15.0",
+      apiUrl: window.LAB_DEMO_CONFIG?.apiUrl ?? "http://localhost:8080"
     });
 
-    // 2. Вход пользователя: как только вызван identify(), в правом нижнем углу всплывает кнопка "Помощь"
+    // 2. Вход
     loginBtn.addEventListener('click', () => {
       LabReporter.identify({
         id: "u-1842",
@@ -121,16 +170,50 @@
       loginBtn.style.display = 'none';
       authStatus.style.display = 'inline-block';
       authStatus.innerText = "Alice (alice@sdu.edu.kz)";
-      authStatus.className = "badge badge-ok";
     });
 
-    // 3. Баг на сайте: падает ошибка в консоль и запрос на 500
+    // 3. Переключатель языка
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const lang = btn.getAttribute('data-lang');
+        LabReporter.setLanguage(lang);
+      });
+    });
+
+    // 4. Зависший запрос (Hanging request)
+    document.getElementById('btn-hang-request').addEventListener('click', () => {
+      hangStatus.style.display = 'block';
+      // nginx демо-сайта держит этот запрос открытым 10 минут
+      fetch('/demo-api/hang').catch(() => {});
+    });
+
+    // 5. Упавший запрос (status = null)
+    document.getElementById('btn-failed-request').addEventListener('click', () => {
+      // Запрос на несуществующий домен гарантирует ошибку сети
+      fetch('https://non-existent-domain-sdu-test.kz/api/fail').catch(() => {});
+      alert("Сетевой запрос упал. В SDK он сохранен со статусом null и текстом ошибки.");
+    });
+
+    // 6. Ответ 500
+    document.getElementById('btn-server-error').addEventListener('click', () => {
+      fetch('/demo-api/server-error', { method: 'POST', body: JSON.stringify({ file: 'scan-03.tif' }) }).catch(() => {});
+    });
+
+    // 7. Запрос с Authorization: в отчёте значение заголовка будет [REDACTED]
+    document.getElementById('btn-auth-request').addEventListener('click', () => {
+      fetch('/demo-api/profile', { headers: { 'Authorization': 'Bearer secret_alice' } }).catch(() => {});
+    });
+
+    // 8. Ошибка JS
     document.getElementById('btn-buggy-action').addEventListener('click', () => {
-      // Имитируем падение JS кода
-      console.error(new TypeError("PaymentGatewayException: Не удалось связаться с банком Kaspi (код ошибки 500)"));
-      // Имитируем сбой сети
-      fetch('https://httpstat.us/500').catch(() => {});
-      alert("На сайте произошел сбой! Обрати внимание на нижний правый угол — нажми кнопку 'Помощь'.");
+      console.error(new TypeError("PaymentGatewayException: Kaspi API timeout"));
+    });
+
+    // 9. Debug
+    document.getElementById('btn-debug-state').addEventListener('click', () => {
+      LabReporter.getDebugState();
     });
   </script>
 </body>

@@ -1,0 +1,58 @@
+# Settings for a server, on top of docker-compose.yaml:
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
+#
+# Postgres and SeaweedFS get no host ports. The service, Keycloak and the demo listen only on 127.0.0.1, so the
+# host's nginx terminates TLS in front of them. Keycloak runs in production mode with its data in Postgres.
+# The limits fit the stack into about 2.5 GB of memory.
+
+services:
+  postgres:
+    ports: !reset []
+    mem_limit: 256m
+    volumes:
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+
+  seaweedfs:
+    ports: !reset []
+    mem_limit: 256m
+
+  keycloak:
+    command: start --import-realm
+    ports: !override
+      - "127.0.0.1:8081:8080"
+    mem_limit: 1g
+    environment:
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:?Set KEYCLOAK_PUBLIC_URL, for example https://auth.lab.example}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL, for example https://reports.lab.example}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # TLS ends at nginx, which passes the original scheme and host in X-Forwarded-* headers.
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      # One Keycloak node, so it needs no cluster cache.
+      KC_CACHE: local
+      # Leaves room under the limit for the memory the JVM uses outside the heap.
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=60
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  server:
+    ports: !override
+      - "127.0.0.1:8080:8080"
+    mem_limit: 768m
+    environment:
+      OIDC_ISSUER: ${KEYCLOAK_PUBLIC_URL:?Set KEYCLOAK_PUBLIC_URL}/realms/lab-bug-reporter
+    # The server's own projects file with its real origins, made from projects-dev.yaml and kept out of git.
+    volumes: !override
+      - ./projects.yaml:/app/config/projects.yaml:ro
+
+  demo:
+    ports: !override
+      - "127.0.0.1:5500:80"
+    mem_limit: 64m
+    environment:
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL}

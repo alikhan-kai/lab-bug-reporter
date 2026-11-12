@@ -22,6 +22,7 @@
     <properties>
         <java.version>21</java.version>
         <aws-sdk.version>2.34.0</aws-sdk.version>
+        <springdoc.version>3.2.0</springdoc.version>
     </properties>
 
     <!-- Dependencies -->
@@ -44,6 +45,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+        </dependency>
 
         <!-- Other -->
         <dependency>
@@ -65,6 +70,12 @@
             <artifactId>s3</artifactId>
             <version>${aws-sdk.version}</version>
         </dependency>
+        <!-- Generates the OpenAPI description from the controllers and serves Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
 
         <!-- Testing -->
         <dependency>
@@ -80,6 +91,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-oauth2-resource-server-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Starts Postgres and SeaweedFS in Docker for the tests that need them -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

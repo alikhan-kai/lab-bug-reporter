@@ -1,0 +1,42 @@
+# The demo website as a lab site would run it: static pages on their own origin that load sdk.js from the
+# reporter service, plus a tiny fake backend whose endpoints misbehave on purpose (ТЗ, section 13).
+# The page paths match the repository, so the pages also open with `npx serve` from the root.
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+
+    location = / {
+        return 302 /demo/;
+    }
+
+    location /demo/ {
+        try_files $uri $uri/ =404;
+    }
+
+    # Where the page sends reports. One value per deployment instead of an address in the page.
+    location = /demo/config.js {
+        default_type application/javascript;
+        add_header Cache-Control "no-store";
+        return 200 "window.LAB_DEMO_CONFIG = { apiUrl: '${PUBLIC_BASE_URL}' };\n";
+    }
+
+    # demo/index.html loads ../sdk/dist/sdk.js; here it comes from the service, as on a real site.
+    location = /sdk/dist/sdk.js {
+        proxy_pass http://server:8080/sdk.js;
+    }
+
+    location = /demo-api/server-error {
+        default_type application/json;
+        return 500 '{"error":"internal"}';
+    }
+
+    location = /demo-api/hang {
+        js_content demo_api.hang;
+    }
+
+    # Answers normally; the page calls it with an Authorization header to show the masking.
+    location = /demo-api/profile {
+        default_type application/json;
+        return 200 '{"id":"u-1842","name":"Alice"}';
+    }
+}

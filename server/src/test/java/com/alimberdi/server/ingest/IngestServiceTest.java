@@ -76,6 +76,8 @@ class IngestServiceTest {
 		assertThat(report.getAttachments()).extracting("kind")
 				.containsExactly(AttachmentKind.SCREENSHOT, AttachmentKind.VIDEO);
 		assertThat(report.getAttachments().get(1).getDurationMs()).isEqualTo(1000L);
+		assertThat(report.getConsoleErrorCount()).isEqualTo(1);
+		assertThat(report.getFailedRequestCount()).isEqualTo(1);
 		verify(objectStorage).put(eq(report.getContextObjectKey()), any(), anyLong(), eq("application/gzip"));
 	}
 
@@ -174,7 +176,9 @@ class IngestServiceTest {
 	}
 
 	private MultipartFile context() {
-		return new MockMultipartFile("context", "context.json", "application/json", "{\"console\":[]}".getBytes());
+		return new MockMultipartFile("context", "context.json", "application/json", """
+				{ "console": [{ "level": "error" }], "network": [{ "status": 500 }, { "status": 200 }] }
+				""".getBytes());
 	}
 
 	private MultipartFile screenshot() {

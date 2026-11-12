@@ -1,6 +1,7 @@
 package com.alimberdi.server.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.stream.Collectors;
@@ -36,6 +38,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	@ExceptionHandler(PayloadTooLargeException.class)
 	public ResponseEntity<Object> handlePayloadTooLarge(PayloadTooLargeException exception) {
 		return buildResponse(HttpStatus.CONTENT_TOO_LARGE, exception.getMessage());
+	}
+
+	@ExceptionHandler(RangeNotSatisfiableException.class)
+	public ResponseEntity<Object> handleRangeNotSatisfiable(RangeNotSatisfiableException exception) {
+		HttpStatus status = HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE;
+		return ResponseEntity.status(status)
+				.header(HttpHeaders.CONTENT_RANGE, "bytes */" + exception.getFileSizeBytes())
+				.body(toApiError(status, exception.getMessage()));
 	}
 
 	@ExceptionHandler(StorageException.class)
@@ -68,6 +78,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			return validationException.getBindingResult().getFieldErrors().stream()
 					.map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
 					.collect(Collectors.joining("; "));
+		}
+		if (exception instanceof HandlerMethodValidationException validationException) {
+			return validationException.getParameterValidationResults().stream()
+					.flatMap(result -> result.getResolvableErrors().stream()
+							.map(error -> result.getMethodParameter().getParameterName() + ": " + error.getDefaultMessage()))
+					.collect(Collectors.joining("; "));
+		}
+		if (exception instanceof TypeMismatchException typeMismatch) {
+			return "Invalid value for " + typeMismatch.getPropertyName();
 		}
 		return exception instanceof ErrorResponse errorResponse ? errorResponse.getBody().getDetail() : "Invalid request";
 	}
