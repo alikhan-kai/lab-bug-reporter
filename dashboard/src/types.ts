@@ -47,8 +47,14 @@ export interface ReportContext {
 /** A report together with its captured context, as the detail view shows it. */
 export type ReportView = ReportDetail & ReportContext;
 
-/** The screenshots and the video of a report, loaded as blob URLs after the report itself. */
-export type ReportMedia =
-  | { status: 'loading' }
+/** A file of a report, loaded as a blob URL after the report itself. `progress` is in percent when known. */
+export type MediaFile<T> =
+  | { status: 'loading'; progress: number | null }
   | { status: 'error' }
-  | { status: 'ready'; videoUrl: string | null; screenshotUrls: string[] };
+  | { status: 'ready'; value: T };
+
+/** The video and the screenshots load apart, so a large video does not hold the screenshots back. */
+export interface ReportMedia {
+  video: MediaFile<string | null>;
+  screenshots: MediaFile<string[]>;
+}

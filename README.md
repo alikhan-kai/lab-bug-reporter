@@ -124,8 +124,9 @@ docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
 <script>
   LabReporter.init({
     projectKey: "pk_datasets_3f9a",
-    apiUrl: "https://reports.lab.example",
     appVersion: "2.14.1"
+    // apiUrl: "https://reports.lab.example",  // по умолчанию адрес, откуда загружен sdk.js
+    // debug: true,                             // писать действия SDK в консоль сайта
   });
   // Вызовите после входа пользователя: кнопка появится только после этого
   LabReporter.identify({ id: "u-1842", email: "alice@lab.example" });

@@ -1,5 +1,10 @@
 import { widgetStyles } from './tokens.css';
 import { detectLanguage, getTranslations, SupportedLang, Translations } from '../core/i18n';
+import { MAX_RECORDING_SECONDS, RecordingResult } from '../core/capture/recorder';
+import { SubmitError } from '../core/upload';
+
+// The recording bar warns this many seconds before the recording stops at the limit.
+const RECORDING_WARNING_SECONDS = 30;
 
 export interface ReportFormData {
   type: 'bug' | 'feature' | 'question';
@@ -62,7 +67,7 @@ export class BugReporterWidget {
   // Callbacks
   private onScreenshotCallback?: () => Promise<Blob>;
   private onStartRecordingCallback?: (options?: { microphone?: boolean }) => Promise<number>;
-  private onStopRecordingCallback?: () => Promise<{ blob: Blob; durationMs: number; startTime: number }>;
+  private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
   constructor(preferredLang?: string) {
@@ -121,7 +126,7 @@ export class BugReporterWidget {
       <div class="lab-sidebar" id="lab-sidebar">
         <div class="lab-header">
           <h2 id="lab-header-title">${this.t.headerTitle}</h2>
-          <button class="lab-close-btn" id="lab-close" title="Закрыть (Esc)">
+          <button class="lab-close-btn" id="lab-close" type="button" title="${this.t.btnClose}" aria-label="${this.t.btnClose}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -191,7 +196,7 @@ export class BugReporterWidget {
           <div class="lab-success-icon">✓</div>
           <h2 style="margin: 0 0 6px 0; font-size: 18px;" id="lab-success-title">${this.t.successTitle}</h2>
           <p style="color: var(--lab-text-muted); font-size: 13px; margin: 0;" id="lab-success-desc">${this.t.successDesc}</p>
-          <div class="lab-ref-badge" id="lab-ref-badge">REF-00000</div>
+          <div class="lab-ref-badge" id="lab-ref-badge"></div>
           
           <div class="lab-success-actions">
             <button class="lab-btn-secondary" id="lab-btn-new-report" type="button">${this.t.btnNewReport}</button>
@@ -304,6 +309,10 @@ export class BugReporterWidget {
     this.recordBtn.addEventListener('click', () => this.handleToggleRecording());
     this.barStopBtn.addEventListener('click', () => this.handleToggleRecording());
 
+    this.titleInput.addEventListener('input', () => {
+      this.titleInput.style.borderColor = '';
+    });
+
     // Отправка формы (с прогресс-баром и Retry вместо alert)
     this.submitBtn.addEventListener('click', async () => {
       const title = this.titleInput.value.trim();
@@ -312,30 +321,35 @@ export class BugReporterWidget {
         this.titleInput.style.borderColor = 'var(--lab-danger)';
         return;
       }
+      if (!this.onSubmitCallback) return;
 
       this.hideError();
       this.submitBtn.disabled = true;
+
+      // A recording still running belongs to this report, so it is finished first.
+      if (this.isRecording) {
+        await this.stopRecording();
+      }
+
       this.progressContainer.classList.add('active');
-      this.progressBar.style.width = '15%';
+      this.progressBar.style.width = '2%';
 
       const submitTextEl = this.shadow?.getElementById('lab-submit-text');
       if (submitTextEl) submitTextEl.innerText = this.t.submittingText;
 
       try {
-        let refId = 'REF-' + Math.floor(10000 + Math.random() * 90000);
-        if (this.onSubmitCallback) {
-          refId = await this.onSubmitCallback({
-            type: this.currentType,
-            title,
-            description: this.descInput.value.trim(),
-            screenshots: [...this.currentScreenshots],
-            video: this.currentVideo || undefined,
-            videoDurationMs: this.currentVideoDuration || undefined,
-            recordingStartTime: this.recordingStartTime || undefined
-          }, (percent: number) => {
-            this.progressBar.style.width = `${Math.min(95, Math.max(15, percent))}%`;
-          });
-        }
+        const refId = await this.onSubmitCallback({
+          type: this.currentType,
+          title,
+          description: this.descInput.value.trim(),
+          screenshots: [...this.currentScreenshots],
+          video: this.currentVideo || undefined,
+          videoDurationMs: this.currentVideo ? this.currentVideoDuration : undefined,
+          recordingStartTime: this.currentVideo ? this.recordingStartTime : undefined
+        }, (percent: number) => {
+          // The upload ends at 100%, but the service still stores the files, so the bar stops short of the end.
+          this.progressBar.style.width = `${Math.min(95, Math.max(2, percent))}%`;
+        });
 
         this.progressBar.style.width = '100%';
         setTimeout(() => {
@@ -347,9 +361,17 @@ export class BugReporterWidget {
         // Сохраняем черновик формы и превращаем кнопку в Retry!
         this.progressContainer.classList.remove('active');
         this.progressBar.style.width = '0%';
-        this.showError(err.message || this.t.errorUploadText);
+        this.showError(this.describeSubmitError(err));
       }
     });
+  }
+
+  // The service explains a rejected report (too large, unknown project); other failures get the general text.
+  private describeSubmitError(error: unknown): string {
+    if (error instanceof SubmitError && error.status >= 400 && error.status < 500) {
+      return error.message;
+    }
+    return this.t.errorUploadText;
   }
 
   private showError(msg: string): void {
@@ -383,6 +405,9 @@ export class BugReporterWidget {
 
     const stopText = el('lab-bar-stop-text');
     if (stopText) stopText.innerText = this.t.btnRecordStop;
+    this.recordBtnText.innerText = this.isRecording ? this.t.btnRecordStop : this.t.btnRecord;
+    el('lab-close')?.setAttribute('title', this.t.btnClose);
+    el('lab-close')?.setAttribute('aria-label', this.t.btnClose);
 
     const header = el('lab-header-title');
     if (header) header.innerText = this.t.headerTitle;
@@ -412,45 +437,61 @@ export class BugReporterWidget {
 
   private async handleToggleRecording(): Promise<void> {
     if (this.isRecording) {
-      if (this.onStopRecordingCallback) {
-        try {
-          const res = await this.onStopRecordingCallback();
-          this.currentVideo = res.blob;
-          this.currentVideoDuration = res.durationMs;
-          this.recordingStartTime = res.startTime;
-          this.isRecording = false;
-          this.stopRecordBar();
-          this.renderAttachments();
-          this.open();
-        } catch (err) {
-          console.error('[LabReporter] Ошибка остановки записи:', err);
-        }
-      }
-    } else {
-      if (this.onStartRecordingCallback) {
-        try {
-          // Вызываем с объектом { microphone: true }
-          this.recordingStartTime = await this.onStartRecordingCallback({ microphone: true });
-          this.isRecording = true;
-          this.close();
-          this.startRecordBar();
-        } catch (err) {
-          console.error('[LabReporter] Ошибка старта записи:', err);
-        }
-      }
+      await this.stopRecording();
+      this.open();
+      return;
+    }
+    if (!this.onStartRecordingCallback) return;
+    try {
+      this.recordingStartTime = await this.onStartRecordingCallback({ microphone: true });
+      this.isRecording = true;
+      this.recordBtnText.innerText = this.t.btnRecordStop;
+      this.close();
+      this.startRecordBar();
+    } catch (err) {
+      console.error('[LabReporter] Ошибка старта записи:', err);
     }
   }
 
+  private async stopRecording(): Promise<void> {
+    if (!this.onStopRecordingCallback) return;
+    try {
+      this.attachRecording(await this.onStopRecordingCallback());
+    } catch (err) {
+      console.error('[LabReporter] Ошибка остановки записи:', err);
+    }
+  }
+
+  /** Shows a recording that stopped without the stop button: at the time limit or from the browser's sharing bar. */
+  showStoppedRecording(result: RecordingResult): void {
+    if (!this.isRecording) return;
+    this.attachRecording(result);
+    this.open();
+  }
+
+  private attachRecording(result: RecordingResult): void {
+    this.currentVideo = result.blob;
+    this.currentVideoDuration = result.durationMs;
+    this.recordingStartTime = result.startTime;
+    this.isRecording = false;
+    this.recordBtnText.innerText = this.t.btnRecord;
+    this.stopRecordBar();
+    this.renderAttachments();
+  }
+
   private startRecordBar(): void {
-    let seconds = 0;
-    this.recordingBar.classList.remove('hidden');
+    this.recordingBar.classList.remove('hidden', 'warning');
     this.barTimerEl.innerText = '0:00';
 
+    // Counted from the start time, because a background tab slows the interval down.
     this.timerInterval = setInterval(() => {
-      seconds++;
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      this.barTimerEl.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      const seconds = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+      const secondsLeft = Math.max(0, MAX_RECORDING_SECONDS - seconds);
+      const isEndingSoon = secondsLeft <= RECORDING_WARNING_SECONDS;
+      this.recordingBar.classList.toggle('warning', isEndingSoon);
+      this.barTimerEl.innerText = isEndingSoon
+        ? `${formatSeconds(seconds)} · ${this.t.recordingTimeLeft.replace('{seconds}', String(secondsLeft))}`
+        : formatSeconds(seconds);
     }, 1000);
   }
 
@@ -460,6 +501,7 @@ export class BugReporterWidget {
       this.timerInterval = null;
     }
     this.recordingBar.classList.add('hidden');
+    this.recordingBar.classList.remove('warning');
   }
 
   private renderAttachments(): void {
@@ -572,6 +614,12 @@ export class BugReporterWidget {
 
   onScreenshot(cb: () => Promise<Blob>): void { this.onScreenshotCallback = cb; }
   onStartRecording(cb: (options?: { microphone?: boolean }) => Promise<number>): void { this.onStartRecordingCallback = cb; }
-  onStopRecording(cb: () => Promise<{ blob: Blob; durationMs: number; startTime: number }>): void { this.onStopRecordingCallback = cb; }
+  onStopRecording(cb: () => Promise<RecordingResult>): void { this.onStopRecordingCallback = cb; }
   onSubmit(cb: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>): void { this.onSubmitCallback = cb; }
+}
+
+function formatSeconds(totalSeconds: number): string {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }

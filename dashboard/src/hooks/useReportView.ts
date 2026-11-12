@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, describeError } from '../api/client';
 import type { Attachment, ReportDetail } from '../api/types';
-import type { ReportMedia, ReportView } from '../types';
+import type { MediaFile, ReportMedia, ReportView } from '../types';
 
 export type ReportViewState =
   | { status: 'loading' }
@@ -50,17 +50,19 @@ export function useReportView(reportId: string): {
   return { state, replaceReport };
 }
 
-/** Loads the screenshots and the video as blob URLs and frees them when the view closes. */
+/** Loads the video and the screenshots as blob URLs, each on its own, and frees them when the view closes. */
 export function useReportMedia(reportId: string, attachments: Attachment[]): ReportMedia {
-  const [media, setMedia] = useState<ReportMedia>({ status: 'loading' });
+  const [video, setVideo] = useState<MediaFile<string | null>>({ status: 'loading', progress: null });
+  const [screenshots, setScreenshots] = useState<MediaFile<string[]>>({ status: 'loading', progress: null });
   // A status change returns a new attachments array with the same files; the key keeps them from loading again.
   const attachmentKey = attachments.map((attachment) => `${attachment.kind}:${attachment.id}`).join(',');
 
   useEffect(() => {
     let isCancelled = false;
     const objectUrls: string[] = [];
-    const toObjectUrl = async (attachmentId: string): Promise<string> => {
-      const blob = await api.fetchAttachment(reportId, attachmentId);
+    const toObjectUrl = async (attachmentId: string, onProgress?: (percent: number) => void): Promise<string> => {
+      const blob = await api.fetchAttachment(reportId, attachmentId, onProgress);
+      // The view closed during the download, so nothing would free a URL made now.
       if (isCancelled) return '';
       const url = URL.createObjectURL(blob);
       objectUrls.push(url);
@@ -71,14 +73,28 @@ export function useReportMedia(reportId: string, attachments: Attachment[]): Rep
     const videoId = files.find(([kind]) => kind === 'video')?.[1];
     const screenshotIds = files.filter(([kind]) => kind === 'screenshot').map(([, id]) => id);
 
-    setMedia({ status: 'loading' });
-    Promise.all([videoId ? toObjectUrl(videoId) : Promise.resolve(null), Promise.all(screenshotIds.map(toObjectUrl))])
-      .then(([videoUrl, screenshotUrls]) => {
-        if (!isCancelled) setMedia({ status: 'ready', videoUrl, screenshotUrls });
+    setVideo(videoId ? { status: 'loading', progress: 0 } : { status: 'ready', value: null });
+    if (videoId) {
+      toObjectUrl(videoId, (progress) => {
+        if (!isCancelled) setVideo({ status: 'loading', progress });
+      })
+        .then((url) => {
+          if (!isCancelled) setVideo({ status: 'ready', value: url });
+        })
+        .catch((error: unknown) => {
+          console.error('Cannot load the video', error);
+          if (!isCancelled) setVideo({ status: 'error' });
+        });
+    }
+
+    setScreenshots({ status: 'loading', progress: null });
+    Promise.all(screenshotIds.map((id) => toObjectUrl(id)))
+      .then((urls) => {
+        if (!isCancelled) setScreenshots({ status: 'ready', value: urls });
       })
       .catch((error: unknown) => {
-        console.error('Cannot load report files', error);
-        if (!isCancelled) setMedia({ status: 'error' });
+        console.error('Cannot load the screenshots', error);
+        if (!isCancelled) setScreenshots({ status: 'error' });
       });
 
     return () => {
@@ -87,5 +103,5 @@ export function useReportMedia(reportId: string, attachments: Attachment[]): Rep
     };
   }, [reportId, attachmentKey]);
 
-  return media;
+  return { video, screenshots };
 }

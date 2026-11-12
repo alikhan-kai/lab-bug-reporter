@@ -17,20 +17,22 @@ export function sanitizeHeaders(headers: Record<string, string> | Headers | [str
   const result: Record<string, string> = {};
   if (!headers) return result;
 
-  if (typeof (headers as Headers).forEach === 'function') {
+  // Arrays are checked first: they have forEach too, but call it with (pair, index), not (value, name).
+  if (Array.isArray(headers)) {
+    for (const [key, value] of headers) {
+      const lowerKey = String(key).toLowerCase();
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(value);
+    }
+  } else if (typeof (headers as Headers).forEach === 'function') {
     (headers as Headers).forEach((value, key) => {
       const lowerKey = key.toLowerCase();
       result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
     });
-  } else if (Array.isArray(headers)) {
-    for (const [key, value] of headers) {
-      const lowerKey = key.toLowerCase();
-      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : value;
-    }
   } else if (typeof headers === 'object') {
-    for (const key of Object.keys(headers)) {
+    const plainHeaders = headers as Record<string, string>;
+    for (const key of Object.keys(plainHeaders)) {
       const lowerKey = key.toLowerCase();
-      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(headers[key]);
+      result[lowerKey] = ONLY_AUTH_HEADERS.has(lowerKey) ? '[REDACTED]' : String(plainHeaders[key]);
     }
   }
 
