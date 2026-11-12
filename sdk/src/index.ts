@@ -4,6 +4,7 @@ import { BreadcrumbsCapture, BreadcrumbEntry } from './core/breadcrumbs';
 import { captureEnvironment, EnvironmentInfo } from './core/environment';
 import { ScreenRecorder, RecordingResult } from './core/capture/recorder';
 import { postReport } from './core/upload';
+import { SCRIPT_URL } from './core/script-url';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData } from './widget/widget';
 import { SupportedLang } from './core/i18n';
@@ -19,19 +20,8 @@ export interface InitOptions {
   debug?: boolean;
 }
 
-// The service serves sdk.js itself, so the script's own address is the default service address. currentScript is
-// only set while the script first runs.
-const SCRIPT_ORIGIN = readScriptOrigin();
-
-function readScriptOrigin(): string | undefined {
-  if (typeof document === 'undefined') return undefined;
-  const script = document.currentScript as HTMLScriptElement | null;
-  try {
-    return script?.src ? new URL(script.src).origin : undefined;
-  } catch {
-    return undefined;
-  }
-}
+// The service serves sdk.js itself, so the script's own address is the default service address.
+const SCRIPT_ORIGIN = SCRIPT_URL ? new URL(SCRIPT_URL).origin : undefined;
 
 export interface UserIdentity {
   id?: string;

@@ -1,83 +1,122 @@
+import { WIDGET_FONT_FAMILY } from './font';
+
 /**
- * Токены дизайна виджета (стилизация в стиле campus.codes / Linear / Apple UI)
+ * The widget's styles, inside its shadow root, so they never leak into the host site.
+ * The tokens are the campus.codes ones (ТЗ, раздел 9). A site can override any --lab-* variable on
+ * #lab-reporter-root, for example the accent colour: #lab-reporter-root { --lab-primary: #7c3aed; }
  */
 export const widgetStyles = `
 :host {
-  --lab-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
-  --lab-primary: #0284c7;
-  --lab-primary-hover: #0369a1;
+  --lab-font: '${WIDGET_FONT_FAMILY}', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --lab-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --lab-primary: #4c9be8;
+  --lab-primary-hover: #3a80c9;
+  --lab-primary-soft: #f0f7ff;
+  --lab-on-primary: #ffffff;
+
   --lab-bg: #ffffff;
-  --lab-surface: #f8fafc;
-  --lab-border: #e2e8f0;
-  --lab-text: #0f172a;
-  --lab-text-muted: #64748b;
-  --lab-danger: #ef4444;
-  --lab-danger-bg: #fee2e2;
-  --lab-radius: 8px;
-  --lab-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --lab-surface: #f8f9fa;
+  --lab-muted: #f0f1f3;
+  --lab-border: #dee2e6;
+  --lab-border-strong: #d1d5db;
+  --lab-text: #1c1c2e;
+  --lab-text-secondary: #4b5563;
+  --lab-text-muted: #6b7280;
+
+  --lab-danger: #b91c1c;
+  --lab-danger-bg: #fef2f2;
+  --lab-danger-border: #fecaca;
+  --lab-warning: #b45309;
+  --lab-success: #2f6b12;
+  --lab-success-bg: #eaf3de;
+  --lab-recording: #ef4444;
+
+  --lab-radius-md: 0.375rem;
+  --lab-radius-lg: 0.5rem;
+  --lab-radius-xl: 0.75rem;
+  /* Kept for sites that override the old single radius. */
+  --lab-radius: var(--lab-radius-md);
+  --lab-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --lab-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --lab-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
   font-family: var(--lab-font);
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--lab-text);
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
 }
 
 *, *:before, *:after {
   box-sizing: border-box;
 }
 
-/* Плавающая кнопка launcher */
+button, input, textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lab-primary);
+  outline-offset: 2px;
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+/* Floating "Get help" button, like the campus.codes Register button */
 .lab-launcher {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: var(--lab-primary);
-  color: #ffffff;
-  border: none;
-  border-radius: 9999px;
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--lab-radius-lg);
+  background: var(--lab-primary);
+  color: var(--lab-on-primary);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-  transition: transform 0.25s var(--lab-ease), box-shadow 0.25s var(--lab-ease), background 0.2s;
+  box-shadow: var(--lab-shadow);
+  transition: background-color 0.15s ease, transform 0.2s var(--lab-ease);
   z-index: 2147483640;
 }
 
 .lab-launcher:hover {
   background: var(--lab-primary-hover);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+  transform: translateY(-1px);
 }
 
 .lab-launcher:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0);
 }
 
 .lab-launcher.hidden {
   display: none !important;
 }
 
-/* ПЛАВАЮЩАЯ ПАНЕЛЬ ЗАПИСИ (Jam.dev стиль, сверху экрана) */
+/* Recording bar at the top of the screen */
 .lab-recording-bar {
   position: fixed;
-  top: 20px;
+  top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: #0f172a;
-  color: #ffffff;
-  border-radius: 9999px;
-  padding: 8px 16px 8px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--lab-radius-xl);
+  background: var(--lab-text);
+  color: #ffffff;
+  box-shadow: var(--lab-shadow);
   z-index: 2147483647;
   animation: slideDown 0.3s var(--lab-ease);
-  transition: transform 0.2s var(--lab-ease);
 }
 
 @keyframes slideDown {
@@ -89,63 +128,56 @@ export const widgetStyles = `
   display: none !important;
 }
 
-/* Последние секунды перед лимитом записи */
+/* The last seconds before the recording limit */
 .lab-recording-bar.warning {
-  background: #b45309;
-  transition: background 0.3s var(--lab-ease);
+  background: var(--lab-warning);
+  transition: background-color 0.3s var(--lab-ease);
 }
 
 .lab-rec-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #ef4444;
-  animation: pulseDot 1s infinite;
+  background: var(--lab-recording);
+  animation: pulseDot 1.2s ease-in-out infinite;
 }
 
 @keyframes pulseDot {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.6; }
-  100% { transform: scale(1); opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .lab-rec-time {
-  font-family: monospace;
+  font-family: var(--lab-font-mono);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .lab-bar-stop-btn {
-  background: #ef4444;
-  color: #ffffff;
-  border: none;
-  border-radius: 9999px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s, transform 0.15s;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-recording);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .lab-bar-stop-btn:hover {
   background: #dc2626;
-  transform: scale(1.02);
 }
 
-.lab-bar-stop-btn:active {
-  transform: scale(0.96);
-}
-
-/* Затемнение фона */
+/* Dimmed page behind the panel */
 .lab-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(2px);
+  background: rgb(28 28 46 / 0.35);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s var(--lab-ease);
@@ -157,7 +189,7 @@ export const widgetStyles = `
   pointer-events: auto;
 }
 
-/* Выезжающий сайдбар */
+/* Side panel */
 .lab-sidebar {
   position: fixed;
   top: 0;
@@ -165,10 +197,11 @@ export const widgetStyles = `
   bottom: 0;
   width: 420px;
   max-width: 100vw;
-  background: var(--lab-bg);
-  box-shadow: var(--lab-shadow);
   display: flex;
   flex-direction: column;
+  background: var(--lab-bg);
+  border-left: 1px solid var(--lab-border);
+  box-shadow: var(--lab-shadow);
   transform: translateX(100%);
   transition: transform 0.35s var(--lab-ease);
   z-index: 2147483646;
@@ -178,73 +211,71 @@ export const widgetStyles = `
   transform: translateX(0);
 }
 
-/* Заголовок сайдбара */
 .lab-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--lab-border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--lab-border);
 }
 
 .lab-header h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.2px;
 }
 
 .lab-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--lab-text-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s var(--lab-ease);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--lab-radius-md);
+  background: transparent;
+  color: var(--lab-text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .lab-close-btn:hover {
-  background: var(--lab-surface);
+  background: var(--lab-muted);
   color: var(--lab-text);
-  transform: rotate(90deg);
 }
 
-/* Тело формы */
 .lab-body {
-  padding: 20px;
-  overflow-y: auto;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transition: opacity 0.2s ease;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--lab-surface);
 }
 
-/* ПЛАВАЮЩИЙ ПЕРЕКЛЮЧАТЕЛЬ С ЭФФЕКТОМ СКОЛЬЖЕНИЯ (SLIDING PILL) */
+/* Type switch with a sliding indicator */
 .lab-type-selector {
   position: relative;
   display: flex;
-  background: var(--lab-surface);
   padding: 3px;
-  border-radius: 8px;
   border: 1px solid var(--lab-border);
+  border-radius: var(--lab-radius-lg);
+  background: var(--lab-muted);
   user-select: none;
 }
 
-/* Скользящий белый ползунок-подложка */
 .lab-type-indicator {
   position: absolute;
   top: 3px;
   bottom: 3px;
   left: 3px;
   width: calc(33.333% - 2px);
-  background: #ffffff;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-bg);
+  box-shadow: var(--lab-shadow-sm);
   transition: transform 0.28s var(--lab-ease);
   z-index: 1;
   pointer-events: none;
@@ -254,31 +285,26 @@ export const widgetStyles = `
   position: relative;
   z-index: 2;
   flex: 1;
-  background: transparent;
+  padding: 6px 8px;
   border: none;
-  padding: 7px 10px;
+  border-radius: var(--lab-radius-md);
+  background: transparent;
+  color: var(--lab-text-secondary);
   font-size: 13px;
   font-weight: 500;
-  color: var(--lab-text-muted);
-  border-radius: 6px;
   cursor: pointer;
-  transition: color 0.25s var(--lab-ease), transform 0.15s ease;
+  transition: color 0.2s ease;
 }
 
 .lab-type-btn:hover {
   color: var(--lab-text);
 }
 
-.lab-type-btn:active {
-  transform: scale(0.96);
-}
-
 .lab-type-btn.active {
   color: var(--lab-primary);
-  font-weight: 600;
 }
 
-/* Поля ввода */
+/* Fields */
 .lab-field {
   display: flex;
   flex-direction: column;
@@ -288,63 +314,64 @@ export const widgetStyles = `
 .lab-field label {
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--lab-text-muted);
 }
 
 .lab-input, .lab-textarea {
   width: 100%;
+  padding: 8px 10px;
   border: 1px solid var(--lab-border);
-  border-radius: var(--lab-radius);
-  padding: 10px 12px;
-  font-size: 13px;
-  font-family: inherit;
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-bg);
   color: var(--lab-text);
-  background: #ffffff;
-  transition: border-color 0.2s var(--lab-ease), box-shadow 0.2s var(--lab-ease), background 0.2s;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lab-input::placeholder, .lab-textarea::placeholder {
+  color: var(--lab-text-muted);
 }
 
 .lab-input:focus, .lab-textarea:focus {
   outline: none;
   border-color: var(--lab-primary);
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  box-shadow: 0 0 0 3px var(--lab-primary-soft);
 }
 
 .lab-textarea {
+  min-height: 96px;
   resize: vertical;
-  min-height: 80px;
 }
 
-/* Кнопки медиа */
+/* Screenshot and recording buttons */
 .lab-media-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .lab-btn-outline {
   flex: 1;
-  border: 1px solid var(--lab-border);
-  background: var(--lab-surface);
-  color: var(--lab-text);
-  padding: 9px 12px;
-  border-radius: var(--lab-radius);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.2s var(--lab-ease);
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--lab-border);
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-bg);
+  color: var(--lab-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .lab-btn-outline:hover:not(:disabled) {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
-
-.lab-btn-outline:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
+  background: var(--lab-muted);
+  border-color: var(--lab-border-strong);
 }
 
 .lab-btn-outline:disabled {
@@ -352,28 +379,37 @@ export const widgetStyles = `
   cursor: not-allowed;
 }
 
-/* Превью вложений */
+/* Attached files, as rows of one card like the campus.codes tables */
 .lab-attachments-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border: 1px solid var(--lab-border);
+  border-radius: var(--lab-radius-lg);
+  background: var(--lab-bg);
+  overflow: hidden;
+}
+
+.lab-attachments-list:empty {
+  display: none;
 }
 
 .lab-attachment-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  border: 1px solid var(--lab-border);
-  border-radius: var(--lab-radius);
-  background: var(--lab-surface);
-  font-size: 12px;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--lab-border);
+  font-size: 13px;
   animation: attachFadeIn 0.25s var(--lab-ease);
-  transition: background 0.2s;
+}
+
+.lab-attachment-item:last-child {
+  border-bottom: none;
 }
 
 @keyframes attachFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -381,56 +417,66 @@ export const widgetStyles = `
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  text-overflow: ellipsis;
+  color: var(--lab-text);
+}
+
+.lab-attachment-name svg {
+  color: var(--lab-text-muted);
 }
 
 .lab-btn-remove {
-  background: transparent;
+  height: 26px;
+  padding: 0 8px;
   border: none;
+  border-radius: var(--lab-radius-md);
+  background: transparent;
   color: var(--lab-danger);
-  cursor: pointer;
   font-size: 12px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.15s;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .lab-btn-remove:hover {
   background: var(--lab-danger-bg);
 }
 
-/* Блок ошибки загрузки (Inline Error с Retry) */
+/* Upload error with Retry */
 .lab-error-banner {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-  padding: 10px 12px;
-  border-radius: var(--lab-radius);
-  font-size: 12px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  line-height: 1.4;
+  padding: 10px 12px;
+  border: 1px solid var(--lab-danger-border);
+  border-radius: var(--lab-radius-lg);
+  background: var(--lab-danger-bg);
+  color: var(--lab-danger);
+  font-size: 13px;
+  line-height: 1.45;
   animation: attachFadeIn 0.25s var(--lab-ease);
+}
+
+.lab-error-icon {
+  display: flex;
+  margin-top: 1px;
 }
 
 .lab-error-banner.hidden {
   display: none !important;
 }
 
-/* Полоса прогресса отправки */
+/* Upload progress */
 .lab-progress-container {
+  display: none;
   width: 100%;
   height: 4px;
-  background: #e2e8f0;
   border-radius: 2px;
+  background: var(--lab-muted);
   overflow: hidden;
-  display: none;
-  margin-top: 4px;
 }
 
 .lab-progress-container.active {
@@ -438,54 +484,56 @@ export const widgetStyles = `
 }
 
 .lab-progress-bar {
-  height: 100%;
   width: 0%;
-  background: var(--lab-primary);
+  height: 100%;
   border-radius: 2px;
+  background: var(--lab-primary);
   transition: width 0.3s ease;
 }
 
-/* Нижняя панель отправки */
+/* Footer with Submit */
 .lab-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--lab-border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--lab-border);
+  background: var(--lab-bg);
 }
 
-.lab-submit-btn {
-  background: var(--lab-primary);
-  color: white;
-  border: none;
-  border-radius: var(--lab-radius);
-  padding: 11px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+.lab-submit-btn, .lab-btn-primary, .lab-btn-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: all 0.2s var(--lab-ease);
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--lab-radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.lab-submit-btn:hover:not(:disabled) {
+.lab-submit-btn, .lab-btn-primary {
+  border: 1px solid var(--lab-primary);
+  background: var(--lab-primary);
+  color: var(--lab-on-primary);
+}
+
+.lab-submit-btn:hover:not(:disabled), .lab-btn-primary:hover {
+  border-color: var(--lab-primary-hover);
   background: var(--lab-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
-}
-
-.lab-submit-btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
 }
 
 .lab-submit-btn.retry-mode {
-  background: #dc2626;
+  border-color: var(--lab-danger);
+  background: var(--lab-danger);
 }
 
 .lab-submit-btn.retry-mode:hover:not(:disabled) {
-  background: #b91c1c;
+  border-color: #991b1b;
+  background: #991b1b;
 }
 
 .lab-submit-btn:disabled {
@@ -493,92 +541,77 @@ export const widgetStyles = `
   cursor: not-allowed;
 }
 
-/* ЭКРАН УСПЕХА */
+.lab-btn-secondary {
+  border: 1px solid var(--lab-border);
+  background: var(--lab-bg);
+  color: var(--lab-text);
+}
+
+.lab-btn-secondary:hover {
+  background: var(--lab-muted);
+}
+
+/* Success screen */
 .lab-success-view {
+  flex: 1;
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   padding: 40px 24px;
-  flex: 1;
+  text-align: center;
+  background: var(--lab-surface);
   animation: attachFadeIn 0.3s var(--lab-ease);
 }
 
 .lab-success-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #dcfce7;
-  color: #166534;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
+  width: 52px;
+  height: 52px;
   margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--lab-success-bg);
+  color: var(--lab-success);
   animation: scaleSuccess 0.4s var(--lab-ease);
 }
 
 @keyframes scaleSuccess {
   0% { transform: scale(0.5); opacity: 0; }
-  60% { transform: scale(1.15); }
+  60% { transform: scale(1.1); }
   100% { transform: scale(1); opacity: 1; }
 }
 
 .lab-ref-badge {
-  background: var(--lab-surface);
-  border: 1px solid var(--lab-border);
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--lab-primary);
-  margin: 12px 0 24px 0;
   display: inline-block;
+  max-width: 100%;
+  margin: 14px 0 24px;
+  padding: 6px 12px;
+  border: 1px solid var(--lab-border);
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-bg);
+  color: var(--lab-text);
+  font-family: var(--lab-font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .lab-success-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
-.lab-btn-secondary {
+.lab-success-actions > * {
   flex: 1;
-  background: var(--lab-surface);
-  border: 1px solid var(--lab-border);
-  color: var(--lab-text);
-  padding: 10px 14px;
-  border-radius: var(--lab-radius);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s var(--lab-ease);
 }
 
-.lab-btn-secondary:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
-
-.lab-btn-primary {
-  flex: 1;
-  background: var(--lab-primary);
-  border: 1px solid transparent;
-  color: white;
-  padding: 10px 14px;
-  border-radius: var(--lab-radius);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s var(--lab-ease);
-}
-
-.lab-btn-primary:hover {
-  background: var(--lab-primary-hover);
-  transform: translateY(-1px);
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 `;
