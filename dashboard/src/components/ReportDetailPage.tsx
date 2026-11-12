@@ -23,7 +23,7 @@ export const ReportDetailPage: React.FC<ReportDetailPageProps> = ({ reportId, on
   }
   if (state.status === 'error') {
     return (
-      <div role="alert" style={{ padding: '60px 16px', textAlign: 'center', color: '#f87171', fontSize: '14px' }}>
+      <div role="alert" style={{ padding: '60px 16px', textAlign: 'center', color: 'var(--color-danger)', fontSize: '14px' }}>
         <p style={{ margin: '0 0 16px' }}>{state.message}</p>
         <button type="button" onClick={onBack} style={backButtonStyle}>Вернуться к списку</button>
       </div>
@@ -84,9 +84,9 @@ const LoadedReport: React.FC<LoadedReportProps> = ({ report, onBack, onDeleted, 
 };
 
 const backButtonStyle: React.CSSProperties = {
-  background: '#090d16',
-  border: '1px solid #1e293b',
-  color: '#cbd5e1',
+  background: 'var(--color-canvas)',
+  border: '1px solid var(--color-line)',
+  color: 'var(--color-ink-secondary)',
   padding: '7px 14px',
   borderRadius: '6px',
   cursor: 'pointer',
@@ -100,7 +100,7 @@ const ReportDetailSkeleton: React.FC = () => (
       <Bone width={150} height={30} radius={6} />
       <Bone width={180} height={30} radius={6} />
     </div>
-    <div style={{ background: '#0b1120', border: '1px solid #1e293b', borderRadius: '10px', padding: '20px 24px', display: 'grid', gap: '12px' }}>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-line)', borderRadius: '10px', padding: '20px 24px', display: 'grid', gap: '12px' }}>
       <Bone width={280} height={14} />
       <Bone width="60%" height={22} />
       <Bone width="90%" height={14} />

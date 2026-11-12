@@ -65,9 +65,9 @@ export function useCurrentUser(): CurrentUser {
 }
 
 const buttonStyle: React.CSSProperties = {
-  background: '#1e293b',
-  border: '1px solid #334155',
-  color: '#e2e8f0',
+  background: 'var(--color-line)',
+  border: '1px solid var(--color-ink-muted)',
+  color: 'var(--color-ink)',
   borderRadius: '6px',
   padding: '8px 14px',
   fontSize: '13px',
@@ -78,7 +78,7 @@ const buttonStyle: React.CSSProperties = {
 const AuthError: React.FC<{ message: string; isAccessDenied: boolean }> = ({ message, isAccessDenied }) => (
   <main style={{
     minHeight: '100vh',
-    background: '#0f172a',
+    background: 'var(--color-muted)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -87,16 +87,16 @@ const AuthError: React.FC<{ message: string; isAccessDenied: boolean }> = ({ mes
     <section role="alert" style={{
       maxWidth: '420px',
       width: '100%',
-      background: '#090d16',
-      border: '1px solid #1e293b',
+      background: 'var(--color-canvas)',
+      border: '1px solid var(--color-line)',
       borderRadius: '8px',
       padding: '24px',
-      color: '#e2e8f0',
+      color: 'var(--color-ink)',
     }}>
       <h1 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 8px' }}>
         {isAccessDenied ? 'Нет доступа' : 'Ошибка входа'}
       </h1>
-      <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 20px', lineHeight: 1.5 }}>{message}</p>
+      <p style={{ fontSize: '13px', color: 'var(--color-ink-secondary)', margin: '0 0 20px', lineHeight: 1.5 }}>{message}</p>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {!isAccessDenied && (
           <button type="button" style={buttonStyle} onClick={() => window.location.reload()}>

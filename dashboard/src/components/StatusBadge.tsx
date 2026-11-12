@@ -2,10 +2,10 @@ import React from 'react';
 import type { ReportStatus } from '../api/types';
 
 const STATUS_LOOK: Record<ReportStatus, { label: string; color: string; background: string; border: string }> = {
-  new: { label: 'Новый', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', border: 'rgba(56, 189, 248, 0.25)' },
-  in_progress: { label: 'В работе', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.25)' },
-  resolved: { label: 'Решено', color: '#34d399', background: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.25)' },
-  wont_fix: { label: 'Отклонено', color: '#94a3b8', background: 'rgba(100, 116, 139, 0.1)', border: 'rgba(100, 116, 139, 0.25)' },
+  new: { label: 'Новый', color: 'var(--color-accent)', background: 'var(--color-accent-soft)', border: 'var(--color-accent)' },
+  in_progress: { label: 'В работе', color: 'var(--color-warning)', background: 'var(--color-warning-soft)', border: 'var(--color-warning-line)' },
+  resolved: { label: 'Решено', color: 'var(--color-success)', background: 'var(--color-success-soft)', border: 'var(--color-success-line)' },
+  wont_fix: { label: 'Отклонено', color: 'var(--color-ink-secondary)', background: 'var(--color-muted)', border: 'var(--color-line)' },
 };
 
 /** The status of a report as a coloured pill, the same in the list and the detail view. */

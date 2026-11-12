@@ -1,5 +1,7 @@
+import { Moon, Sun } from 'lucide-react';
 import React from 'react';
 import { useCurrentUser } from '../auth/AuthProvider';
+import { useTheme } from '../hooks/useTheme';
 import { signOut } from '../auth/keycloak';
 import type { CurrentUser } from '../api/types';
 
@@ -20,12 +22,13 @@ function initialsOf(username: string): string {
 
 export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange, onHomeClick }) => {
   const user = useCurrentUser();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     // On a phone the user block wraps under the logo instead of pushing the page wider than the screen.
     <header style={{
-      background: '#090d16',
-      borderBottom: '1px solid #1e293b',
+      background: 'var(--color-surface)',
+      borderBottom: '1px solid var(--color-line)',
       padding: '10px 16px',
       minHeight: '56px',
       boxSizing: 'border-box',
@@ -44,28 +47,28 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
         >
           {/* Аккуратный логотип в стиле campus.codes */}
           <div style={{
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
             width: '28px',
             height: '28px',
             borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
+            color: 'var(--color-on-accent)',
             fontWeight: 700,
             fontSize: '14px',
-            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)'
+            boxShadow: '0 2px 8px var(--color-accent)'
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, fontSize: '14px', color: '#f8fafc', letterSpacing: '-0.2px' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-ink)', letterSpacing: '-0.2px' }}>
               campus.codes
             </span>
-            <span style={{ color: '#475569', fontSize: '13px' }}>/</span>
-            <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 500 }}>
+            <span style={{ color: 'var(--color-ink-muted)', fontSize: '13px' }}>/</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-ink-secondary)', fontWeight: 500 }}>
               bug-reporter
             </span>
           </div>
@@ -78,9 +81,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
             value={currentProject}
             onChange={(e) => onProjectChange(e.target.value)}
             style={{
-              background: '#0f172a',
-              border: '1px solid #1e293b',
-              color: '#cbd5e1',
+              background: 'var(--color-muted)',
+              border: '1px solid var(--color-line)',
+              color: 'var(--color-ink-secondary)',
               borderRadius: '6px',
               padding: '5px 10px',
               fontSize: '12px',
@@ -102,13 +105,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
       {/* Пользователь команды (Keycloak User) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: '#e2e8f0', display: 'block' }}>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-ink)', display: 'block' }}>
             {user.username}
           </span>
           <span style={{
             fontSize: '10px',
             fontFamily: 'monospace',
-            color: '#38bdf8',
+            color: 'var(--color-accent)',
             letterSpacing: '0.5px'
           }}>
             {describeRole(user)}
@@ -118,9 +121,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: '#1e293b',
-          border: '1px solid #334155',
-          color: '#38bdf8',
+          background: 'var(--color-line)',
+          border: '1px solid var(--color-ink-muted)',
+          color: 'var(--color-accent)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -131,11 +134,28 @@ export const Navbar: React.FC<NavbarProps> = ({ currentProject, onProjectChange,
         </div>
         <button
           type="button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Светлая тема' : 'Темная тема'}
+          title={theme === 'dark' ? 'Светлая тема' : 'Темная тема'}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-ink-secondary)',
+            padding: '6px',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+            display: 'flex'
+          }}
+        >
+          {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+        </button>
+        <button
+          type="button"
           onClick={() => void signOut()}
           style={{
             background: 'transparent',
-            border: '1px solid #1e293b',
-            color: '#94a3b8',
+            border: '1px solid var(--color-line)',
+            color: 'var(--color-ink-secondary)',
             borderRadius: '6px',
             padding: '5px 10px',
             fontSize: '12px',

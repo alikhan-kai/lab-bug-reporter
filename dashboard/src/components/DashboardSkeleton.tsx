@@ -5,11 +5,11 @@ const SKELETON_ROWS = 6;
 
 /** Placeholder shaped like the navbar and the report list, shown while the dashboard signs in. */
 export const DashboardSkeleton: React.FC = () => (
-  <div style={{ minHeight: '100vh', background: '#0f172a' }} aria-busy="true" aria-label="Загрузка">
+  <div style={{ minHeight: '100vh', background: 'var(--color-muted)' }} aria-busy="true" aria-label="Загрузка">
     <SkeletonStyles />
     <header style={{
-      background: '#090d16',
-      borderBottom: '1px solid #1e293b',
+      background: 'var(--color-canvas)',
+      borderBottom: '1px solid var(--color-line)',
       padding: '0 28px',
       height: '56px',
       display: 'flex',
@@ -29,9 +29,9 @@ export const DashboardSkeleton: React.FC = () => (
     <main style={{ padding: '28px', maxWidth: '1280px', margin: '0 auto', display: 'grid', gap: '16px' }}>
       <Bone width={220} height={24} />
       <Bone width="100%" height={36} radius={6} />
-      <div style={{ border: '1px solid #1e293b', borderRadius: '8px', overflow: 'hidden' }}>
+      <div style={{ border: '1px solid var(--color-line)', borderRadius: '8px', overflow: 'hidden' }}>
         {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-          <div key={index} style={{ display: 'flex', gap: '16px', padding: '14px 16px', borderTop: index ? '1px solid #1e293b' : 'none' }}>
+          <div key={index} style={{ display: 'flex', gap: '16px', padding: '14px 16px', borderTop: index ? '1px solid var(--color-line)' : 'none' }}>
             <Bone width={90} height={14} />
             <Bone width="40%" height={14} />
             <Bone width={70} height={14} />

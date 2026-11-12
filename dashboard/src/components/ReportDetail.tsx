@@ -18,15 +18,15 @@ function requestOutcomeOf(entry: NetworkEntry): RequestOutcome {
 }
 
 const REQUEST_OUTCOME_COLORS: Record<RequestOutcome, string> = {
-  succeeded: '#34d399',
-  failed: '#f87171',
-  pending: '#fbbf24'
+  succeeded: 'var(--color-success)',
+  failed: 'var(--color-danger)',
+  pending: 'var(--color-warning)'
 };
 
 const REQUEST_OUTCOME_BORDERS: Record<RequestOutcome, string> = {
-  succeeded: '1px solid #1e293b',
-  failed: '1px solid rgba(239, 68, 68, 0.4)',
-  pending: '1px solid rgba(245, 158, 11, 0.4)'
+  succeeded: '1px solid var(--color-line)',
+  failed: '1px solid var(--color-danger)',
+  pending: '1px solid var(--color-warning)'
 };
 
 function formatDuration(milliseconds: number): string {
@@ -162,9 +162,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           type="button"
           onClick={onBack}
           style={{
-            background: '#090d16',
-            border: '1px solid #1e293b',
-            color: '#cbd5e1',
+            background: 'var(--color-canvas)',
+            border: '1px solid var(--color-line)',
+            color: 'var(--color-ink-secondary)',
             padding: '7px 14px',
             borderRadius: '6px',
             cursor: 'pointer',
@@ -189,8 +189,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             onClick={copyLink}
             style={{
               background: 'transparent',
-              border: '1px solid #1e293b',
-              color: '#cbd5e1',
+              border: '1px solid var(--color-line)',
+              color: 'var(--color-ink-secondary)',
               padding: '6px 12px',
               borderRadius: '6px',
               cursor: 'pointer',
@@ -202,12 +202,12 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           </button>
 
           {actionError && (
-            <span role="alert" style={{ fontSize: '12px', color: '#f87171' }}>{actionError}</span>
+            <span role="alert" style={{ fontSize: '12px', color: 'var(--color-danger)' }}>{actionError}</span>
           )}
 
           {/* Смена статуса доступна admin и triager, сервер проверяет это сам */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>Статус:</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-ink-muted)' }}>Статус:</span>
             {canChangeStatus ? (
               <select
                 aria-label="Статус отчета"
@@ -215,9 +215,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                 disabled={isSaving}
                 onChange={(e) => onStatusChange(e.target.value as ReportStatus)}
                 style={{
-                  background: '#090d16',
-                  border: '1px solid #1e293b',
-                  color: '#38bdf8',
+                  background: 'var(--color-canvas)',
+                  border: '1px solid var(--color-line)',
+                  color: 'var(--color-accent)',
                   padding: '6px 12px',
                   borderRadius: '6px',
                   fontSize: '12px',
@@ -248,8 +248,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               }}
               style={{
                 background: 'transparent',
-                color: '#f87171',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: 'var(--color-danger)',
+                border: '1px solid var(--color-danger-line)',
                 padding: '6px 12px',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -266,62 +266,62 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
 
       {/* Метаданные отчета */}
       <div style={{
-        background: '#0b1120',
-        border: '1px solid #1e293b',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-line)',
         borderRadius: '10px',
         padding: '20px 24px',
         marginBottom: '24px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }}>{REPORT_TYPE_LABELS[report.type]}</span>
-          <span style={{ color: '#334155' }}>•</span>
-          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#38bdf8', fontSize: '13px', wordBreak: 'break-all' }}>{report.id}</span>
-          <span style={{ color: '#334155' }}>•</span>
-          <span style={{ color: '#94a3b8', fontSize: '12px' }}>{report.projectName}</span>
-          <span style={{ color: '#334155' }}>•</span>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date(report.createdAt).toLocaleString()}</span>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-ink)' }}>{REPORT_TYPE_LABELS[report.type]}</span>
+          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
+          <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-accent)', fontSize: '13px', wordBreak: 'break-all' }}>{report.id}</span>
+          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
+          <span style={{ color: 'var(--color-ink-secondary)', fontSize: '12px' }}>{report.projectName}</span>
+          <span style={{ color: 'var(--color-ink-muted)' }}>•</span>
+          <span style={{ fontSize: '12px', color: 'var(--color-ink-muted)' }}>{new Date(report.createdAt).toLocaleString()}</span>
         </div>
 
         {/* Защищенный вывод названия (plain text) */}
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: '#f8fafc', letterSpacing: '-0.2px' }}>
+        <h1 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.2px' }}>
           {report.title}
         </h1>
-        <p style={{ margin: '0 0 16px 0', color: '#94a3b8', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+        <p style={{ margin: '0 0 16px 0', color: 'var(--color-ink-secondary)', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
           {report.description || 'Без описания'}
         </p>
 
         {/* Компактный блок метаданных */}
         <div style={{
-          background: '#090d16',
+          background: 'var(--color-canvas)',
           borderRadius: '8px',
           padding: '12px 18px',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '12px',
           fontSize: '12px',
-          border: '1px solid #1e293b'
+          border: '1px solid var(--color-line)'
         }}>
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>Пользователь</span>
-            <span style={{ fontWeight: 500, color: '#e2e8f0' }}>{report.reporter.email ?? report.reporter.id ?? 'Не указан'}</span>
+            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Пользователь</span>
+            <span style={{ fontWeight: 500, color: 'var(--color-ink)' }}>{report.reporter.email ?? report.reporter.id ?? 'Не указан'}</span>
           </div>
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>Страница</span>
+            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Страница</span>
             {isWebUrl(report.pageUrl) ? (
-              <a href={report.pageUrl} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <a href={report.pageUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
                 {report.pageUrl}
               </a>
             ) : (
-              <span style={{ color: '#e2e8f0', wordBreak: 'break-all' }}>{report.pageUrl}</span>
+              <span style={{ color: 'var(--color-ink)', wordBreak: 'break-all' }}>{report.pageUrl}</span>
             )}
           </div>
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>Окружение</span>
-            <span style={{ color: '#e2e8f0' }}>{environment.platform}</span>
+            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Окружение</span>
+            <span style={{ color: 'var(--color-ink)' }}>{environment.platform}</span>
           </div>
           <div>
-            <span style={{ color: '#64748b', display: 'block', fontSize: '11px' }}>Разрешение</span>
-            <span style={{ color: '#e2e8f0' }}>{environment.viewport}</span>
+            <span style={{ color: 'var(--color-ink-muted)', display: 'block', fontSize: '11px' }}>Разрешение</span>
+            <span style={{ color: 'var(--color-ink)' }}>{environment.viewport}</span>
           </div>
         </div>
       </div>
@@ -330,13 +330,13 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '24px', alignItems: 'start' }}>
         {/* ЛЕВАЯ КОЛОНКА: ВИДЕО */}
         <div style={{
-          background: '#0b1120',
-          border: '1px solid #1e293b',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-line)',
           borderRadius: '10px',
           padding: '20px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
@@ -344,9 +344,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             </span>
             {hasVideo && (
               <span style={{
-                background: '#090d16',
-                border: '1px solid #1e293b',
-                color: '#38bdf8',
+                background: 'var(--color-canvas)',
+                border: '1px solid var(--color-line)',
+                color: 'var(--color-accent)',
                 fontSize: '11px',
                 fontFamily: 'monospace',
                 fontWeight: 600,
@@ -369,8 +369,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
 
         {/* ПРАВАЯ КОЛОНКА: СИНХРОНИЗИРОВАННЫЕ ЛОГИ (ВРЕМЯ ОТ НАЧАЛА ЗАПИСИ) */}
         <div style={{
-          background: '#0b1120',
-          border: '1px solid #1e293b',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-line)',
           borderRadius: '10px',
           overflow: 'hidden',
           display: 'flex',
@@ -379,8 +379,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
         }}>
           {/* Вкладки */}
           <div role="tablist" aria-label="Данные отчета" style={{
-            background: '#090d16',
-            borderBottom: '1px solid #1e293b',
+            background: 'var(--color-canvas)',
+            borderBottom: '1px solid var(--color-line)',
             display: 'flex',
             padding: '0 8px'
           }}>
@@ -392,8 +392,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === 'network' ? '2px solid #0284c7' : '2px solid transparent',
-                color: activeTab === 'network' ? '#f8fafc' : '#64748b',
+                borderBottom: activeTab === 'network' ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: activeTab === 'network' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
                 padding: '12px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -411,8 +411,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === 'console' ? '2px solid #0284c7' : '2px solid transparent',
-                color: activeTab === 'console' ? '#f8fafc' : '#64748b',
+                borderBottom: activeTab === 'console' ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: activeTab === 'console' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
                 padding: '12px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -430,8 +430,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === 'actions' ? '2px solid #0284c7' : '2px solid transparent',
-                color: activeTab === 'actions' ? '#f8fafc' : '#64748b',
+                borderBottom: activeTab === 'actions' ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: activeTab === 'actions' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
                 padding: '12px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -449,8 +449,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === 'environment' ? '2px solid #0284c7' : '2px solid transparent',
-                color: activeTab === 'environment' ? '#f8fafc' : '#64748b',
+                borderBottom: activeTab === 'environment' ? '2px solid var(--color-accent)' : '2px solid transparent',
+                color: activeTab === 'environment' ? 'var(--color-ink)' : 'var(--color-ink-muted)',
                 padding: '12px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -464,7 +464,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
           {/* Содержимое вкладки */}
           <div role="tabpanel" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
             {activeTab !== 'environment' && timeOrigin !== null && (
-              <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#64748b' }}>
+              <p style={{ margin: '0 0 12px', fontSize: '11px', color: 'var(--color-ink-muted)' }}>
                 {canSeek
                   ? 'Время от начала записи. Клик по событию перематывает видео.'
                   : hasVideo
@@ -476,7 +476,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             {activeTab === 'network' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {report.network.length === 0 ? (
-                  <div style={{ color: '#64748b', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Запросов не зафиксировано</div>
+                  <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Запросов не зафиксировано</div>
                 ) : (
                   report.network.map((req, idx) => {
                     const offset = getOffset(req.t_start);
@@ -489,8 +489,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                         key={idx}
                         {...seekProps(offset)}
                         style={{
-                          background: isSynced ? 'rgba(2, 132, 199, 0.15)' : '#090d16',
-                          border: isSynced ? '1px solid #38bdf8' : REQUEST_OUTCOME_BORDERS[outcome],
+                          background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
+                          border: isSynced ? '1px solid var(--color-accent)' : REQUEST_OUTCOME_BORDERS[outcome],
                           borderRadius: '6px',
                           padding: '9px 12px',
                           cursor: canSeek ? 'pointer' : 'default',
@@ -500,8 +500,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                             <span style={{
-                              background: '#1e293b',
-                              color: '#38bdf8',
+                              background: 'var(--color-line)',
+                              color: 'var(--color-accent)',
                               padding: '1px 5px',
                               borderRadius: '3px',
                               fontFamily: 'monospace',
@@ -510,7 +510,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                             }}>
                               {formatTime(offset)}
                             </span>
-                            <span style={{ fontWeight: 600, fontSize: '11px', color: '#94a3b8' }}>{req.method}</span>
+                            <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--color-ink-secondary)' }}>{req.method}</span>
                             <span style={{
                               color: REQUEST_OUTCOME_COLORS[outcome],
                               fontWeight: 600,
@@ -520,7 +520,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                             </span>
                             <span title={req.url} style={{
                               fontSize: '12px',
-                              color: '#e2e8f0',
+                              color: 'var(--color-ink)',
                               minWidth: 0,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -531,7 +531,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                            <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--color-ink-muted)', whiteSpace: 'nowrap' }}>
                               {describeRequestDuration(req)}
                             </span>
                             <button
@@ -545,7 +545,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                               style={{
                                 background: 'transparent',
                                 border: 'none',
-                                color: '#38bdf8',
+                                color: 'var(--color-accent)',
                                 fontSize: '11px',
                                 cursor: 'pointer'
                               }}
@@ -573,9 +573,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                     aria-pressed={consoleFilter === 'all'}
                     onClick={() => setConsoleFilter('all')}
                     style={{
-                      background: consoleFilter === 'all' ? '#0284c7' : '#090d16',
-                      border: '1px solid #1e293b',
-                      color: 'white',
+                      background: consoleFilter === 'all' ? 'var(--color-accent)' : 'var(--color-canvas)',
+                      border: '1px solid var(--color-line)',
+                      color: consoleFilter === 'all' ? 'var(--color-on-accent)' : 'var(--color-ink)',
                       borderRadius: '4px',
                       padding: '3px 8px',
                       fontSize: '11px',
@@ -589,9 +589,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                     aria-pressed={consoleFilter === 'error'}
                     onClick={() => setConsoleFilter('error')}
                     style={{
-                      background: consoleFilter === 'error' ? 'rgba(239, 68, 68, 0.2)' : '#090d16',
-                      border: '1px solid rgba(239, 68, 68, 0.4)',
-                      color: '#f87171',
+                      background: consoleFilter === 'error' ? 'var(--color-danger-soft)' : 'var(--color-canvas)',
+                      border: '1px solid var(--color-danger-line)',
+                      color: 'var(--color-danger)',
                       borderRadius: '4px',
                       padding: '3px 8px',
                       fontSize: '11px',
@@ -605,9 +605,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                     aria-pressed={consoleFilter === 'warn'}
                     onClick={() => setConsoleFilter('warn')}
                     style={{
-                      background: consoleFilter === 'warn' ? 'rgba(245, 158, 11, 0.2)' : '#090d16',
-                      border: '1px solid rgba(245, 158, 11, 0.4)',
-                      color: '#fbbf24',
+                      background: consoleFilter === 'warn' ? 'var(--color-warning-soft)' : 'var(--color-canvas)',
+                      border: '1px solid var(--color-warning-line)',
+                      color: 'var(--color-warning)',
                       borderRadius: '4px',
                       padding: '3px 8px',
                       fontSize: '11px',
@@ -620,7 +620,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {filteredConsole.length === 0 ? (
-                    <div style={{ color: '#64748b', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Записей консоли нет</div>
+                    <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Записей консоли нет</div>
                   ) : (
                     filteredConsole.map(({ entry: log, index: idx }) => {
                       const offset = getOffset(log.t);
@@ -633,8 +633,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                           key={idx}
                           {...seekProps(offset)}
                           style={{
-                            background: isSynced ? 'rgba(2, 132, 199, 0.15)' : '#090d16',
-                            border: isSynced ? '1px solid #38bdf8' : isError ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #1e293b',
+                            background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
+                            border: isSynced ? '1px solid var(--color-accent)' : isError ? '1px solid var(--color-danger-line)' : '1px solid var(--color-line)',
                             borderRadius: '6px',
                             padding: '9px 12px',
                             cursor: canSeek ? 'pointer' : 'default',
@@ -643,8 +643,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                         >
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                             <span style={{
-                              background: '#1e293b',
-                              color: '#38bdf8',
+                              background: 'var(--color-line)',
+                              color: 'var(--color-accent)',
                               padding: '1px 5px',
                               borderRadius: '3px',
                               fontFamily: 'monospace',
@@ -656,14 +656,14 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                             <span style={{
                               fontWeight: 600,
                               fontSize: '11px',
-                              color: isError ? '#f87171' : log.level === 'warn' ? '#fbbf24' : '#38bdf8'
+                              color: isError ? 'var(--color-danger)' : log.level === 'warn' ? 'var(--color-warning)' : 'var(--color-accent)'
                             }}>
                               [{log.level.toUpperCase()}]
                             </span>
 
                             {/* ВАЖНО: React рендерит {log.message} строго как чистый текст через textContent.
                                 Никакие теги <img src=x onerror=...> физически не выполняются! */}
-                            <span style={{ color: '#f8fafc', flex: 1, wordBreak: 'break-word', fontFamily: 'monospace', fontSize: '11px' }}>
+                            <span style={{ color: 'var(--color-ink)', flex: 1, wordBreak: 'break-word', fontFamily: 'monospace', fontSize: '11px' }}>
                               {log.message}
                             </span>
                           </div>
@@ -681,7 +681,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                                 style={{
                                   background: 'transparent',
                                   border: 'none',
-                                  color: '#38bdf8',
+                                  color: 'var(--color-accent)',
                                   fontSize: '10px',
                                   cursor: 'pointer',
                                   padding: 0
@@ -692,11 +692,11 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                               {isExpanded && (
                                 <pre style={{
                                   margin: '6px 0 0 0',
-                                  background: '#020617',
+                                  background: 'var(--color-muted)',
                                   padding: '8px',
                                   borderRadius: '4px',
                                   fontSize: '10px',
-                                  color: '#fca5a5',
+                                  color: 'var(--color-danger)',
                                   overflowX: 'auto',
                                   fontFamily: 'monospace'
                                 }}>
@@ -717,7 +717,7 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             {activeTab === 'actions' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {report.breadcrumbs.length === 0 && (
-                  <div style={{ color: '#64748b', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Действий не зафиксировано</div>
+                  <div style={{ color: 'var(--color-ink-muted)', textAlign: 'center', padding: '40px', fontSize: '13px' }}>Действий не зафиксировано</div>
                 )}
                 {report.breadcrumbs.map((b, idx) => {
                   const offset = getOffset(b.t);
@@ -728,8 +728,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                       key={idx}
                       {...seekProps(offset)}
                       style={{
-                        background: isSynced ? 'rgba(2, 132, 199, 0.15)' : '#090d16',
-                        border: isSynced ? '1px solid #38bdf8' : '1px solid #1e293b',
+                        background: isSynced ? 'var(--color-accent-soft)' : 'var(--color-canvas)',
+                        border: isSynced ? '1px solid var(--color-accent)' : '1px solid var(--color-line)',
                         borderRadius: '6px',
                         padding: '8px 12px',
                         cursor: canSeek ? 'pointer' : 'default',
@@ -740,8 +740,8 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                       }}
                     >
                       <span style={{
-                        background: '#1e293b',
-                        color: '#38bdf8',
+                        background: 'var(--color-line)',
+                        color: 'var(--color-accent)',
                         padding: '1px 5px',
                         borderRadius: '3px',
                         fontFamily: 'monospace',
@@ -750,9 +750,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
                       }}>
                         {formatTime(offset)}
                       </span>
-                      <span style={{ color: '#64748b', fontSize: '11px' }}>{b.kind}</span>
-                      <span style={{ fontFamily: 'monospace', color: '#f8fafc', fontSize: '11px', wordBreak: 'break-all' }}>{b.target || b.url}</span>
-                      {b.text && <span style={{ color: '#94a3b8' }}>("{b.text}")</span>}
+                      <span style={{ color: 'var(--color-ink-muted)', fontSize: '11px' }}>{b.kind}</span>
+                      <span style={{ fontFamily: 'monospace', color: 'var(--color-ink)', fontSize: '11px', wordBreak: 'break-all' }}>{b.target || b.url}</span>
+                      {b.text && <span style={{ color: 'var(--color-ink-secondary)' }}>("{b.text}")</span>}
                     </div>
                   );
                 })}
@@ -762,18 +762,18 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
             {/* ВКЛАДКА: ОКРУЖЕНИЕ */}
             {activeTab === 'environment' && (
               <div style={{
-                background: '#090d16',
+                background: 'var(--color-canvas)',
                 padding: '14px',
                 borderRadius: '6px',
-                border: '1px solid #1e293b',
+                border: '1px solid var(--color-line)',
                 fontSize: '11px',
                 fontFamily: 'monospace'
               }}>
-                <pre style={{ margin: 0, color: '#cbd5e1', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <pre style={{ margin: 0, color: 'var(--color-ink-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {JSON.stringify(report.environment ?? {}, null, 2)}
                 </pre>
-                <div style={{ color: '#64748b', margin: '14px 0 6px' }}>Метаданные сайта:</div>
-                <pre style={{ margin: 0, color: '#cbd5e1', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <div style={{ color: 'var(--color-ink-muted)', margin: '14px 0 6px' }}>Метаданные сайта:</div>
+                <pre style={{ margin: 0, color: 'var(--color-ink-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {JSON.stringify(report.hostMetadata ?? {}, null, 2)}
                 </pre>
               </div>
@@ -828,7 +828,7 @@ const MediaPanel: React.FC<MediaPanelProps> = ({ media, hasVideo, videoRef, onTi
 const mediaMessageStyle: React.CSSProperties = {
   padding: '60px 16px',
   textAlign: 'center',
-  background: '#090d16',
+  background: 'var(--color-canvas)',
   borderRadius: '6px',
   fontSize: '13px'
 };
@@ -842,17 +842,17 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, videoRef, onTimeUpdate }) => {
   if (!hasVideo) {
-    return <div style={{ ...mediaMessageStyle, color: '#64748b' }}>Видеозапись отсутствует</div>;
+    return <div style={{ ...mediaMessageStyle, color: 'var(--color-ink-muted)' }}>Видеозапись отсутствует</div>;
   }
   if (video.status === 'error') {
-    return <div role="alert" style={{ ...mediaMessageStyle, color: '#f87171' }}>Не удалось загрузить видео</div>;
+    return <div role="alert" style={{ ...mediaMessageStyle, color: 'var(--color-danger)' }}>Не удалось загрузить видео</div>;
   }
   if (video.status === 'loading') {
     return (
       <div aria-busy="true" aria-label="Загрузка видео" style={{ position: 'relative' }}>
         <Bone width="100%" height={280} radius={6} />
         {video.progress !== null && (
-          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
+          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-ink-secondary)', fontSize: '12px' }}>
             Загрузка видео: {video.progress}%
           </span>
         )}
@@ -870,7 +870,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, videoRef, on
         width: '100%',
         borderRadius: '6px',
         background: '#000000',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        boxShadow: 'var(--shadow-sm)',
         display: 'block'
       }}
     />
@@ -902,7 +902,7 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({ screenshots, onEn
     return null;
   }
   return (
-    <div style={{ marginTop: '20px', borderTop: '1px solid #1e293b', paddingTop: '16px' }}>
+    <div style={{ marginTop: '20px', borderTop: '1px solid var(--color-line)', paddingTop: '16px' }}>
       {screenshots.status === 'loading' && (
         <div aria-busy="true" aria-label="Загрузка скриншотов" style={{ display: 'flex', gap: '8px' }}>
           <Bone width={160} height={90} radius={6} />
@@ -910,11 +910,11 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({ screenshots, onEn
         </div>
       )}
       {screenshots.status === 'error' && (
-        <div role="alert" style={{ color: '#f87171', fontSize: '12px' }}>Не удалось загрузить скриншоты</div>
+        <div role="alert" style={{ color: 'var(--color-danger)', fontSize: '12px' }}>Не удалось загрузить скриншоты</div>
       )}
       {screenshots.status === 'ready' && (
         <>
-          <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px', color: '#94a3b8' }}>
+          <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '8px', color: 'var(--color-ink-secondary)' }}>
             Скриншоты ({screenshots.value.length}):
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -933,7 +933,7 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({ screenshots, onEn
                     maxWidth: '100%',
                     maxHeight: '160px',
                     borderRadius: '6px',
-                    border: '1px solid #1e293b',
+                    border: '1px solid var(--color-line)',
                     display: 'block'
                   }}
                 />
@@ -946,10 +946,10 @@ const ScreenshotGallery: React.FC<ScreenshotGalleryProps> = ({ screenshots, onEn
   );
 };
 
-const detailLabelStyle: React.CSSProperties = { color: '#64748b' };
+const detailLabelStyle: React.CSSProperties = { color: 'var(--color-ink-muted)' };
 const detailBlockStyle: React.CSSProperties = {
   margin: '4px 0 8px',
-  background: '#020617',
+  background: 'var(--color-muted)',
   padding: '6px',
   borderRadius: '4px',
   overflowX: 'auto',
@@ -965,7 +965,7 @@ function hasEntries(headers: Record<string, string> | undefined): headers is Rec
 const RequestDetails: React.FC<{ entry: NetworkEntry; outcome: RequestOutcome }> = ({ entry, outcome }) => (
   <div
     onClick={(e) => e.stopPropagation()}
-    style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #1e293b', fontSize: '11px', fontFamily: 'monospace', cursor: 'text' }}
+    style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--color-line)', fontSize: '11px', fontFamily: 'monospace', cursor: 'text' }}
   >
     <div style={detailLabelStyle}>URL:</div>
     <pre style={detailBlockStyle}>{entry.method} {entry.url}</pre>
@@ -973,11 +973,11 @@ const RequestDetails: React.FC<{ entry: NetworkEntry; outcome: RequestOutcome }>
     {entry.error && (
       <>
         <div style={detailLabelStyle}>Ошибка:</div>
-        <pre style={{ ...detailBlockStyle, color: '#fca5a5' }}>{entry.error}</pre>
+        <pre style={{ ...detailBlockStyle, color: 'var(--color-danger)' }}>{entry.error}</pre>
       </>
     )}
     {outcome === 'pending' && (
-      <div style={{ color: '#fbbf24', marginBottom: '8px' }}>Ответа не было, когда отчет отправили.</div>
+      <div style={{ color: 'var(--color-warning)', marginBottom: '8px' }}>Ответа не было, когда отчет отправили.</div>
     )}
 
     {hasEntries(entry.request?.headers) && (
@@ -1002,7 +1002,7 @@ const RequestDetails: React.FC<{ entry: NetworkEntry; outcome: RequestOutcome }>
     {entry.response && (
       <>
         <div style={detailLabelStyle}>Ответ сервера{entry.response.body_truncated ? ' (обрезан)' : ''}:</div>
-        <pre style={{ ...detailBlockStyle, color: outcome === 'failed' ? '#fca5a5' : '#86efac' }}>
+        <pre style={{ ...detailBlockStyle, color: outcome === 'failed' ? 'var(--color-danger)' : 'var(--color-success)' }}>
           {entry.response.body || '[пусто]'}
         </pre>
       </>

@@ -19,9 +19,9 @@ interface ReportListProps {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: '#090d16',
-  border: '1px solid #1e293b',
-  color: '#cbd5e1',
+  background: 'var(--color-canvas)',
+  border: '1px solid var(--color-line)',
+  color: 'var(--color-ink-secondary)',
   padding: '7px 10px',
   borderRadius: '6px',
   fontSize: '12px',
@@ -30,9 +30,9 @@ const selectStyle: React.CSSProperties = {
 };
 
 const pagerButtonStyle: React.CSSProperties = {
-  background: '#090d16',
-  border: '1px solid #1e293b',
-  color: '#cbd5e1',
+  background: 'var(--color-canvas)',
+  border: '1px solid var(--color-line)',
+  color: 'var(--color-ink-secondary)',
   padding: '6px 12px',
   borderRadius: '6px',
   fontSize: '12px',
@@ -73,12 +73,12 @@ export const ReportList: React.FC<ReportListProps> = ({
         gap: '16px'
       }}>
         <div>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.3px' }}>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '20px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
             Входящие отчеты
           </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '13px', minHeight: '18px' }}>
+          <p style={{ margin: 0, color: 'var(--color-ink-muted)', fontSize: '13px', minHeight: '18px' }}>
             {totalElements !== null && (
-              <>Найдено отчетов: <strong style={{ color: '#cbd5e1' }}>{totalElements}</strong></>
+              <>Найдено отчетов: <strong style={{ color: 'var(--color-ink-secondary)' }}>{totalElements}</strong></>
             )}
           </p>
         </div>
@@ -93,9 +93,9 @@ export const ReportList: React.FC<ReportListProps> = ({
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{
-                background: '#090d16',
-                border: '1px solid #1e293b',
-                color: '#f8fafc',
+                background: 'var(--color-canvas)',
+                border: '1px solid var(--color-line)',
+                color: 'var(--color-ink)',
                 padding: '7px 12px 7px 32px',
                 borderRadius: '6px',
                 fontSize: '12px',
@@ -110,7 +110,7 @@ export const ReportList: React.FC<ReportListProps> = ({
               height="14"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#64748b"
+              stroke="var(--color-ink-muted)"
               strokeWidth="2"
               aria-hidden="true"
               style={{ position: 'absolute', left: '10px', top: '9px' }}
@@ -149,15 +149,15 @@ export const ReportList: React.FC<ReportListProps> = ({
 
       {/* Таблица отчетов campus.codes style */}
       <div style={{
-        background: '#0b1120',
+        background: 'var(--color-surface)',
         borderRadius: '10px',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--color-line)',
         overflowX: 'auto',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
+        boxShadow: 'var(--shadow-sm)'
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
           <thead>
-            <tr style={{ background: '#090d16', color: '#64748b', borderBottom: '1px solid #1e293b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+            <tr style={{ background: 'var(--color-canvas)', color: 'var(--color-ink-muted)', borderBottom: '1px solid var(--color-line)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
               <th style={{ padding: '12px 18px', fontWeight: 600 }}>ID / Тип</th>
               <th style={{ padding: '12px 18px', fontWeight: 600 }}>Тема отчета</th>
               <th style={{ padding: '12px 18px', fontWeight: 600 }}>Проект</th>
@@ -172,7 +172,7 @@ export const ReportList: React.FC<ReportListProps> = ({
 
             {state.status === 'error' && (
               <tr>
-                <td colSpan={COLUMN_COUNT} role="alert" style={{ padding: '48px', textAlign: 'center', color: '#f87171' }}>
+                <td colSpan={COLUMN_COUNT} role="alert" style={{ padding: '48px', textAlign: 'center', color: 'var(--color-danger)' }}>
                   <div style={{ marginBottom: '12px' }}>{state.message}</div>
                   <button type="button" onClick={onRetry} style={pagerButtonStyle}>Повторить</button>
                 </td>
@@ -181,7 +181,7 @@ export const ReportList: React.FC<ReportListProps> = ({
 
             {state.status === 'ready' && state.page.content.length === 0 && (
               <tr>
-                <td colSpan={COLUMN_COUNT} style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan={COLUMN_COUNT} style={{ padding: '48px', textAlign: 'center', color: 'var(--color-ink-muted)' }}>
                   Отчетов по выбранным фильтрам не найдено
                 </td>
               </tr>
@@ -195,7 +195,7 @@ export const ReportList: React.FC<ReportListProps> = ({
       </div>
 
       {state.status === 'ready' && state.page.totalPages > 1 && (
-        <nav aria-label="Страницы" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '16px', color: '#64748b', fontSize: '12px' }}>
+        <nav aria-label="Страницы" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', marginTop: '16px', color: 'var(--color-ink-muted)', fontSize: '12px' }}>
           <button
             type="button"
             style={pagerButtonStyle}
@@ -222,7 +222,7 @@ export const ReportList: React.FC<ReportListProps> = ({
 const SkeletonRows: React.FC = () => (
   <>
     {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-      <tr key={index} aria-hidden="true" style={{ borderBottom: '1px solid #1e293b' }}>
+      <tr key={index} aria-hidden="true" style={{ borderBottom: '1px solid var(--color-line)' }}>
         <td style={cellStyle}><Bone width={70} height={14} /></td>
         <td style={cellStyle}><Bone width="80%" height={14} /></td>
         <td style={cellStyle}><Bone width={90} height={14} /></td>
@@ -240,15 +240,15 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
   <tr
     onClick={onSelect}
     style={{
-      borderBottom: '1px solid #1e293b',
+      borderBottom: '1px solid var(--color-line)',
       cursor: 'pointer',
       transition: 'background 0.15s ease'
     }}
-    onMouseEnter={(e) => (e.currentTarget.style.background = '#0f172a')}
+    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-muted)')}
     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
   >
     <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>
-      <span title={report.id} style={{ fontFamily: 'monospace', fontWeight: 600, color: '#38bdf8', fontSize: '12px' }}>
+      <span title={report.id} style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-accent)', fontSize: '12px' }}>
         {shortId(report.id)}
       </span>
       <div style={{ marginTop: '3px' }}><TypeBadge type={report.type} /></div>
@@ -264,16 +264,16 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
           e.preventDefault();
           onSelect();
         }}
-        style={{ display: 'block', fontWeight: 600, color: '#f1f5f9', marginBottom: '3px', letterSpacing: '-0.1px', textDecoration: 'none' }}
+        style={{ display: 'block', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '3px', letterSpacing: '-0.1px', textDecoration: 'none' }}
       >
         {report.title}
       </a>
-      <div style={{ color: '#64748b', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
+      <div style={{ color: 'var(--color-ink-muted)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
         {report.pageUrl}
       </div>
     </td>
 
-    <td style={{ ...cellStyle, color: '#94a3b8', whiteSpace: 'nowrap', fontSize: '12px' }}>
+    <td style={{ ...cellStyle, color: 'var(--color-ink-secondary)', whiteSpace: 'nowrap', fontSize: '12px' }}>
       {report.projectName}
     </td>
 
@@ -281,9 +281,9 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
         {report.hasVideo && (
           <span title="Видеозапись экрана" style={{
-            background: 'rgba(2, 132, 199, 0.15)',
-            color: '#38bdf8',
-            border: '1px solid rgba(2, 132, 199, 0.3)',
+            background: 'var(--color-accent-soft)',
+            color: 'var(--color-accent)',
+            border: '1px solid var(--color-accent)',
             padding: '2px 7px',
             borderRadius: '4px',
             fontSize: '11px',
@@ -301,9 +301,9 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
 
         {report.screenshotCount > 0 && (
           <span title="Скриншоты" style={{
-            background: '#1e293b',
-            color: '#cbd5e1',
-            border: '1px solid #334155',
+            background: 'var(--color-line)',
+            color: 'var(--color-ink-secondary)',
+            border: '1px solid var(--color-ink-muted)',
             padding: '2px 7px',
             borderRadius: '4px',
             fontSize: '11px',
@@ -321,9 +321,9 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
 
         {report.consoleErrorCount > 0 && (
           <span title="Ошибок в консоли" style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            color: '#f87171',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
+            background: 'var(--color-danger-soft)',
+            color: 'var(--color-danger)',
+            border: '1px solid var(--color-danger-line)',
             padding: '2px 6px',
             borderRadius: '4px',
             fontSize: '11px',
@@ -335,9 +335,9 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
 
         {report.failedRequestCount > 0 && (
           <span title="Упавших запросов (4xx, 5xx или ошибка сети)" style={{
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#fbbf24',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'var(--color-warning-soft)',
+            color: 'var(--color-warning)',
+            border: '1px solid var(--color-warning-line)',
             padding: '2px 6px',
             borderRadius: '4px',
             fontSize: '11px',
@@ -349,7 +349,7 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
       </div>
     </td>
 
-    <td style={{ ...cellStyle, color: '#cbd5e1', whiteSpace: 'nowrap', fontSize: '12px' }}>
+    <td style={{ ...cellStyle, color: 'var(--color-ink-secondary)', whiteSpace: 'nowrap', fontSize: '12px' }}>
       {report.reporter.email ?? report.reporter.id ?? '—'}
     </td>
 
@@ -357,7 +357,7 @@ const ReportRow: React.FC<{ report: ReportSummary; onSelect: () => void }> = ({ 
       <StatusBadge status={report.status} />
     </td>
 
-    <td style={{ ...cellStyle, color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>
+    <td style={{ ...cellStyle, color: 'var(--color-ink-muted)', fontSize: '12px', whiteSpace: 'nowrap' }}>
       {new Date(report.createdAt).toLocaleDateString()} {new Date(report.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
     </td>
   </tr>
@@ -372,7 +372,7 @@ const TypeBadge: React.FC<{ type: ReportType }> = ({ type }) => {
   switch (type) {
     case 'bug':
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f87171', fontSize: '11px', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)', fontSize: '11px', fontWeight: 600 }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4"/>
           </svg>
@@ -381,7 +381,7 @@ const TypeBadge: React.FC<{ type: ReportType }> = ({ type }) => {
       );
     case 'feature':
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#38bdf8', fontSize: '11px', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-accent)', fontSize: '11px', fontWeight: 600 }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M12 2v8M4.93 4.93l5.66 5.66M2 12h8M4.93 19.07l5.66-5.66M12 22v-8M19.07 19.07l-5.66-5.66M22 12h-8M19.07 4.93l-5.66 5.66"/>
           </svg>
@@ -390,7 +390,7 @@ const TypeBadge: React.FC<{ type: ReportType }> = ({ type }) => {
       );
     case 'question':
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#c084fc', fontSize: '11px', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-ink-secondary)', fontSize: '11px', fontWeight: 600 }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>

@@ -39,7 +39,7 @@ export const App: React.FC = () => {
   }, [reportId, reload]);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#090d16', color: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-canvas)', color: 'var(--color-ink)' }}>
       <Navbar
         currentProject={filters.project ?? ALL_PROJECTS}
         onProjectChange={(project) => {

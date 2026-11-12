@@ -16,7 +16,7 @@ export const Bone: React.FC<{ width: string | number; height: number; radius?: n
       width,
       height,
       borderRadius: radius,
-      background: 'linear-gradient(90deg, #1e293b 0%, #273449 50%, #1e293b 100%)',
+      background: 'linear-gradient(90deg, var(--color-line) 0%, var(--color-line) 50%, var(--color-line) 100%)',
       backgroundSize: '800px 100%',
       animation: 'dashboard-skeleton-shimmer 1.4s linear infinite',
     }}
