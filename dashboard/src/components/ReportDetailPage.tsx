@@ -28,7 +28,7 @@ export const ReportDetailPage: React.FC<ReportDetailPageProps> = ({ reportId, on
       <div className={ui.page}>
         <div role="alert" className={`${ui.card} ${ui.errorMessage}`}>
           <p className={styles.description}>{state.message}</p>
-          <button type="button" className={ui.button} onClick={onBack}>Все отчеты</button>
+          <button type="button" className={ui.button} onClick={onBack}>All reports</button>
         </div>
       </div>
     );
@@ -89,7 +89,7 @@ const LoadedReport: React.FC<LoadedReportProps> = ({ report, onBack, onDeleted, 
 
 // Shaped like the loaded report: the toolbar, the title block, the facts, then the two panels.
 const ReportDetailSkeleton: React.FC = () => (
-  <div aria-busy="true" aria-label="Загрузка отчета" className={ui.page}>
+  <div aria-busy="true" aria-label="Loading the report" className={ui.page}>
     <div className={styles.toolbar}>
       <Bone width={120} height={32} radius={6} />
       <Bone width={320} height={32} radius={6} />

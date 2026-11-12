@@ -17,13 +17,13 @@ function toErrorState(error: unknown): AuthState {
   if (error instanceof ApiRequestError && error.status === 403) {
     return {
       status: 'error',
-      message: 'У вашей учётной записи нет роли admin, triager или viewer.',
+      message: 'Your account has none of the admin, triager or viewer roles.',
       isAccessDenied: true,
     };
   }
   return {
     status: 'error',
-    message: 'Не удалось войти. Проверьте, что Keycloak и сервер запущены.',
+    message: 'Cannot sign in. Check that Keycloak and the server are running.',
     isAccessDenied: false,
   };
 }
@@ -69,16 +69,16 @@ export function useCurrentUser(): CurrentUser {
 const AuthError: React.FC<{ message: string; isAccessDenied: boolean }> = ({ message, isAccessDenied }) => (
   <main className={styles.screen}>
     <section role="alert" className={`${ui.card} ${styles.box}`}>
-      <h1 className={styles.title}>{isAccessDenied ? 'Нет доступа' : 'Ошибка входа'}</h1>
+      <h1 className={styles.title}>{isAccessDenied ? 'No access' : 'Sign-in failed'}</h1>
       <p className={styles.text}>{message}</p>
       <div className={styles.buttons}>
         {!isAccessDenied && (
           <button type="button" className={ui.buttonPrimary} onClick={() => window.location.reload()}>
-            Повторить
+            Try again
           </button>
         )}
         <button type="button" className={ui.button} onClick={() => void signOut()}>
-          Войти под другим пользователем
+          Sign in as another user
         </button>
       </div>
     </section>

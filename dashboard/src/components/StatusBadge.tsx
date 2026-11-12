@@ -5,13 +5,13 @@ import styles from './Badges.module.css';
 import ui from './ui.module.css';
 
 export const STATUS_LABELS: Record<ReportStatus, string> = {
-  new: 'Новый',
-  in_progress: 'В работе',
-  resolved: 'Решено',
-  wont_fix: 'Отклонено',
+  new: 'New',
+  in_progress: 'In progress',
+  resolved: 'Resolved',
+  wont_fix: "Won't fix",
 };
 
-export const TYPE_LABELS: Record<ReportType, string> = { bug: 'Баг', feature: 'Предложение', question: 'Вопрос' };
+export const TYPE_LABELS: Record<ReportType, string> = { bug: 'Bug', feature: 'Feature', question: 'Question' };
 
 export const TYPE_ICONS: Record<ReportType, LucideIcon> = { bug: Bug, feature: Lightbulb, question: CircleHelp };
 

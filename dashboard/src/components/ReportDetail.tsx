@@ -13,7 +13,7 @@ import ui from './ui.module.css';
 
 const STATUS_OPTIONS: ReportStatus[] = ['new', 'in_progress', 'resolved', 'wont_fix'];
 
-const dateFormat = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
 
 interface ReportDetailProps {
   report: ReportView;
@@ -70,9 +70,9 @@ export const ReportDetail: React.FC<ReportDetailProps> = ({
       <ReportHeader report={report} />
 
       <div className={styles.columns}>
-        <section className={`${ui.card} ${styles.panel}`} aria-label="Запись экрана и скриншоты">
+        <section className={`${ui.card} ${styles.panel}`} aria-label="Screen recording and screenshots">
           <div className={styles.panelHeader}>
-            <span>Запись экрана</span>
+            <span>Screen recording</span>
             {hasVideo && <span className={styles.clock}>{formatClock(currentTime)}</span>}
           </div>
           <div className={styles.panelBody}>
@@ -117,7 +117,7 @@ const ReportToolbar: React.FC<ReportToolbarProps> = ({
     <div className={styles.toolbar}>
       <button type="button" className={ui.buttonGhost} onClick={onBack}>
         <ArrowLeft size={16} aria-hidden="true" />
-        Все отчеты
+        All reports
       </button>
 
       <div className={styles.actions}>
@@ -125,14 +125,14 @@ const ReportToolbar: React.FC<ReportToolbarProps> = ({
 
         <button type="button" className={ui.button} onClick={() => copy(reportHref(report.id))}>
           {isCopied ? <Check size={16} aria-hidden="true" /> : <Link2 size={16} aria-hidden="true" />}
-          {isCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+          {isCopied ? 'Link copied' : 'Copy link'}
         </button>
 
         {/* The server checks the role too; this only hides what the user cannot do. */}
         <div className={styles.statusControl}>
           {canChangeStatus ? (
             <>
-              <label htmlFor="report-status">Статус</label>
+              <label htmlFor="report-status">Status</label>
               <select
                 id="report-status"
                 className={ui.select}
@@ -154,11 +154,11 @@ const ReportToolbar: React.FC<ReportToolbarProps> = ({
             className={ui.buttonDanger}
             disabled={isSaving}
             onClick={() => {
-              if (window.confirm('Удалить отчет и все его файлы?')) onDelete();
+              if (window.confirm('Delete this report and all its files?')) onDelete();
             }}
           >
             <Trash2 size={16} aria-hidden="true" />
-            Удалить
+            Delete
           </button>
         )}
       </div>
@@ -186,16 +186,16 @@ const ReportHeader: React.FC<{ report: ReportView }> = ({ report }) => {
       </div>
 
       <p className={report.description ? styles.description : `${styles.description} ${ui.muted}`}>
-        {report.description || 'Без описания'}
+        {report.description || 'No description'}
       </p>
 
       <dl className={`${ui.card} ${styles.facts}`}>
         <div>
-          <dt>Пользователь</dt>
-          <dd>{report.reporter.email ?? report.reporter.id ?? 'Не указан'}</dd>
+          <dt>Reporter</dt>
+          <dd>{report.reporter.email ?? report.reporter.id ?? 'Not given'}</dd>
         </div>
         <div>
-          <dt>Страница</dt>
+          <dt>Page</dt>
           <dd>
             {isWebUrl(report.pageUrl)
               ? <a href={report.pageUrl} target="_blank" rel="noreferrer" className={ui.link}>{report.pageUrl}</a>
@@ -203,15 +203,15 @@ const ReportHeader: React.FC<{ report: ReportView }> = ({ report }) => {
           </dd>
         </div>
         <div>
-          <dt>Браузер и система</dt>
+          <dt>Browser and OS</dt>
           <dd>{environment.platform}</dd>
         </div>
         <div>
-          <dt>Окно браузера</dt>
+          <dt>Viewport</dt>
           <dd>{environment.viewport}</dd>
         </div>
         <div>
-          <dt>Номер отчета</dt>
+          <dt>Report ID</dt>
           <dd className={ui.mono}>{report.id}</dd>
         </div>
       </dl>

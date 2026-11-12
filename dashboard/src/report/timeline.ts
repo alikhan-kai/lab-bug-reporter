@@ -10,11 +10,11 @@ export function requestOutcomeOf(entry: NetworkEntry): RequestOutcome {
 }
 
 function formatDuration(milliseconds: number): string {
-  return milliseconds < 1000 ? `${milliseconds} мс` : `${(milliseconds / 1000).toFixed(1)} с`;
+  return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(1)} s`;
 }
 
 export function describeRequestDuration(entry: NetworkEntry): string {
-  if (entry.pending) return entry.duration_ms !== null ? `без ответа ${formatDuration(entry.duration_ms)}` : 'без ответа';
+  if (entry.pending) return entry.duration_ms !== null ? `no response, ${formatDuration(entry.duration_ms)}` : 'no response';
   return entry.duration_ms !== null ? formatDuration(entry.duration_ms) : '—';
 }
 

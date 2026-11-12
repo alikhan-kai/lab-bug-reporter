@@ -31,16 +31,16 @@ function revealDuration(video: HTMLVideoElement): void {
 /** The screen recording, with its download progress while the file loads. */
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, canSeek, videoRef, onTimeUpdate }) => {
   if (!hasVideo) {
-    return <div className={styles.mediaMessage}>Видеозаписи нет</div>;
+    return <div className={styles.mediaMessage}>No screen recording</div>;
   }
   if (video.status === 'error') {
-    return <div role="alert" className={styles.mediaError}>Не удалось загрузить видео</div>;
+    return <div role="alert" className={styles.mediaError}>Cannot load the video</div>;
   }
   if (video.status === 'loading') {
     return (
-      <div aria-busy="true" aria-label="Загрузка видео" className={styles.videoLoading}>
+      <div aria-busy="true" aria-label="Loading the video" className={styles.videoLoading}>
         <Bone width="100%" height={280} radius={8} />
-        {video.progress !== null && <span className={styles.videoProgress}>Загрузка видео: {video.progress}%</span>}
+        {video.progress !== null && <span className={styles.videoProgress}>Loading the video: {video.progress}%</span>}
       </div>
     );
   }
@@ -54,7 +54,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, canSe
         onLoadedMetadata={(event) => revealDuration(event.currentTarget)}
         onTimeUpdate={onTimeUpdate}
       />
-      {canSeek && <p className={styles.hint}>Клик по событию в логах перематывает видео к этому моменту.</p>}
+      {canSeek && <p className={styles.hint}>Click an event in the logs to jump to that moment.</p>}
     </>
   );
 };
@@ -69,15 +69,15 @@ export const ScreenshotGallery: React.FC<{ screenshots: ReportMedia['screenshots
   return (
     <div className={styles.gallery}>
       <p className={ui.sectionLabel}>
-        Скриншоты{screenshots.status === 'ready' ? ` · ${screenshots.value.length}` : ''}
+        Screenshots{screenshots.status === 'ready' ? ` · ${screenshots.value.length}` : ''}
       </p>
       {screenshots.status === 'loading' && (
-        <div aria-busy="true" aria-label="Загрузка скриншотов" className={styles.thumbnails}>
+        <div aria-busy="true" aria-label="Loading the screenshots" className={styles.thumbnails}>
           <Bone width={160} height={90} radius={8} />
           <Bone width={160} height={90} radius={8} />
         </div>
       )}
-      {screenshots.status === 'error' && <p role="alert" className={ui.errorMessage}>Не удалось загрузить скриншоты</p>}
+      {screenshots.status === 'error' && <p role="alert" className={ui.errorMessage}>Cannot load the screenshots</p>}
       {screenshots.status === 'ready' && (
         <div className={styles.thumbnails}>
           {screenshots.value.map((url, index) => (
@@ -85,10 +85,10 @@ export const ScreenshotGallery: React.FC<{ screenshots: ReportMedia['screenshots
               key={url}
               type="button"
               className={styles.thumbnail}
-              aria-label={`Открыть скриншот ${index + 1}`}
+              aria-label={`Open screenshot ${index + 1}`}
               onClick={() => setEnlargedUrl(url)}
             >
-              <img src={url} alt={`Скриншот ${index + 1}`} />
+              <img src={url} alt={`Screenshot ${index + 1}`} />
             </button>
           ))}
         </div>
@@ -108,12 +108,12 @@ const Lightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose
   }, [onClose]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Скриншот" className={styles.lightbox} onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-label="Screenshot" className={styles.lightbox} onClick={onClose}>
       <button type="button" className={`${ui.button} ${styles.lightboxClose}`} onClick={onClose} autoFocus>
         <X size={16} aria-hidden="true" />
-        Закрыть
+        Close
       </button>
-      <img src={url} alt="Скриншот" />
+      <img src={url} alt="Screenshot" />
     </div>
   );
 };

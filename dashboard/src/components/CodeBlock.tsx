@@ -31,7 +31,7 @@ export const CodeBlock: React.FC<{ title: string; content: string }> = ({ title,
         <span>{title}</span>
         <button type="button" className={`${ui.button} ${ui.buttonSmall}`} onClick={() => copy(content)}>
           {isCopied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
-          {isCopied ? 'Скопировано' : 'Copy'}
+          {isCopied ? 'Copied' : 'Copy'}
         </button>
       </div>
       <pre className={styles.codeBody}>{content}</pre>

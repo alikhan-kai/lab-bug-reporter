@@ -8,7 +8,7 @@ const SKELETON_ROWS = 6;
 
 /** Placeholder shaped like the navbar and the report list, shown while the dashboard signs in. */
 export const DashboardSkeleton: React.FC = () => (
-  <div aria-busy="true" aria-label="Загрузка">
+  <div aria-busy="true" aria-label="Loading">
     <header className={navbar.header}>
       <div className={navbar.inner}>
         <Bone width={150} height={26} radius={6} />

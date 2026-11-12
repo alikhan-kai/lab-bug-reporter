@@ -31,15 +31,15 @@ export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canS
   };
 
   const tabs: { id: LogTab; label: string; count?: number }[] = [
-    { id: 'network', label: 'Сеть', count: report.network.length },
-    { id: 'console', label: 'Консоль', count: report.console.length },
-    { id: 'actions', label: 'Действия', count: report.breadcrumbs.length },
-    { id: 'environment', label: 'Окружение' },
+    { id: 'network', label: 'Network', count: report.network.length },
+    { id: 'console', label: 'Console', count: report.console.length },
+    { id: 'actions', label: 'Actions', count: report.breadcrumbs.length },
+    { id: 'environment', label: 'Environment' },
   ];
 
   return (
-    <section className={`${ui.card} ${styles.panel} ${styles.logs}`} aria-label="Данные отчета">
-      <div role="tablist" aria-label="Данные отчета" className={styles.tabs}>
+    <section className={`${ui.card} ${styles.panel} ${styles.logs}`} aria-label="Captured data">
+      <div role="tablist" aria-label="Captured data" className={styles.tabs}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -59,10 +59,10 @@ export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canS
         {activeTab !== 'environment' && timeOrigin !== null && (
           <p className={styles.timeNote}>
             {canSeek
-              ? 'Время от начала записи. Клик по событию перематывает видео.'
+              ? 'Times from the start of the recording. Click an event to jump to it.'
               : hasVideo
-                ? 'Время от начала записи.'
-                : 'Видео нет, время отсчитывается от первого события отчета.'}
+                ? 'Times from the start of the recording.'
+                : 'No video, so times count from the first captured event.'}
           </p>
         )}
         {activeTab === 'network' && <NetworkTab entries={report.network} timeline={timeline} />}
@@ -70,8 +70,8 @@ export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canS
         {activeTab === 'actions' && <ActionsTab report={report} timeline={timeline} />}
         {activeTab === 'environment' && (
           <div className={styles.environment}>
-            <CodeBlock title="Окружение" content={JSON.stringify(report.environment ?? {}, null, 2)} />
-            <CodeBlock title="Метаданные сайта" content={JSON.stringify(report.hostMetadata ?? {}, null, 2)} />
+            <CodeBlock title="environment" content={JSON.stringify(report.environment ?? {}, null, 2)} />
+            <CodeBlock title="host metadata" content={JSON.stringify(report.hostMetadata ?? {}, null, 2)} />
           </div>
         )}
       </div>
@@ -152,7 +152,7 @@ const OUTCOME_ENTRY_CLASSES: Record<RequestOutcome, string | undefined> = {
 const NetworkTab: React.FC<{ entries: NetworkEntry[]; timeline: Timeline }> = ({ entries, timeline }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   if (entries.length === 0) {
-    return <p className={styles.empty}>Запросов не было</p>;
+    return <p className={styles.empty}>No requests</p>;
   }
   return (
     <div>
@@ -170,7 +170,7 @@ const NetworkTab: React.FC<{ entries: NetworkEntry[]; timeline: Timeline }> = ({
               <span className={styles.url} title={entry.url}>{entry.url}</span>
               <span className={styles.entryEnd}>
                 {describeRequestDuration(entry)}
-                <ExpandButton isExpanded={isExpanded} label="Детали" onToggle={() => setExpandedIndex(isExpanded ? null : index)} />
+                <ExpandButton isExpanded={isExpanded} label="Details" onToggle={() => setExpandedIndex(isExpanded ? null : index)} />
               </span>
             </div>
             {isExpanded && <RequestDetails entry={entry} outcome={outcome} />}
@@ -188,28 +188,28 @@ function hasEntries(headers: Record<string, string> | undefined): headers is Rec
 // Captured values come from the reporting website, so every part is shown as text, never as markup.
 const RequestDetails: React.FC<{ entry: NetworkEntry; outcome: RequestOutcome }> = ({ entry, outcome }) => (
   <div className={styles.entryDetails} onClick={(event) => event.stopPropagation()}>
-    <CodeBlock title="Запрос" content={`${entry.method} ${entry.url}`} />
-    {entry.error && <CodeBlock title="Ошибка" content={entry.error} />}
-    {outcome === 'pending' && <p className={styles.notice}>Ответа не было, когда отчет отправили.</p>}
+    <CodeBlock title="request" content={`${entry.method} ${entry.url}`} />
+    {entry.error && <CodeBlock title="error" content={entry.error} />}
+    {outcome === 'pending' && <p className={styles.notice}>No response yet when the report was sent.</p>}
     {hasEntries(entry.request?.headers) && (
-      <CodeBlock title="Заголовки запроса" content={JSON.stringify(entry.request.headers, null, 2)} />
+      <CodeBlock title="request headers" content={JSON.stringify(entry.request.headers, null, 2)} />
     )}
     {entry.request?.body && (
-      <CodeBlock title={`Тело запроса${entry.request.body_truncated ? ' (обрезано)' : ''}`} content={entry.request.body} />
+      <CodeBlock title={`request body${entry.request.body_truncated ? ' (truncated)' : ''}`} content={entry.request.body} />
     )}
     {hasEntries(entry.response?.headers) && (
-      <CodeBlock title="Заголовки ответа" content={JSON.stringify(entry.response.headers, null, 2)} />
+      <CodeBlock title="response headers" content={JSON.stringify(entry.response.headers, null, 2)} />
     )}
     {entry.response && (
-      <CodeBlock title={`Ответ${entry.response.body_truncated ? ' (обрезан)' : ''}`} content={entry.response.body || '[пусто]'} />
+      <CodeBlock title={`response body${entry.response.body_truncated ? ' (truncated)' : ''}`} content={entry.response.body || '[empty]'} />
     )}
   </div>
 );
 
 const CONSOLE_FILTERS: { id: ConsoleFilter; label: string }[] = [
-  { id: 'all', label: 'Все' },
-  { id: 'error', label: 'Ошибки' },
-  { id: 'warn', label: 'Предупреждения' },
+  { id: 'all', label: 'All' },
+  { id: 'error', label: 'Errors' },
+  { id: 'warn', label: 'Warnings' },
 ];
 
 const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({ entries, timeline }) => {
@@ -223,7 +223,7 @@ const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({
 
   return (
     <div>
-      <div className={styles.filterBar} role="group" aria-label="Уровень">
+      <div className={styles.filterBar} role="group" aria-label="Level">
         {CONSOLE_FILTERS.map((option) => (
           <button
             key={option.id}
@@ -236,7 +236,7 @@ const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({
           </button>
         ))}
       </div>
-      {visibleEntries.length === 0 && <p className={styles.empty}>Записей нет</p>}
+      {visibleEntries.length === 0 && <p className={styles.empty}>No entries</p>}
       {visibleEntries.map(({ entry, index }) => {
         const isExpanded = expandedIndex === index;
         const levelClass = entry.level === 'error' ? styles.levelError : entry.level === 'warn' ? styles.levelWarn : styles.level;
@@ -255,7 +255,7 @@ const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({
             </div>
             {isExpanded && entry.stack && (
               <div className={styles.entryDetails} onClick={(event) => event.stopPropagation()}>
-                <CodeBlock title="Stack trace" content={entry.stack} />
+                <CodeBlock title="stack trace" content={entry.stack} />
               </div>
             )}
           </TimedEntry>
@@ -265,11 +265,11 @@ const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({
   );
 };
 
-const BREADCRUMB_LABELS: Record<string, string> = { click: 'клик', navigation: 'переход', focus: 'фокус' };
+const BREADCRUMB_LABELS: Record<string, string> = { click: 'click', navigation: 'navigation', focus: 'focus' };
 
 const ActionsTab: React.FC<{ report: ReportView; timeline: Timeline }> = ({ report, timeline }) => {
   if (report.breadcrumbs.length === 0) {
-    return <p className={styles.empty}>Действий не было</p>;
+    return <p className={styles.empty}>No actions</p>;
   }
   return (
     <div>

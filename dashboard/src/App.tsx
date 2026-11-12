@@ -7,7 +7,7 @@ import { useReportList } from './hooks/useReportList';
 import { useReportRoute } from './hooks/useReportRoute';
 
 // The team starts from the reports nobody has looked at yet (ТЗ, раздел 10).
-const DEFAULT_FILTERS: ReportFilters = { project: null, status: 'new', type: null, query: '' };
+const DEFAULT_FILTERS: ReportFilters = { projects: [], statuses: ['new'], types: [], query: '' };
 
 export const App: React.FC = () => {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
