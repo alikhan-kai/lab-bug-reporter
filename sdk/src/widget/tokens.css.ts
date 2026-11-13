@@ -34,7 +34,7 @@ const DARK_TOKENS = `
  * #lab-reporter-root, for example the accent colour: #lab-reporter-root { --lab-primary: #7c3aed; }
  */
 export const widgetStyles = `
-:host {
+:host, .lab-component-host, .lab-component-wrapper {
   --lab-font: '${WIDGET_FONT_FAMILY}', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --lab-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -80,12 +80,12 @@ export const widgetStyles = `
   -webkit-font-smoothing: antialiased;
 }
 
-:host([data-theme='dark']) {
+:host([data-theme='dark']), .lab-component-host[data-theme='dark'], .lab-component-wrapper[data-theme='dark'] {
 ${DARK_TOKENS}
 }
 
 @media (prefers-color-scheme: dark) {
-  :host([data-theme='system']) {
+  :host([data-theme='system']), .lab-component-host[data-theme='system'], .lab-component-wrapper[data-theme='system'] {
 ${DARK_TOKENS}
   }
 }
@@ -129,9 +129,16 @@ svg {
   z-index: 2147483640;
 }
 
-.lab-launcher:hover {
+.lab-launcher:hover,
+.lab-launcher.hover {
   background: var(--lab-primary-hover);
   transform: translateY(-1px);
+}
+
+.lab-launcher:focus-visible,
+.lab-launcher.focus {
+  outline: 2px solid var(--lab-primary);
+  outline-offset: 2px;
 }
 
 .lab-launcher:active {

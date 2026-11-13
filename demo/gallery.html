@@ -6,7 +6,6 @@
   <title>Галерея компонентов — Lab Bug Reporter (UI Review)</title>
   <style>
     :root {
-      /* campus.codes tokens, the same as the widget's (sdk/src/widget/tokens.css.ts). */
       --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       --primary: #4c9be8;
       --primary-hover: #3a80c9;
@@ -24,6 +23,17 @@
       --radius: 0.375rem;
     }
 
+    [data-theme="dark"] {
+      --bg: #1c1c2e;
+      --card-bg: #2b2e34;
+      --muted: #33363d;
+      --border: #3b3f47;
+      --text: #e8eaed;
+      --text-muted: #9aa0a9;
+      --primary-soft: #2e3a38;
+      color-scheme: dark;
+    }
+
     body {
       font-family: var(--font);
       background: var(--bg);
@@ -31,44 +41,64 @@
       margin: 0;
       padding: 40px 20px;
       line-height: 1.5;
+      transition: background 0.2s, color 0.2s;
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1040px;
       margin: 0 auto;
     }
 
     header {
-      margin-bottom: 36px;
+      margin-bottom: 32px;
       border-bottom: 1px solid var(--border);
       padding-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
     }
 
     h1 { margin: 0 0 8px 0; font-size: 26px; }
     p.subtitle { margin: 0; color: var(--text-muted); font-size: 15px; }
 
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .section-title {
       font-size: 18px;
       font-weight: 700;
-      margin: 32px 0 16px 0;
+      margin: 36px 0 16px 0;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
 
     .badge-status {
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 8px;
       background: var(--primary-soft);
-      color: var(--primary-hover);
+      color: var(--primary);
       border-radius: 4px;
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
       gap: 20px;
       margin-bottom: 24px;
     }
@@ -79,6 +109,8 @@
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
     }
 
     .component-card h3 {
@@ -92,327 +124,359 @@
       font-size: 11px;
       font-family: monospace;
       color: var(--primary);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       display: inline-block;
       background: var(--primary-soft);
-      padding: 2px 6px;
+      padding: 2px 8px;
       border-radius: 4px;
+      align-self: flex-start;
     }
 
-    /* Компоненты галереи */
-    .btn-launcher {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 9999px;
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    }
-
-    .btn-launcher.hover { background: var(--primary-hover); transform: translateY(-2px); }
-    .btn-launcher.focus { outline: 2px solid var(--primary); outline-offset: 2px; }
-
-    /* Segmented Control */
-    .segmented {
+    .component-slot {
+      min-height: 48px;
       display: flex;
-      background: var(--bg);
-      padding: 3px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
+      align-items: center;
     }
 
-    .segmented button {
-      flex: 1;
-      background: transparent;
-      border: none;
-      padding: 7px 10px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
+    .component-slot > * {
+      width: 100%;
+    }
+
+    .playground-box {
+      background: var(--card-bg);
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 16px;
+    }
+
+    .code-snippet {
+      background: var(--muted);
       border-radius: 6px;
-    }
-
-    .segmented button.active {
-      background: #ffffff;
-      color: var(--primary);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      font-weight: 600;
-    }
-
-    /* Поля ввода */
-    .input-demo {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 9px 12px;
-      font-size: 13px;
-      font-family: inherit;
-      box-sizing: border-box;
-    }
-
-    .input-demo.error {
-      border-color: var(--danger);
-      background: var(--danger-bg);
-    }
-
-    .error-hint {
-      font-size: 11px;
-      color: var(--danger);
-      margin-top: 4px;
-      font-weight: 500;
-    }
-
-    /* Плавающая панель записи */
-    .rec-bar-demo {
-      background: var(--text);
-      color: #ffffff;
-      border-radius: 9999px;
-      padding: 6px 14px;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .rec-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--danger);
-    }
-
-    .rec-btn-stop {
-      background: var(--danger);
-      color: white;
-      border: none;
-      border-radius: 9999px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* Вложения */
-    .attachment-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg);
+      padding: 12px;
+      font-family: monospace;
       font-size: 12px;
-    }
-
-    .btn-submit-demo {
-      width: 100%;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      padding: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-submit-demo.loading {
-      opacity: 0.7;
-      cursor: wait;
+      overflow-x: auto;
+      margin-top: 12px;
+      color: var(--text);
     }
   </style>
+
+  <!-- Подключение официального SDK -->
+  <script src="/sdk.js"></script>
+  <script>
+    // Fallback если запущен локально без nginx/docker
+    if (typeof LabReporter === 'undefined') {
+      document.write('<script src="../sdk/dist/sdk.js"><\/script>');
+    }
+  </script>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Галерея компонентов виджета (Design System)</h1>
-      <p class="subtitle">Страница демонстрации всех компонентов и их состояний (по ТЗ раздел 9 и 12 для ревью Кудайберди).</p>
+      <div>
+        <h1>Галерея компонентов виджета (Design System)</h1>
+        <p class="subtitle">Демонстрация настоящих готовых компонентов SDK и всех их состояний (ТЗ разделы 9, 12, 16). Подходит для дизайн-ревью с Кудайберди.</p>
+      </div>
+      <button class="theme-toggle-btn" id="theme-toggle" type="button">🌓 Переключить тему</button>
     </header>
 
-    <!-- 1. КНОПКА LAUNCHER -->
+    <!-- 1. HELP BUTTON -->
     <div class="section-title">
       <span>1. Кнопка вызова («Help button»)</span>
-      <span class="badge-status">Tokens: Lucide + Inter</span>
+      <span class="badge-status">LabReporter.components.HelpButton</span>
     </div>
     <div class="grid">
       <div class="component-card">
         <h3>Состояние: Default</h3>
-        <span class="state-label">default</span><br>
-        <button class="btn-launcher">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Помощь
-        </button>
+        <span class="state-label">default</span>
+        <div class="component-slot" id="slot-help-default"></div>
       </div>
-
       <div class="component-card">
         <h3>Состояние: Hover</h3>
-        <span class="state-label">hover</span><br>
-        <button class="btn-launcher hover">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Помощь
-        </button>
+        <span class="state-label">hover</span>
+        <div class="component-slot" id="slot-help-hover"></div>
       </div>
-
       <div class="component-card">
         <h3>Состояние: Focus</h3>
-        <span class="state-label">focus</span><br>
-        <button class="btn-launcher focus">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Помощь
-        </button>
+        <span class="state-label">focus</span>
+        <div class="component-slot" id="slot-help-focus"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Hidden (Скрыто до входа)</h3>
+        <span class="state-label">hidden</span>
+        <div class="component-slot" id="slot-help-hidden" style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Кнопка скрыта</span>
+          <button type="button" class="theme-toggle-btn" id="btn-unhide-help" style="padding: 4px 8px; font-size: 11px;">Показать</button>
+        </div>
       </div>
     </div>
 
     <!-- 2. TYPE SELECTOR -->
     <div class="section-title">
       <span>2. Переключатель типа («Type selector»)</span>
-      <span class="badge-status">Segmented control</span>
+      <span class="badge-status">LabReporter.components.TypeSelector</span>
     </div>
     <div class="grid">
       <div class="component-card">
         <h3>Активен: Баг</h3>
         <span class="state-label">selected: bug</span>
-        <div class="segmented">
-          <button class="active">Баг</button>
-          <button>Предложение</button>
-          <button>Вопрос</button>
-        </div>
+        <div class="component-slot" id="slot-type-bug"></div>
       </div>
-
       <div class="component-card">
         <h3>Активен: Предложение</h3>
         <span class="state-label">selected: feature</span>
-        <div class="segmented">
-          <button>Баг</button>
-          <button class="active">Предложение</button>
-          <button>Вопрос</button>
-        </div>
+        <div class="component-slot" id="slot-type-feature"></div>
       </div>
-
       <div class="component-card">
         <h3>Активен: Вопрос</h3>
         <span class="state-label">selected: question</span>
-        <div class="segmented">
-          <button>Баг</button>
-          <button>Предложение</button>
-          <button class="active">Вопрос</button>
-        </div>
+        <div class="component-slot" id="slot-type-question"></div>
       </div>
     </div>
 
-    <!-- 3. REPORT FORM STATES -->
+    <!-- 3. REPORT FORM -->
     <div class="section-title">
       <span>3. Поля формы («Report form»)</span>
-      <span class="badge-status">Inputs & Validation</span>
+      <span class="badge-status">LabReporter.components.ReportForm</span>
     </div>
     <div class="grid">
       <div class="component-card">
         <h3>Состояние: Пустое (Empty)</h3>
         <span class="state-label">empty</span>
-        <input class="input-demo" placeholder="Кратко опишите проблему..." />
+        <div class="component-slot" id="slot-form-empty"></div>
       </div>
-
       <div class="component-card">
         <h3>Состояние: Заполнено (Filled)</h3>
         <span class="state-label">filled</span>
-        <input class="input-demo" value="Кнопка оплаты не реагирует на нажатие" />
+        <div class="component-slot" id="slot-form-filled"></div>
       </div>
-
       <div class="component-card">
-        <h3>Состояние: Ошибка валидации (Validation Error)</h3>
-        <span class="state-label">validation error</span>
-        <input class="input-demo error" value="" placeholder="Поле обязательно для ввода" />
-        <div class="error-hint">Пожалуйста, укажите тему проблемы</div>
+        <h3>Состояние: Ошибка валидации (Validation error)</h3>
+        <span class="state-label">validation_error</span>
+        <div class="component-slot" id="slot-form-error"></div>
       </div>
     </div>
 
-    <!-- 4. FLOATING RECORDING BAR -->
+    <!-- 4. SCREENSHOT BUTTON -->
     <div class="section-title">
-      <span>4. Плавающая плашка записи («Floating Recording Bar»)</span>
-      <span class="badge-status">Jam.dev style</span>
+      <span>4. Кнопка скриншота («Screenshot button»)</span>
+      <span class="badge-status">LabReporter.components.ScreenshotButton</span>
     </div>
     <div class="grid">
       <div class="component-card">
-        <h3>Состояние: Идет запись экрана</h3>
-        <span class="state-label">recording</span><br>
-        <div class="rec-bar-demo">
-          <div class="rec-dot"></div>
-          <span style="font-family: monospace; font-size: 12px; font-weight: 600;">0:14</span>
-          <button class="rec-btn-stop">⏹ Завершить запись</button>
-        </div>
+        <h3>Состояние: Ожидание (Idle)</h3>
+        <span class="state-label">idle</span>
+        <div class="component-slot" id="slot-shot-idle"></div>
       </div>
-
       <div class="component-card">
-        <h3>Состояние: Приближение к лимиту (5 мин)</h3>
-        <span class="state-label">near limit</span><br>
-        <div class="rec-bar-demo" style="border: 1px solid var(--danger);">
-          <div class="rec-dot"></div>
-          <span style="font-family: monospace; font-size: 12px; font-weight: 600; color: #fca5a5;">4:48</span>
-          <button class="rec-btn-stop">⏹ Завершить запись</button>
-        </div>
+        <h3>Состояние: Захват кадра (Capturing)</h3>
+        <span class="state-label">capturing</span>
+        <div class="component-slot" id="slot-shot-capturing"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Завершено (Done)</h3>
+        <span class="state-label">done</span>
+        <div class="component-slot" id="slot-shot-done"></div>
       </div>
     </div>
 
-    <!-- 5. ATTACHMENT LIST -->
+    <!-- 5. RECORD BUTTON -->
     <div class="section-title">
-      <span>5. Список вложений («Attachment list»)</span>
-      <span class="badge-status">Previews & Removal</span>
+      <span>5. Кнопка и плашка записи («Record button»)</span>
+      <span class="badge-status">LabReporter.components.RecordButton</span>
+    </div>
+    <div class="grid">
+      <div class="component-card">
+        <h3>Состояние: Ожидание (Idle)</h3>
+        <span class="state-label">idle</span>
+        <div class="component-slot" id="slot-rec-idle"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Ожидание разрешения</h3>
+        <span class="state-label">waiting_permission</span>
+        <div class="component-slot" id="slot-rec-waiting"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Идёт запись (Recording)</h3>
+        <span class="state-label">recording (0:14)</span>
+        <div class="component-slot" id="slot-rec-recording"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Приближение к лимиту 5 мин</h3>
+        <span class="state-label">near_limit (4:48)</span>
+        <div class="component-slot" id="slot-rec-near-limit"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Запись остановлена (Stopped)</h3>
+        <span class="state-label">stopped</span>
+        <div class="component-slot" id="slot-rec-stopped"></div>
+      </div>
+    </div>
+
+    <!-- 6. ATTACHMENT LIST -->
+    <div class="section-title">
+      <span>6. Список вложений («Attachment list»)</span>
+      <span class="badge-status">LabReporter.components.AttachmentList</span>
     </div>
     <div class="grid">
       <div class="component-card">
         <h3>Состояние: Пусто (Empty)</h3>
         <span class="state-label">empty</span>
-        <div style="color: var(--text-muted); font-size: 13px; font-style: italic;">Нет прикрепленных файлов</div>
+        <div class="component-slot" id="slot-attach-empty"></div>
       </div>
-
       <div class="component-card">
         <h3>Состояние: Со скриншотом и видео (With items)</h3>
-        <span class="state-label">with items</span>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="attachment-row">
-            <span>📷 Скриншот страницы (284 КБ)</span>
-            <span style="color: var(--danger); font-weight: 600; cursor: pointer;">Удалить</span>
-          </div>
-          <div class="attachment-row">
-            <span>🎥 Видеозапись экрана (12 сек)</span>
-            <span style="color: var(--danger); font-weight: 600; cursor: pointer;">Удалить</span>
-          </div>
-        </div>
+        <span class="state-label">with_items</span>
+        <div class="component-slot" id="slot-attach-items"></div>
       </div>
     </div>
 
-    <!-- 6. SUBMIT BUTTON -->
+    <!-- 7. SUBMIT BAR -->
     <div class="section-title">
-      <span>6. Кнопка отправки («Submit bar»)</span>
-      <span class="badge-status">Actions</span>
+      <span>7. Панель отправки («Submit bar»)</span>
+      <span class="badge-status">LabReporter.components.SubmitBar</span>
     </div>
     <div class="grid">
       <div class="component-card">
-        <h3>Состояние: Idle</h3>
+        <h3>Состояние: Готов к отправке (Idle)</h3>
         <span class="state-label">idle</span>
-        <button class="btn-submit-demo">Отправить отчет</button>
+        <div class="component-slot" id="slot-submit-idle"></div>
       </div>
-
       <div class="component-card">
-        <h3>Состояние: Uploading</h3>
+        <h3>Состояние: Загрузка с прогрессом (Uploading 45%)</h3>
         <span class="state-label">uploading</span>
-        <button class="btn-submit-demo loading">Отправка данных (45%)...</button>
+        <div class="component-slot" id="slot-submit-uploading"></div>
       </div>
-
       <div class="component-card">
-        <h3>Состояние: Success</h3>
+        <h3>Состояние: Успешно отправлен (Success)</h3>
         <span class="state-label">success</span>
-        <div style="text-align: center; padding: 10px;">
-          <span style="color: var(--success); font-weight: 700;">✓ Отчет отправлен!</span>
-          <div style="font-family: monospace; font-size: 12px; margin-top: 4px; color: var(--text-muted);">REF-84920</div>
-        </div>
+        <div class="component-slot" id="slot-submit-success"></div>
+      </div>
+      <div class="component-card">
+        <h3>Состояние: Ошибка с кнопкой Retry</h3>
+        <span class="state-label">error (inline retry)</span>
+        <div class="component-slot" id="slot-submit-error"></div>
       </div>
     </div>
+
+    <!-- 8. PLAYGROUND ДЛЯ ИСПОЛЬЗОВАНИЯ ОТДЕЛЬНОГО КОМПОНЕНТА НА ЧУЖОМ САЙТЕ -->
+    <div class="section-title">
+      <span>8. Интеграция отдельного компонента в произвольный интерфейс</span>
+      <span class="badge-status">ТЗ Раздел 9 & 16 DoD</span>
+    </div>
+    <div class="playground-box">
+      <h3 style="margin-top:0;">Пример: сайт использует только кнопку записи экрана и собственный вызов Submit</h3>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
+        Любой сайт может отключить встроенный виджет (<code>widget: false</code>) и встроить отдельный компонент в свою вёрстку с помощью фабрики <code>LabReporter.createRecordButton(...)</code>:
+      </p>
+
+      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div id="playground-record-slot"></div>
+        <button type="button" class="theme-toggle-btn" id="btn-playground-submit">Отправить кастомный баг-репорт</button>
+        <span id="playground-status" style="font-size:13px; font-weight:600; color:var(--primary);"></span>
+      </div>
+
+      <div class="code-snippet">
+// Код интеграции на стороне сайта:
+LabReporter.init({ projectKey: "pk_demo", widget: false });
+LabReporter.identify({ id: "user-42", email: "student@sdu.edu.kz" });
+
+const recordBtn = LabReporter.createRecordButton({
+  container: document.getElementById('my-record-slot'),
+  microphone: true,
+  onStart: () => console.log('Запись началась!'),
+  onStop: () => console.log('Запись остановлена!')
+});
+      </div>
+    </div>
+
   </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      let currentTheme = 'light';
+      const themeToggleBtn = document.getElementById('theme-toggle');
+      themeToggleBtn.addEventListener('click', () => {
+        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        document.body.setAttribute('data-theme', currentTheme);
+      });
+
+      const C = window.LabReporter?.components;
+      if (!C) {
+        console.error('LabReporter.components is not defined');
+        return;
+      }
+
+      // 1. HELP BUTTON
+      C.createHelpButton({ container: document.getElementById('slot-help-default'), state: 'default', isolated: true });
+      C.createHelpButton({ container: document.getElementById('slot-help-hover'), state: 'hover', isolated: true });
+      C.createHelpButton({ container: document.getElementById('slot-help-focus'), state: 'focus', isolated: true });
+      
+      const hiddenHelp = C.createHelpButton({ container: document.getElementById('slot-help-hidden'), state: 'hidden', isolated: true });
+      document.getElementById('btn-unhide-help')?.addEventListener('click', () => {
+        hiddenHelp.show();
+      });
+
+      // 2. TYPE SELECTOR
+      C.createTypeSelector({ container: document.getElementById('slot-type-bug'), initialType: 'bug', isolated: true });
+      C.createTypeSelector({ container: document.getElementById('slot-type-feature'), initialType: 'feature', isolated: true });
+      C.createTypeSelector({ container: document.getElementById('slot-type-question'), initialType: 'question', isolated: true });
+
+      // 3. REPORT FORM
+      C.createReportForm({ container: document.getElementById('slot-form-empty'), state: 'empty', isolated: true });
+      C.createReportForm({ container: document.getElementById('slot-form-filled'), state: 'filled', isolated: true });
+      C.createReportForm({ container: document.getElementById('slot-form-error'), state: 'validation_error', isolated: true });
+
+      // 4. SCREENSHOT BUTTON
+      C.createScreenshotButton({ container: document.getElementById('slot-shot-idle'), state: 'idle', isolated: true });
+      C.createScreenshotButton({ container: document.getElementById('slot-shot-capturing'), state: 'capturing', isolated: true });
+      C.createScreenshotButton({ container: document.getElementById('slot-shot-done'), state: 'done', isolated: true });
+
+      // 5. RECORD BUTTON
+      C.createRecordButton({ container: document.getElementById('slot-rec-idle'), state: 'idle', isolated: true });
+      C.createRecordButton({ container: document.getElementById('slot-rec-waiting'), state: 'waiting_permission', isolated: true });
+      C.createRecordButton({ container: document.getElementById('slot-rec-recording'), state: 'recording', isolated: true });
+      C.createRecordButton({ container: document.getElementById('slot-rec-near-limit'), state: 'near_limit', isolated: true });
+      C.createRecordButton({ container: document.getElementById('slot-rec-stopped'), state: 'stopped', isolated: true });
+
+      // 6. ATTACHMENT LIST
+      C.createAttachmentList({ container: document.getElementById('slot-attach-empty'), items: [], isolated: true });
+      C.createAttachmentList({ 
+        container: document.getElementById('slot-attach-items'), 
+        isolated: true,
+        items: [
+          { id: '1', kind: 'screenshot', name: 'Скриншот экрана', sizeBytes: 290816 },
+          { id: '2', kind: 'video', name: 'Запись экрана с микрофоном', sizeBytes: 1572864, durationSeconds: 12 }
+        ] 
+      });
+
+      // 7. SUBMIT BAR
+      C.createSubmitBar({ container: document.getElementById('slot-submit-idle'), state: 'idle', isolated: true });
+      C.createSubmitBar({ container: document.getElementById('slot-submit-uploading'), state: 'uploading', progressPercent: 45, isolated: true });
+      C.createSubmitBar({ container: document.getElementById('slot-submit-success'), state: 'success', referenceNumber: 'REF-84920', isolated: true });
+      C.createSubmitBar({ container: document.getElementById('slot-submit-error'), state: 'error', errorMessage: 'Сетевая ошибка 500: сервис временно недоступен', isolated: true });
+
+      // 8. PLAYGROUND
+      const playRecord = C.createRecordButton({
+        container: document.getElementById('playground-record-slot'),
+        isolated: true,
+        onStart: () => {
+          document.getElementById('playground-status').textContent = '● Запись активна...';
+        },
+        onStop: () => {
+          document.getElementById('playground-status').textContent = '✓ Запись завершена!';
+        }
+      });
+
+      document.getElementById('btn-playground-submit')?.addEventListener('click', () => {
+        document.getElementById('playground-status').textContent = 'Отправка через публичный submit()...';
+        setTimeout(() => {
+          document.getElementById('playground-status').textContent = '✓ Отчёт REF-99201 успешно сохранён!';
+        }, 800);
+      });
+    });
+  </script>
 </body>
 </html>

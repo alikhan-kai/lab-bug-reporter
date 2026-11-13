@@ -8,6 +8,16 @@ import { SCRIPT_URL } from './core/script-url';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData, WidgetTheme } from './widget/widget';
 import { SupportedLang } from './core/i18n';
+import {
+  components,
+  HelpButton,
+  TypeSelector,
+  ReportForm,
+  ScreenshotButton,
+  RecordButton,
+  AttachmentList,
+  SubmitBar
+} from './widget/components';
 
 export interface InitOptions {
   projectKey: string;
@@ -71,6 +81,16 @@ class LabBugReporter {
 
   // Виджет UI
   private widget: BugReporterWidget | null = null;
+
+  // Prebuilt components kit (по ТЗ раздел 9)
+  public components = components;
+  public createHelpButton = components.createHelpButton;
+  public createTypeSelector = components.createTypeSelector;
+  public createReportForm = components.createReportForm;
+  public createScreenshotButton = components.createScreenshotButton;
+  public createRecordButton = components.createRecordButton;
+  public createAttachmentList = components.createAttachmentList;
+  public createSubmitBar = components.createSubmitBar;
 
   constructor() {
     this.consoleCapture.install();
@@ -294,6 +314,16 @@ function videoExtension(video: Blob): string {
 }
 
 const LabReporter = new LabBugReporter();
+Object.assign(LabReporter, {
+  HelpButton,
+  TypeSelector,
+  ReportForm,
+  ScreenshotButton,
+  RecordButton,
+  AttachmentList,
+  SubmitBar,
+  components
+});
 
 if (typeof window !== 'undefined') {
   (window as any).LabReporter = LabReporter;
