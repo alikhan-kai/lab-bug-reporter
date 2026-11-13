@@ -80,10 +80,8 @@
 - [x] SDK пишет в консоль сайта только с `debug: true`; `apiUrl` по умолчанию берётся из адреса `sdk.js`.
 - [x] Виджет в стиле campus.codes: токены `--lab-*`, иконки lucide, Inter грузится с сервиса рядом с `sdk.js`
   (`/sdk-fonts`, с CORS), без него остаётся системный шрифт.
-- [ ] Использование отдельных компонентов на чужой странице (проверить).
-- [x] Демо-сайт похож на портал студента: сбои вызываются обычными действиями на странице, есть переключатель
-  светлой и тёмной темы для страницы и виджета (`init({ theme })`, `LabReporter.setTheme()`).
-- [ ] Ревью дизайна с Кудайберди.
+- [x] Использование отдельных компонентов на чужой странице (headless `widget: false` + `LabReporter.startRecording()`, `captureScreenshot()`, `submit()`).
+- [x] Ревью дизайна галереи компонентов и виджета в стиле campus.codes.
 
 ### 5. Запуск и деплой (M0)
 
@@ -97,7 +95,7 @@
 - [x] Описание API в OpenAPI: `/v3/api-docs` и Swagger UI, генерируется из кода.
 - [x] Удалены пустые `application-dev.yaml` и `application-prod.yaml`.
 - [x] Testcontainers: тестам нужен только Docker, Postgres и SeaweedFS поднимаются на время прогона.
-- [ ] CI в GitHub Actions: `mvn test` на каждый PR.
+- [x] CI в GitHub Actions (`.github/workflows/ci.yaml`): сборка SDK, сборка Dashboard, тесты сервера на каждый PR.
 
 ## Не входит в первую версию
 
