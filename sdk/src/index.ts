@@ -30,6 +30,8 @@ export interface InitOptions {
   debug?: boolean;
   /** The widget's colours: light (the default), dark, or system to follow the visitor's system setting. */
   theme?: WidgetTheme;
+  /** Max recording duration in seconds (configurable, default: 300 / 5 minutes). */
+  maxRecordingSeconds?: number;
 }
 
 // The service serves sdk.js itself, so the script's own address is the default service address.
@@ -115,16 +117,16 @@ class LabBugReporter {
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget(options.lang, options.theme);
+      this.setupWidget(options.lang, options.theme, options.maxRecordingSeconds);
     }
 
     this.debugLog('Initialized with options:', this.options);
   }
 
-  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme): void {
+  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme, maxRecordingSeconds?: number): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget(lang, theme);
+    this.widget = new BugReporterWidget(lang, theme, maxRecordingSeconds);
 
     this.widget.onScreenshot(() => this.captureScreenshot());
     this.widget.onStartRecording((opts) => this.startRecording(opts));
@@ -164,8 +166,11 @@ class LabBugReporter {
 
   // --- МЕДИА API ---
 
-  async startRecording(optionsOrMic?: { microphone?: boolean } | boolean): Promise<number> {
-    const startTime = await this.recorder.start(optionsOrMic);
+  async startRecording(optionsOrMic?: { microphone?: boolean; maxDurationSeconds?: number } | boolean): Promise<number> {
+    const maxSec = (typeof optionsOrMic === 'object' && optionsOrMic?.maxDurationSeconds)
+      ? optionsOrMic.maxDurationSeconds
+      : (this.options?.maxRecordingSeconds ?? 300);
+    const startTime = await this.recorder.start(optionsOrMic, maxSec);
     this.lastRecording = null;
     this.debugLog('Recording started at', startTime);
     return startTime;

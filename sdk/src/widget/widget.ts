@@ -68,14 +68,16 @@ export class BugReporterWidget {
   private isRecording: boolean = false;
   private isRetryMode: boolean = false;
   private timerInterval: any = null;
+  private maxRecordingSeconds: number = MAX_RECORDING_SECONDS;
 
   // Callbacks
   private onScreenshotCallback?: () => Promise<Blob>;
-  private onStartRecordingCallback?: (options?: { microphone?: boolean }) => Promise<number>;
+  private onStartRecordingCallback?: (options?: { microphone?: boolean; maxDurationSeconds?: number }) => Promise<number>;
   private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
-  constructor(preferredLang?: string, theme: WidgetTheme = 'light') {
+  constructor(preferredLang?: string, theme: WidgetTheme = 'light', maxRecordingSeconds: number = MAX_RECORDING_SECONDS) {
+    this.maxRecordingSeconds = maxRecordingSeconds;
     this.lang = detectLanguage(preferredLang);
     this.t = getTranslations(this.lang);
     this.initDOM();
@@ -436,7 +438,10 @@ export class BugReporterWidget {
     }
     if (!this.onStartRecordingCallback) return;
     try {
-      this.recordingStartTime = await this.onStartRecordingCallback({ microphone: true });
+      this.recordingStartTime = await this.onStartRecordingCallback({
+        microphone: true,
+        maxDurationSeconds: this.maxRecordingSeconds
+      });
       this.isRecording = true;
       this.recordBtnText.innerText = this.t.btnRecordStop;
       this.close();
@@ -479,7 +484,7 @@ export class BugReporterWidget {
     // Counted from the start time, because a background tab slows the interval down.
     this.timerInterval = setInterval(() => {
       const seconds = Math.floor((Date.now() - this.recordingStartTime) / 1000);
-      const secondsLeft = Math.max(0, MAX_RECORDING_SECONDS - seconds);
+      const secondsLeft = Math.max(0, this.maxRecordingSeconds - seconds);
       const isEndingSoon = secondsLeft <= RECORDING_WARNING_SECONDS;
       this.recordingBar.classList.toggle('warning', isEndingSoon);
       this.barTimerEl.innerText = isEndingSoon
@@ -529,18 +534,32 @@ export class BugReporterWidget {
       this.attachmentsList.appendChild(item);
     });
 
-    // Видео
+    // Видео (с предварительным просмотром Preview before submit по ТЗ)
     if (this.currentVideo) {
       const item = document.createElement('div');
       item.className = 'lab-attachment-item';
-      item.innerHTML = `
+      item.style.flexDirection = 'column';
+      item.style.alignItems = 'stretch';
+      
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; width: 100%;';
+      row.innerHTML = `
         <div class="lab-attachment-name">
           ${icons.video(14)}
           <span>${this.t.videoItem} (${(this.currentVideoDuration / 1000).toFixed(0)}s)</span>
         </div>
-        <button class="lab-btn-remove" id="del-video">${this.t.removeAttachment}</button>
+        <button class="lab-btn-remove" id="del-video" type="button">${this.t.removeAttachment}</button>
       `;
-      item.querySelector('#del-video')?.addEventListener('click', () => {
+      item.appendChild(row);
+
+      const videoPreview = document.createElement('video');
+      videoPreview.controls = true;
+      videoPreview.src = URL.createObjectURL(this.currentVideo);
+      videoPreview.style.cssText = 'width: 100%; max-height: 140px; border-radius: var(--lab-radius-md); margin-top: 8px; background: #000; display: block;';
+      item.appendChild(videoPreview);
+
+      row.querySelector('#del-video')?.addEventListener('click', () => {
+        URL.revokeObjectURL(videoPreview.src);
         this.currentVideo = null;
         this.currentVideoDuration = 0;
         this.recordingStartTime = 0;
