@@ -1,0 +1,119 @@
+.trace {
+  margin-top: 20px;
+}
+
+.bar {
+  position: relative;
+  height: 44px;
+}
+
+.barSeekable {
+  composes: bar;
+  cursor: pointer;
+}
+
+.baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  height: 1px;
+  background: var(--color-line-strong);
+}
+
+.beforeRecording {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 18px;
+  border-radius: 4px;
+  background-image: repeating-linear-gradient(135deg, var(--color-line) 0 1px, transparent 1px 6px);
+}
+
+.mark {
+  position: absolute;
+  bottom: 18px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+.error {
+  width: 3px;
+  height: 22px;
+  background: var(--color-danger);
+}
+
+.failed {
+  width: 3px;
+  height: 14px;
+  background: var(--color-warning);
+}
+
+.click {
+  width: 6px;
+  height: 6px;
+  background: var(--color-ink-muted);
+}
+
+.navigation {
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+}
+
+.playhead {
+  position: absolute;
+  top: -4px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%);
+  background: var(--color-ink);
+  pointer-events: none;
+}
+
+.axisLabel {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.legend {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: var(--text-xs);
+  color: var(--color-ink-secondary);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legendMark {
+  border-radius: 2px;
+}
+
+.legendMark.error {
+  height: 14px;
+}
+
+.legendMark.failed {
+  height: 10px;
+}
+
+.legendBefore {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(135deg, var(--color-line-strong) 0 1px, transparent 1px 4px);
+}

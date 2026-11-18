@@ -8,12 +8,11 @@ function readTheme(): Theme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 }
 
-/** The current colour theme and a toggle that remembers the choice. index.html applies it before the first paint. */
-export function useTheme(): { theme: Theme; toggleTheme: () => void } {
-  const [theme, setTheme] = useState<Theme>(readTheme);
+/** The current colour theme and a setter that remembers the choice. index.html applies it before the first paint. */
+export function useTheme(): { theme: Theme; setTheme: (theme: Theme) => void } {
+  const [theme, setThemeState] = useState<Theme>(readTheme);
 
-  const toggleTheme = useCallback(() => {
-    const nextTheme: Theme = readTheme() === 'dark' ? 'light' : 'dark';
+  const setTheme = useCallback((nextTheme: Theme) => {
     document.documentElement.classList.toggle('dark', nextTheme === 'dark');
     try {
       localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
@@ -21,8 +20,8 @@ export function useTheme(): { theme: Theme; toggleTheme: () => void } {
       // Storage can be blocked; the theme still applies until the page reloads.
       console.warn('Cannot save the theme', error);
     }
-    setTheme(nextTheme);
+    setThemeState(nextTheme);
   }, []);
 
-  return { theme, toggleTheme };
+  return { theme, setTheme };
 }

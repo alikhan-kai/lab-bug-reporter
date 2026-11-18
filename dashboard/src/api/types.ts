@@ -93,6 +93,9 @@ export interface ReportDetail {
 }
 
 /** Filters of the report list. A report matches any value of a list; an empty list does not filter. */
+/** How many reports have each status, from `GET /reports/status-counts`. */
+export type ReportStatusCounts = Record<ReportStatus, number>;
+
 export interface ReportFilters {
   projects: string[];
   statuses: ReportStatus[];
