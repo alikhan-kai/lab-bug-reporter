@@ -279,7 +279,7 @@ const ReportSignals: React.FC<{ report: ReportSummary }> = ({ report }) => {
           {isPresent ? (
             <>
               {count !== null && <span aria-hidden="true">{count}</span>}
-              <span className={ui.visuallyHidden}>{count !== null ? `${count} ${label.toLowerCase()}` : label}</span>
+              <span className={ui.visuallyHidden}>{count !== null ? `${label}: ${count}` : label}</span>
             </>
           ) : (
             <span aria-hidden="true">·</span>
