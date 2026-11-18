@@ -8,6 +8,9 @@ import { SCRIPT_URL } from './core/script-url';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData, WidgetTheme } from './widget/widget';
 import { SupportedLang } from './core/i18n';
+import { WidgetAppearance } from './widget/appearance';
+
+export type { WidgetAppearance } from './widget/appearance';
 
 export interface InitOptions {
   projectKey: string;
@@ -20,6 +23,8 @@ export interface InitOptions {
   debug?: boolean;
   /** The widget's colours: light (the default), dark, or system to follow the visitor's system setting. */
   theme?: WidgetTheme;
+  /** The site's own button, accent colour, corners and place for the widget. See WidgetAppearance. */
+  appearance?: WidgetAppearance;
 }
 
 // The service serves sdk.js itself, so the script's own address is the default service address.
@@ -95,16 +100,16 @@ class LabBugReporter {
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget(options.lang, options.theme);
+      this.setupWidget(options.lang, options.theme, options.appearance);
     }
 
     this.debugLog('Initialized with options:', this.options);
   }
 
-  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme): void {
+  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme, appearance?: WidgetAppearance): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget(lang, theme);
+    this.widget = new BugReporterWidget(lang, theme, appearance);
 
     this.widget.onScreenshot(() => this.captureScreenshot());
     this.widget.onStartRecording((opts) => this.startRecording(opts));
@@ -128,6 +133,11 @@ class LabBugReporter {
   /** Switches the widget's colours, for sites with their own light and dark switch. */
   setTheme(theme: WidgetTheme): void {
     this.widget?.setTheme(theme);
+  }
+
+  /** Changes the widget's button, accent, corners or place after init(); what is left out returns to the default. */
+  setAppearance(appearance: WidgetAppearance): void {
+    this.widget?.setAppearance(appearance);
   }
 
   setLanguage(lang: SupportedLang): void {

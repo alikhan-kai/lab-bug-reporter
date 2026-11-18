@@ -134,8 +134,27 @@ docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
 </script>
 ```
 
-Виджет оформлен по токенам campus.codes. Сайт может поменять любой из них, например акцент:
-`#lab-reporter-root { --lab-primary: #7c3aed; }`.
+Вид виджета каждый сайт задаёт сам через `appearance` в `init()` (или позже через `LabReporter.setAppearance()`):
+
+```js
+LabReporter.init({
+  projectKey: "pk_datasets_3f9a",
+  theme: "system",                   // light | dark | system
+  appearance: {
+    launcher: "pill",                // pill (значок и текст) | icon (круг) | tab (язычок на краю) | none
+    launcherText: "Нашли ошибку?",   // по умолчанию «Помощь» на языке страницы
+    accentColor: "#0f766e",          // или { light: "#1c1b18", dark: "#ece9e1" }
+    position: "bottom-left",         // bottom-right | bottom-left
+    corners: "round",                // sharp | soft | round
+    offset: { x: 24, y: 24 },        // отступ кнопки от краёв, px
+  },
+});
+```
+
+С `launcher: "none"` кнопки виджета нет, форму открывает своя кнопка сайта: `LabReporter.open()`. Цвет текста на
+акценте подбирается по контрасту сам. Неверное значение не ломает страницу: виджет пишет предупреждение в консоль и
+берёт значение по умолчанию. Любую переменную `--lab-*` по-прежнему можно переопределить на `#lab-reporter-root`.
+Все варианты можно пощёлкать на демо-сайте в карточке «Вид виджета на этом сайте».
 
 В `projects-dev.yaml` разрешены адреса `localhost:3000` и `localhost:5500`. Файл проектов монтируется в контейнер
 (`/app/config/projects.yaml`), поэтому для нового сайта достаточно поправить файл и выполнить `docker compose restart server`.

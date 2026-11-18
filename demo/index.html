@@ -124,6 +124,17 @@
     dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; }
     dt { color: var(--ink-muted); }
     dd { margin: 0; }
+    .appearance { margin-top: 20px; }
+    .appearance-pair { display: flex; flex-wrap: wrap; gap: 8px; }
+    .appearance-code {
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--muted);
+      font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre;
+      overflow-x: auto;
+    }
     footer { margin-top: 32px; color: var(--ink-muted); font-size: 12px; }
     footer button { padding: 0; border: none; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
     @media (max-width: 760px) {
@@ -155,6 +166,8 @@
           <button type="button" class="theme-btn active" data-theme="light">Светлая</button>
           <button type="button" class="theme-btn" data-theme="dark">Темная</button>
         </div>
+        <!-- The site's own help button, shown when the widget's button is switched off. -->
+        <button type="button" class="btn" id="btn-own-help" hidden>Нашли ошибку?</button>
         <button type="button" class="btn primary" id="btn-login">Войти</button>
         <span id="auth-status" hidden></span>
       </div>
@@ -211,6 +224,47 @@
       </div>
     </div>
 
+    <!-- Each site sets these through init({ appearance }); here they change live through setAppearance(). -->
+    <div class="card appearance">
+      <h2>Вид виджета на этом сайте</h2>
+      <div class="row">
+        <div>Кнопка<small>«Своя» прячет кнопку виджета, форму открывает кнопка сайта</small></div>
+        <div class="segmented" role="group" aria-label="Кнопка">
+          <button type="button" class="appearance-btn active" data-key="launcher" data-value="pill">Плашка</button>
+          <button type="button" class="appearance-btn" data-key="launcher" data-value="icon">Круг</button>
+          <button type="button" class="appearance-btn" data-key="launcher" data-value="tab">Язычок</button>
+          <button type="button" class="appearance-btn" data-key="launcher" data-value="none">Своя</button>
+        </div>
+      </div>
+      <div class="row">
+        <div>Акцент<small>Цвет кнопки и «Отправить»; текст на нём подбирается сам</small></div>
+        <div class="segmented" role="group" aria-label="Акцент">
+          <button type="button" class="appearance-btn active" data-key="accentColor" data-value="">Кобальт</button>
+          <button type="button" class="appearance-btn" data-key="accentColor" data-value="#0f766e">Волна</button>
+          <button type="button" class="appearance-btn" data-key="accentColor" data-value="#b4532a">Глина</button>
+          <button type="button" class="appearance-btn" data-key="accentColor" data-value="#1c1b18">Графит</button>
+          <button type="button" class="appearance-btn" data-key="accentColor" data-value="#c8e66b">Лайм</button>
+        </div>
+      </div>
+      <div class="row">
+        <div>Место и углы</div>
+        <div class="appearance-pair">
+          <div class="segmented" role="group" aria-label="Место">
+            <button type="button" class="appearance-btn" data-key="position" data-value="bottom-left">Слева</button>
+            <button type="button" class="appearance-btn active" data-key="position" data-value="bottom-right">Справа</button>
+          </div>
+          <div class="segmented" role="group" aria-label="Углы">
+            <button type="button" class="appearance-btn" data-key="corners" data-value="sharp">Строгие</button>
+            <button type="button" class="appearance-btn active" data-key="corners" data-value="soft">Мягкие</button>
+            <button type="button" class="appearance-btn" data-key="corners" data-value="round">Круглые</button>
+          </div>
+        </div>
+      </div>
+      <div class="body">
+        <pre class="appearance-code" id="appearance-code"></pre>
+      </div>
+    </div>
+
     <footer>
       Демо-сайт Lab Bug Reporter. <button type="button" id="btn-debug-state">Показать состояние SDK в консоли</button>
     </footer>
@@ -249,6 +303,34 @@
         LabReporter.setLanguage(button.dataset.lang);
       });
     });
+
+    // The appearance a site would pass to init(); the demo changes it live and shows the code for it.
+    const appearance = { launcher: 'pill', position: 'bottom-right', corners: 'soft' };
+    const ownHelpButton = document.getElementById('btn-own-help');
+    ownHelpButton.addEventListener('click', () => LabReporter.open());
+
+    function applyAppearance() {
+      LabReporter.setAppearance(appearance);
+      ownHelpButton.hidden = appearance.launcher !== 'none';
+      const lines = Object.entries(appearance).map(([key, value]) => `    ${key}: '${value}',`);
+      document.getElementById('appearance-code').textContent =
+        `LabReporter.init({\n  projectKey: 'pk_sdu_portal_2026',\n  appearance: {\n${lines.join('\n')}\n  },\n});` +
+        (appearance.launcher === 'none' ? `\n\nhelpButton.addEventListener('click', () => LabReporter.open());` : '');
+    }
+
+    document.querySelectorAll('.appearance-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const { key, value } = button.dataset;
+        document.querySelectorAll(`.appearance-btn[data-key="${key}"]`).forEach((other) => other.classList.toggle('active', other === button));
+        if (value) {
+          appearance[key] = value;
+        } else {
+          delete appearance[key];
+        }
+        applyAppearance();
+      });
+    });
+    applyAppearance();
 
     // The page and the widget switch theme together, as a site with its own theme switch would do.
     document.querySelectorAll('.theme-btn').forEach((button) => {
