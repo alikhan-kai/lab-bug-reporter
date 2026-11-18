@@ -98,6 +98,24 @@ class ReportControllerTest {
 	}
 
 	@Test
+	void sendsStatusCountsUnderTheStatusValues() throws Exception {
+		givenToken("viewer-token", "viewer");
+		ReportFilter filter = new ReportFilter(Set.of("demo"), null, Set.of(ReportType.BUG), "upload");
+		when(reportService.countByStatus(any(), eq(filter))).thenReturn(new ReportStatusCountsResponse(12, 5, 29, 2));
+
+		mockMvc.perform(get(URL + "/status-counts")
+						.param("project", "demo")
+						.param("type", "bug")
+						.param("q", "upload")
+						.header(HttpHeaders.AUTHORIZATION, "Bearer viewer-token"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.new").value(12))
+				.andExpect(jsonPath("$.in_progress").value(5))
+				.andExpect(jsonPath("$.resolved").value(29))
+				.andExpect(jsonPath("$.wont_fix").value(2));
+	}
+
+	@Test
 	void rejectsUnknownStatusFilter() throws Exception {
 		givenToken("viewer-token", "viewer");
 

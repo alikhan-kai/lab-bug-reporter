@@ -179,6 +179,7 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 | Запрос | Кто | Ответ |
 |---|---|---|
 | `GET /api/v1/reports` | любая роль | Страница `ReportSummaryResponse` |
+| `GET /api/v1/reports/status-counts` | любая роль | `{ "new": 12, "in_progress": 5, "resolved": 29, "wont_fix": 2 }`, принимает `project`, `type` и `q` списка |
 | `GET /api/v1/reports/{id}` | любая роль | `ReportDetailResponse` |
 | `GET /api/v1/reports/{id}/context` | любая роль | JSON `{ console, network, breadcrumbs }` в том виде, как его прислал SDK |
 | `GET /api/v1/reports/{id}/attachments/{attachmentId}` | любая роль | Файл, поддерживает `Range` |
