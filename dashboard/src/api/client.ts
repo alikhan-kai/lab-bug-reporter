@@ -1,7 +1,16 @@
 import { getAccessToken } from '../auth/keycloak';
 import { config } from '../config';
 import type { ReportContext } from '../types';
-import type { ApiError, CurrentUser, Page, ReportDetail, ReportFilters, ReportStatus, ReportSummary } from './types';
+import type {
+  ApiError,
+  CurrentUser,
+  Page,
+  ReportDetail,
+  ReportFilters,
+  ReportStatus,
+  ReportStatusCounts,
+  ReportSummary,
+} from './types';
 
 export const REPORT_PAGE_SIZE = 20;
 
@@ -41,11 +50,22 @@ async function toRequestError(response: Response): Promise<ApiRequestError> {
 
 function toReportQuery(filters: ReportFilters, page: number): string {
   const query = new URLSearchParams({ page: String(page), size: String(REPORT_PAGE_SIZE) });
-  // A repeated parameter selects several values.
+  appendFilters(query, filters);
+  return query.toString();
+}
+
+// A repeated parameter selects several values.
+function appendFilters(query: URLSearchParams, filters: ReportFilters): void {
   filters.projects.forEach((project) => query.append('project', project));
   filters.statuses.forEach((status) => query.append('status', status));
   filters.types.forEach((type) => query.append('type', type));
   if (filters.query.trim()) query.set('q', filters.query.trim());
+}
+
+// The counts ignore the status filter, so each status keeps its number while another is selected.
+function toStatusCountQuery(filters: ReportFilters): string {
+  const query = new URLSearchParams();
+  appendFilters(query, { ...filters, statuses: [] });
   return query.toString();
 }
 
@@ -59,6 +79,9 @@ export const api = {
 
   fetchReports: (filters: ReportFilters, page: number) =>
     request<Page<ReportSummary>>(`/reports?${toReportQuery(filters, page)}`),
+
+  fetchStatusCounts: (filters: ReportFilters) =>
+    request<ReportStatusCounts>(`/reports/status-counts?${toStatusCountQuery(filters)}`),
 
   fetchReport: (reportId: string) => request<ReportDetail>(`/reports/${encodeURIComponent(reportId)}`),
 

@@ -26,7 +26,7 @@ export const ReportDetailPage: React.FC<ReportDetailPageProps> = ({ reportId, on
   if (state.status === 'error') {
     return (
       <div className={ui.page}>
-        <div role="alert" className={`${ui.card} ${ui.errorMessage}`}>
+        <div role="alert" className={ui.errorMessage}>
           <p className={styles.description}>{state.message}</p>
           <button type="button" className={ui.button} onClick={onBack}>All reports</button>
         </div>
@@ -87,25 +87,27 @@ const LoadedReport: React.FC<LoadedReportProps> = ({ report, onBack, onDeleted, 
   );
 };
 
-// Shaped like the loaded report: the toolbar, the title block, the facts, then the two panels.
+// Shaped like the loaded report: the toolbar, the title block, the status, the facts, then the two columns.
 const ReportDetailSkeleton: React.FC = () => (
-  <div aria-busy="true" aria-label="Loading the report" className={ui.page}>
+  <div aria-busy="true" aria-label="Loading the report" className={`${ui.page} ${styles.page}`}>
     <div className={styles.toolbar}>
-      <Bone width={120} height={32} radius={6} />
-      <Bone width={320} height={32} radius={6} />
+      <Bone width={110} height={40} radius={8} />
+      <Bone width={200} height={40} radius={8} />
     </div>
     <div className={styles.header}>
-      <Bone width="45%" height={30} />
-      <p className={styles.description}><Bone width="70%" height={14} /></p>
-      <div className={`${ui.card} ${styles.facts}`}>
-        <Bone width="80%" height={30} />
-        <Bone width="80%" height={30} />
-        <Bone width="80%" height={30} />
+      <Bone width={260} height={12} />
+      <div className={styles.title}><Bone width="55%" height={36} radius={6} /></div>
+      <div className={styles.description}><Bone width="70%" height={15} /></div>
+      <div className={styles.statusRow}><Bone width={420} height={42} radius={10} /></div>
+      <div className={styles.facts}>
+        <div><Bone width="70%" height={32} /></div>
+        <div><Bone width="70%" height={32} /></div>
+        <div><Bone width="70%" height={32} /></div>
       </div>
     </div>
     <div className={styles.columns}>
-      <Bone width="100%" height={360} radius={12} />
-      <Bone width="100%" height={360} radius={12} />
+      <div className={styles.mediaColumn}><Bone width="100%" height={360} radius={12} /></div>
+      <div className={styles.logs}><Bone width="100%" height={360} radius={12} /></div>
     </div>
   </div>
 );

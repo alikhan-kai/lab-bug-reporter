@@ -137,7 +137,7 @@ sequenceDiagram
 |---|---|---|
 | **SDK** | `TypeScript`, `Vite` | Сборка единого компактного бандла `sdk.js` (106 КБ) в формате IIFE без внешних рантайм-зависимостей. |
 | **Медиа API** | `Screen Capture API`, `MediaRecorder`, `Web Audio API` | Попиксельный захват экрана, микширование звука системы и микрофона в единый WebM-поток с фиксацией времени. |
-| **Дизайн SDK** | `CSS Tokens (campus.codes)` | Стили виджета изолированы, адаптивны, поддерживают светлую и темную темы, не конфликтуют со стилями хост-сайта. |
+| **Дизайн SDK** | `CSS-токены --lab-*`, Geist | Стили виджета изолированы в Shadow DOM, адаптивны, поддерживают светлую и тёмную темы; кнопку, акцент и углы каждый сайт настраивает через `appearance`. |
 | **Dashboard** | `React 18`, `TypeScript`, `Vite` | SPA-дашборд команды: списки, фильтры, детальный просмотр, Jam.dev-плеер, табы логов. |
 | **Backend** | `Java 21`, `Spring Boot 3.4` | Высокопроизводительное API: валидация, транзакции, отдача статики, потоковый Range-стриминг видео. |
 | **Безопасность** | `Spring Security`, `Keycloak 26` | OAuth2 Resource Server, аутентификация через JWT Bearer токены, OIDC + PKCE, RBAC. |
@@ -334,6 +334,28 @@ npx serve -l 5500 . # Доступен на http://localhost:5500/demo/
   LabReporter.setContext("semester", "Fall 2026");
 </script>
 ```
+
+Вид виджета каждый сайт задаёт сам через `appearance` в `init()` (или позже через `LabReporter.setAppearance()`):
+
+```js
+LabReporter.init({
+  projectKey: "pk_datasets_3f9a",
+  theme: "system",                   // light | dark | system
+  appearance: {
+    launcher: "pill",                // pill (значок и текст) | icon (круг) | tab (язычок на краю) | none
+    launcherText: "Нашли ошибку?",   // по умолчанию «Помощь» на языке страницы
+    accentColor: "#0f766e",          // или { light: "#1c1b18", dark: "#ece9e1" }
+    position: "bottom-left",         // bottom-right | bottom-left
+    corners: "round",                // sharp | soft | round
+    offset: { x: 24, y: 24 },        // отступ кнопки от краёв, px
+  },
+});
+```
+
+С `launcher: "none"` кнопки виджета нет, форму открывает своя кнопка сайта: `LabReporter.open()`. Цвет текста на
+акценте подбирается по контрасту сам. Неверное значение не ломает страницу: виджет пишет предупреждение в консоль и
+берёт значение по умолчанию. Любую переменную `--lab-*` по-прежнему можно переопределить на `#lab-reporter-root`.
+Все варианты можно пощёлкать на демо-сайте в карточке «Вид виджета на этом сайте».
 
 ---
 

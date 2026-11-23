@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,24 @@ public class ReportService {
 				pageable
 		);
 		return PageResponse.of(reports.map(report -> ReportSummaryResponse.of(report, projectsBySlug.get(report.getProjectSlug()))));
+	}
+
+	/**
+	 * Counts the reports of each status that match the other filters, for the status switch above the list. The
+	 * filter's own statuses are ignored, so every status keeps its count while one is selected.
+	 */
+	@Transactional(readOnly = true)
+	public ReportStatusCountsResponse countByStatus(CurrentUser user, ReportFilter filter) {
+		Map<String, Project> projectsBySlug = findSearchedProjects(user, filter.projectSlugs());
+		Map<ReportStatus, Long> counts = new EnumMap<>(ReportStatus.class);
+		if (projectsBySlug.isEmpty()) {
+			return ReportStatusCountsResponse.of(counts);
+		}
+		for (ReportStatus status : ReportStatus.values()) {
+			ReportFilter statusFilter = new ReportFilter(filter.projectSlugs(), Set.of(status), filter.types(), filter.query());
+			counts.put(status, reportRepository.count(ReportSpecifications.matching(statusFilter, projectsBySlug.keySet())));
+		}
+		return ReportStatusCountsResponse.of(counts);
 	}
 
 	@Transactional(readOnly = true)

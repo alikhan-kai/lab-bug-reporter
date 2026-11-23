@@ -8,28 +8,40 @@ export type SupportedLang = 'ru' | 'en' | 'kk';
 
 export interface Translations {
   launcherText: string;
+  /** Label of the launcher while the form is open, when it turns into a close button. */
+  launcherClose: string;
   headerTitle: string;
+  headerSubtitle: string;
+  typeLabel: string;
   typeBug: string;
   typeFeature: string;
   typeQuestion: string;
   titleLabel: string;
   titlePlaceholder: string;
   descLabel: string;
+  optionalHint: string;
   descPlaceholder: string;
-  attachmentsLabel: string;
   btnScreenshot: string;
-  btnScreenshotLimit: string;
+  screenshotHint: string;
+  /** {count} becomes the number of screenshots taken. */
+  screenshotCount: string;
   btnRecord: string;
+  recordHint: string;
   btnRecordStop: string;
+  attachmentsLabel: string;
+  /** Says what the SDK attaches by itself and that nothing leaves the page before Submit. */
+  contextNote: string;
+  privacyNote: string;
   submitBtn: string;
   submittingText: string;
   retryBtn: string;
   errorUploadText: string;
   successTitle: string;
   successDesc: string;
+  refLabel: string;
   btnNewReport: string;
+  btnDone: string;
   btnClose: string;
-  recordingTitle: string;
   removeAttachment: string;
   screenshotItem: string;
   videoItem: string;
@@ -40,86 +52,113 @@ export interface Translations {
 const translations: Record<SupportedLang, Translations> = {
   ru: {
     launcherText: 'Помощь',
+    launcherClose: 'Закрыть форму',
     headerTitle: 'Сообщить о проблеме',
+    headerSubtitle: 'Сообщение получит команда лаборатории',
+    typeLabel: 'Тип',
     typeBug: 'Баг',
     typeFeature: 'Предложение',
     typeQuestion: 'Вопрос',
-    titleLabel: 'Тема проблемы *',
-    titlePlaceholder: 'Кратко опишите проблему...',
-    descLabel: 'Описание',
-    descPlaceholder: 'Что произошло или как повторить сбой...',
-    attachmentsLabel: 'Вложения (до 5 скриншотов)',
+    titleLabel: 'Что случилось',
+    titlePlaceholder: 'Например: не загружается расписание',
+    descLabel: 'Подробнее',
+    optionalHint: 'необязательно',
+    descPlaceholder: 'Что вы делали и что ожидали увидеть',
     btnScreenshot: 'Скриншот',
-    btnScreenshotLimit: 'Лимит скриншотов (5)',
+    screenshotHint: 'до 5',
+    screenshotCount: '{count} из 5',
     btnRecord: 'Запись экрана',
-    btnRecordStop: 'Завершить запись',
-    submitBtn: 'Отправить отчет',
-    submittingText: 'Отправка отчета...',
-    retryBtn: 'Повторить попытку',
-    errorUploadText: 'Не удалось отправить отчет. Проверьте соединение с сервером.',
-    successTitle: 'Отчет отправлен!',
-    successDesc: 'Команда лаборатории получила информацию и уже разбирается.',
-    btnNewReport: '+ Новый отчет',
+    recordHint: 'с голосом, до 5 мин',
+    btnRecordStop: 'Завершить',
+    attachmentsLabel: 'Вложения',
+    contextNote: '+ консоль, сетевые запросы и браузер приложим сами.',
+    privacyNote: 'Ничего не уйдёт, пока вы не нажмёте «Отправить».',
+    submitBtn: 'Отправить',
+    submittingText: 'Отправляем…',
+    retryBtn: 'Попробовать ещё раз',
+    errorUploadText: 'Не удалось отправить. Черновик сохранён, попробуйте ещё раз.',
+    successTitle: 'Отчёт отправлен',
+    successDesc: 'Команда получила его и разберётся.',
+    refLabel: 'номер',
+    btnNewReport: 'Ещё один',
+    btnDone: 'Готово',
     btnClose: 'Закрыть',
-    recordingTitle: 'Идет запись экрана',
-    removeAttachment: 'Удалить',
+    removeAttachment: 'Убрать',
     screenshotItem: 'Скриншот',
-    videoItem: 'Видеозапись',
+    videoItem: 'Запись экрана',
     recordingTimeLeft: 'осталось {seconds} с'
   },
   kk: {
     launcherText: 'Көмек',
+    launcherClose: 'Пішінді жабу',
     headerTitle: 'Мәселе туралы хабарлау',
-    typeBug: 'Қате (Баг)',
+    headerSubtitle: 'Хабарды зертхана командасы алады',
+    typeLabel: 'Түрі',
+    typeBug: 'Қате',
     typeFeature: 'Ұсыныс',
     typeQuestion: 'Сұрақ',
-    titleLabel: 'Мәселе тақырыбы *',
-    titlePlaceholder: 'Мәселені қысқаша сипаттаңыз...',
-    descLabel: 'Толық сипаттамасы',
-    descPlaceholder: 'Не болғанын немесе қалай қайталауға болатынын жазыңыз...',
-    attachmentsLabel: 'Тіркемелер (5 скриншотқа дейін)',
+    titleLabel: 'Не болды',
+    titlePlaceholder: 'Мысалы: сабақ кестесі жүктелмейді',
+    descLabel: 'Толығырақ',
+    optionalHint: 'міндетті емес',
+    descPlaceholder: 'Не істедіңіз және не көруді күттіңіз',
     btnScreenshot: 'Скриншот',
-    btnScreenshotLimit: 'Скриншот шегі (5)',
+    screenshotHint: '5-ке дейін',
+    screenshotCount: '{count} / 5',
     btnRecord: 'Экранды жазу',
-    btnRecordStop: 'Жазуды аяқтау',
-    submitBtn: 'Есепті жіберу',
-    submittingText: 'Есеп жіберілуде...',
-    retryBtn: 'Қайта көру',
-    errorUploadText: 'Есепті жіберу мүмкін болмады. Сервермен байланысты тексеріңіз.',
-    successTitle: 'Есеп жіберілді!',
-    successDesc: 'Зертхана командасы ақпаратты алды және қарастыруда.',
-    btnNewReport: '+ Жаңа есеп',
+    recordHint: 'дауыспен, 5 минутқа дейін',
+    btnRecordStop: 'Аяқтау',
+    attachmentsLabel: 'Тіркемелер',
+    contextNote: '+ консольді, желілік сұрауларды және браузерді өзіміз тіркейміз.',
+    privacyNote: '«Жіберу» батырмасын баспайынша ештеңе жіберілмейді.',
+    submitBtn: 'Жіберу',
+    submittingText: 'Жіберілуде…',
+    retryBtn: 'Қайта жіберу',
+    errorUploadText: 'Жіберу мүмкін болмады. Жазғаныңыз сақталды, қайта көріңіз.',
+    successTitle: 'Есеп жіберілді',
+    successDesc: 'Команда оны алды және қарастырады.',
+    refLabel: 'нөмірі',
+    btnNewReport: 'Тағы біреу',
+    btnDone: 'Дайын',
     btnClose: 'Жабу',
-    recordingTitle: 'Экран жазылуда',
-    removeAttachment: 'Жою',
+    removeAttachment: 'Алып тастау',
     screenshotItem: 'Скриншот',
-    videoItem: 'Бейнежазба',
+    videoItem: 'Экран жазбасы',
     recordingTimeLeft: '{seconds} с қалды'
   },
   en: {
     launcherText: 'Get help',
+    launcherClose: 'Close the form',
     headerTitle: 'Report an issue',
+    headerSubtitle: 'It goes to the lab team',
+    typeLabel: 'Type',
     typeBug: 'Bug',
-    typeFeature: 'Feature',
+    typeFeature: 'Idea',
     typeQuestion: 'Question',
-    titleLabel: 'Issue title *',
-    titlePlaceholder: 'Briefly describe the issue...',
-    descLabel: 'Description',
-    descPlaceholder: 'What happened or steps to reproduce...',
-    attachmentsLabel: 'Attachments (up to 5 screenshots)',
+    titleLabel: 'What happened',
+    titlePlaceholder: 'For example: the timetable does not load',
+    descLabel: 'Details',
+    optionalHint: 'optional',
+    descPlaceholder: 'What you did and what you expected to see',
     btnScreenshot: 'Screenshot',
-    btnScreenshotLimit: 'Screenshot limit (5)',
-    btnRecord: 'Screen record',
-    btnRecordStop: 'Stop recording',
-    submitBtn: 'Submit report',
-    submittingText: 'Submitting report...',
-    retryBtn: 'Retry',
-    errorUploadText: 'Failed to submit report. Please check server connection.',
-    successTitle: 'Report submitted!',
-    successDesc: 'The lab team has received the report and is reviewing it.',
-    btnNewReport: '+ New report',
+    screenshotHint: 'up to 5',
+    screenshotCount: '{count} of 5',
+    btnRecord: 'Record screen',
+    recordHint: 'with voice, up to 5 min',
+    btnRecordStop: 'Stop',
+    attachmentsLabel: 'Attachments',
+    contextNote: '+ the console, network requests and browser are attached for you.',
+    privacyNote: 'Nothing leaves the page until you press Send.',
+    submitBtn: 'Send',
+    submittingText: 'Sending…',
+    retryBtn: 'Try again',
+    errorUploadText: 'Could not send it. Your draft is kept, please try again.',
+    successTitle: 'Report sent',
+    successDesc: 'The team has it and will look into it.',
+    refLabel: 'number',
+    btnNewReport: 'Another one',
+    btnDone: 'Done',
     btnClose: 'Close',
-    recordingTitle: 'Recording screen',
     removeAttachment: 'Remove',
     screenshotItem: 'Screenshot',
     videoItem: 'Screen recording',
