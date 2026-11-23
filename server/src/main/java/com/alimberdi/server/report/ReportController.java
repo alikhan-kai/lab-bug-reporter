@@ -61,6 +61,17 @@ public class ReportController {
 		return reportService.findReports(user, new ReportFilter(project, status, type, q), page, size);
 	}
 
+	@Operation(summary = "How many reports of each status match the project, type and search filters")
+	@GetMapping("/status-counts")
+	public ReportStatusCountsResponse getStatusCounts(
+			@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user,
+			@Parameter(description = "Project slugs; repeat the parameter for several") @RequestParam(required = false) Set<String> project,
+			@Parameter(description = "Types; repeat the parameter for several") @RequestParam(required = false) Set<ReportType> type,
+			@Parameter(description = "Case-insensitive search in title and description") @RequestParam(required = false) String q
+	) {
+		return reportService.countByStatus(user, new ReportFilter(project, null, type, q));
+	}
+
 	@Operation(summary = "Report detail with its attachments")
 	@GetMapping("/{reportId}")
 	public ReportDetailResponse getReport(@Parameter(hidden = true) @AuthenticationPrincipal CurrentUser user, @PathVariable UUID reportId) {

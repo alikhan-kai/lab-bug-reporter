@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Image, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import type { ReportMedia } from '../types';
 import styles from './ReportDetail.module.css';
@@ -39,7 +39,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, canSe
   if (video.status === 'loading') {
     return (
       <div aria-busy="true" aria-label="Loading the video" className={styles.videoLoading}>
-        <Bone width="100%" height={280} radius={8} />
+        <Bone width="100%" height={320} radius={12} />
         {video.progress !== null && <span className={styles.videoProgress}>Loading the video: {video.progress}%</span>}
       </div>
     );
@@ -63,14 +63,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, hasVideo, canSe
 export const ScreenshotGallery: React.FC<{ screenshots: ReportMedia['screenshots'] }> = ({ screenshots }) => {
   const [enlargedUrl, setEnlargedUrl] = useState<string | null>(null);
 
-  if (screenshots.status === 'ready' && screenshots.value.length === 0) {
-    return null;
-  }
   return (
     <div className={styles.gallery}>
-      <p className={ui.sectionLabel}>
-        Screenshots{screenshots.status === 'ready' ? ` · ${screenshots.value.length}` : ''}
-      </p>
+      <h2 className={styles.galleryTitle}>
+        Screenshots{screenshots.status === 'ready' && screenshots.value.length > 0 ? ` · ${screenshots.value.length}` : ''}
+      </h2>
+      {screenshots.status === 'ready' && screenshots.value.length === 0 && (
+        <p className={styles.galleryEmpty}>
+          <Image size={18} strokeWidth={1.5} aria-hidden="true" />
+          No screenshots with this report
+        </p>
+      )}
       {screenshots.status === 'loading' && (
         <div aria-busy="true" aria-label="Loading the screenshots" className={styles.thumbnails}>
           <Bone width={160} height={90} radius={8} />
@@ -110,7 +113,7 @@ const Lightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose
   return (
     <div role="dialog" aria-modal="true" aria-label="Screenshot" className={styles.lightbox} onClick={onClose}>
       <button type="button" className={`${ui.button} ${styles.lightboxClose}`} onClick={onClose} autoFocus>
-        <X size={16} aria-hidden="true" />
+        <X size={16} strokeWidth={1.75} aria-hidden="true" />
         Close
       </button>
       <img src={url} alt="Screenshot" />

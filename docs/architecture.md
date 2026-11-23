@@ -199,6 +199,7 @@ Dashboard входит через Keycloak (realm `lab-bug-reporter`, публи
 | Запрос | Кто | Ответ |
 |---|---|---|
 | `GET /api/v1/reports` | любая роль | Страница `ReportSummaryResponse` |
+| `GET /api/v1/reports/status-counts` | любая роль | `{ "new": 12, "in_progress": 5, "resolved": 29, "wont_fix": 2 }`, принимает `project`, `type` и `q` списка |
 | `GET /api/v1/reports/{id}` | любая роль | `ReportDetailResponse` |
 | `GET /api/v1/reports/{id}/context` | любая роль | JSON `{ console, network, breadcrumbs }` в том виде, как его прислал SDK |
 | `GET /api/v1/reports/{id}/attachments/{attachmentId}` | любая роль | Файл, поддерживает `Range` |
@@ -353,15 +354,15 @@ sdk/src/
   index.ts              публичный API: init, identify, submitReport и другие
   core/                 буферы, перехват console и network, окружение, маскировка
   core/capture/         скриншот и запись экрана
-  widget/               кнопка и боковая панель в Shadow DOM: токены campus.codes, иконки lucide, шрифт Inter
-sdk/scripts/            копирование шрифта Inter в dist/sdk-fonts при сборке
+  widget/               кнопка и форма в Shadow DOM: токены --lab-*, настройки вида сайта (appearance.ts), шрифт Geist
+sdk/scripts/            копирование шрифта Geist в dist/sdk-fonts при сборке
 
 dashboard/src/
   auth/                 вход через Keycloak и текущий пользователь
   api/                  единый API-клиент и типы ответов сервера
   hooks/                загрузка списка, отчёта и файлов, адрес отчёта, тема
-  report/               расчёт времени событий и описание окружения
-  styles/tokens.css     токены campus.codes: цвета светлой и тёмной темы, радиусы, тени, шрифт
+  report/               расчёт времени событий, шкала событий под видео, группы по дням, описание окружения
+  styles/tokens.css     токены своего дизайна: цвета светлой и тёмной темы, радиусы, тени, шрифты Geist
   components/           список и карточка отчёта, skeleton-заглушки; стили в CSS Modules рядом
 demo/                   демо-сайт index.html и галерея компонентов gallery.html
 infra/seaweedfs/        ключи S3 для разработки

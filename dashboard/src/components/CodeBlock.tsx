@@ -20,7 +20,7 @@ export function useCopy(): { isCopied: boolean; copy: (text: string) => void } {
 }
 
 /**
- * A titled block of captured text with a Copy button, like the samples on a campus.codes problem page.
+ * A titled block of captured text with a Copy button, for captured values.
  * The content is rendered as text, never as markup: it comes from the reporting website.
  */
 export const CodeBlock: React.FC<{ title: string; content: string }> = ({ title, content }) => {

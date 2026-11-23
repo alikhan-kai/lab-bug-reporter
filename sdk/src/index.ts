@@ -8,6 +8,7 @@ import { SCRIPT_URL } from './core/script-url';
 import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData, WidgetTheme } from './widget/widget';
 import { SupportedLang } from './core/i18n';
+import { WidgetAppearance } from './widget/appearance';
 import {
   components,
   HelpButton,
@@ -18,6 +19,8 @@ import {
   AttachmentList,
   SubmitBar
 } from './widget/components';
+
+export type { WidgetAppearance } from './widget/appearance';
 
 export interface InitOptions {
   projectKey: string;
@@ -30,6 +33,8 @@ export interface InitOptions {
   debug?: boolean;
   /** The widget's colours: light (the default), dark, or system to follow the visitor's system setting. */
   theme?: WidgetTheme;
+  /** The site's own button, accent colour, corners and place for the widget. See WidgetAppearance. */
+  appearance?: WidgetAppearance;
   /** Max recording duration in seconds (configurable, default: 300 / 5 minutes). */
   maxRecordingSeconds?: number;
 }
@@ -117,16 +122,21 @@ class LabBugReporter {
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget(options.lang, options.theme, options.maxRecordingSeconds);
+      this.setupWidget(options.lang, options.theme, options.appearance, options.maxRecordingSeconds);
     }
 
     this.debugLog('Initialized with options:', this.options);
   }
 
-  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme, maxRecordingSeconds?: number): void {
+  private setupWidget(
+    lang?: SupportedLang,
+    theme?: WidgetTheme,
+    appearance?: WidgetAppearance,
+    maxRecordingSeconds?: number,
+  ): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget(lang, theme, maxRecordingSeconds);
+    this.widget = new BugReporterWidget(lang, theme, appearance, maxRecordingSeconds);
 
     this.widget.onScreenshot(() => this.captureScreenshot());
     this.widget.onStartRecording((opts) => this.startRecording(opts));
@@ -150,6 +160,11 @@ class LabBugReporter {
   /** Switches the widget's colours, for sites with their own light and dark switch. */
   setTheme(theme: WidgetTheme): void {
     this.widget?.setTheme(theme);
+  }
+
+  /** Changes the widget's button, accent, corners or place after init(); what is left out returns to the default. */
+  setAppearance(appearance: WidgetAppearance): void {
+    this.widget?.setAppearance(appearance);
   }
 
   setLanguage(lang: SupportedLang): void {

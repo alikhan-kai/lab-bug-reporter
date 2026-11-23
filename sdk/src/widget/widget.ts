@@ -2,17 +2,21 @@ import { widgetStyles } from './tokens.css';
 import { detectLanguage, getTranslations, SupportedLang, Translations } from '../core/i18n';
 import { MAX_RECORDING_SECONDS, RecordingResult } from '../core/capture/recorder';
 import { SubmitError } from '../core/upload';
+import { appearanceStyles, resolveAppearance, ResolvedAppearance, WidgetAppearance } from './appearance';
 import { loadWidgetFont } from './font';
 import { icons } from './icons';
 
 // The recording bar warns this many seconds before the recording stops at the limit.
 const RECORDING_WARNING_SECONDS = 30;
+const MAX_SCREENSHOTS = 5;
 
 /** light and dark are fixed; system follows the visitor's system setting. */
 export type WidgetTheme = 'light' | 'dark' | 'system';
 
+type ReportType = 'bug' | 'feature' | 'question';
+
 export interface ReportFormData {
-  type: 'bug' | 'feature' | 'question';
+  type: ReportType;
   title: string;
   description: string;
   screenshots: Blob[]; // до 5 скриншотов по ТЗ
@@ -24,11 +28,13 @@ export interface ReportFormData {
 export class BugReporterWidget {
   private host: HTMLElement | null = null;
   private shadow: ShadowRoot | null = null;
+  private appearanceStyleEl: HTMLStyleElement | null = null;
+  private appearance: ResolvedAppearance = resolveAppearance();
 
   // Элементы
   private launcherBtn!: HTMLButtonElement;
-  private backdrop!: HTMLDivElement;
-  private sidebar!: HTMLDivElement;
+  private launcherText!: HTMLSpanElement;
+  private panel!: HTMLElement;
   private formView!: HTMLDivElement;
   private successView!: HTMLDivElement;
   private footerEl!: HTMLDivElement;
@@ -36,10 +42,11 @@ export class BugReporterWidget {
   private titleInput!: HTMLInputElement;
   private descInput!: HTMLTextAreaElement;
   private typeButtons: HTMLButtonElement[] = [];
-  private attachmentsList!: HTMLDivElement;
+  private attachmentsList!: HTMLUListElement;
   private submitBtn!: HTMLButtonElement;
+  private submitText!: HTMLSpanElement;
   private screenshotBtn!: HTMLButtonElement;
-  private screenshotBtnText!: HTMLSpanElement;
+  private screenshotHint!: HTMLSpanElement;
   private recordBtn!: HTMLButtonElement;
   private recordBtnText!: HTMLSpanElement;
   private refBadge!: HTMLElement;
@@ -47,7 +54,7 @@ export class BugReporterWidget {
   // Прогресс загрузки и ошибка
   private progressContainer!: HTMLDivElement;
   private progressBar!: HTMLDivElement;
-  private errorBanner!: HTMLDivElement;
+  private errorBanner!: HTMLParagraphElement;
   private errorTextEl!: HTMLSpanElement;
 
   // Плавающая плашка записи экрана
@@ -60,14 +67,16 @@ export class BugReporterWidget {
   private t!: Translations;
 
   // Состояние
-  private currentType: 'bug' | 'feature' | 'question' = 'bug';
+  private currentType: ReportType = 'bug';
   private currentScreenshots: Blob[] = []; // до 5 штук
   private currentVideo: Blob | null = null;
   private currentVideoDuration: number = 0;
+  /** One object URL per recording, so that redrawing the list does not leak a new one each time. */
+  private videoPreviewUrl: string | null = null;
   private recordingStartTime: number = 0;
   private isRecording: boolean = false;
   private isRetryMode: boolean = false;
-  private timerInterval: any = null;
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
   private maxRecordingSeconds: number = MAX_RECORDING_SECONDS;
 
   // Callbacks
@@ -76,17 +85,36 @@ export class BugReporterWidget {
   private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
-  constructor(preferredLang?: string, theme: WidgetTheme = 'light', maxRecordingSeconds: number = MAX_RECORDING_SECONDS) {
+  constructor(
+    preferredLang?: string,
+    theme: WidgetTheme = 'light',
+    appearance?: WidgetAppearance,
+    maxRecordingSeconds: number = MAX_RECORDING_SECONDS,
+  ) {
     this.maxRecordingSeconds = maxRecordingSeconds;
     this.lang = detectLanguage(preferredLang);
     this.t = getTranslations(this.lang);
     this.initDOM();
     this.setTheme(theme);
+    this.setAppearance(appearance ?? {});
   }
 
   setTheme(theme: WidgetTheme): void {
     // The styles pick their colours from this attribute on the shadow host.
     this.host?.setAttribute('data-theme', theme);
+  }
+
+  /** Applies a site's button, accent, corners and place. Values left out return to the defaults. */
+  setAppearance(appearance: WidgetAppearance): void {
+    this.appearance = resolveAppearance(appearance);
+    this.host?.setAttribute('data-launcher', this.appearance.launcher);
+    this.host?.setAttribute('data-position', this.appearance.position);
+    if (this.appearanceStyleEl) {
+      this.appearanceStyleEl.textContent = appearanceStyles(this.appearance);
+    }
+    if (this.launcherText) {
+      this.updateLauncherText();
+    }
   }
 
   setLanguage(lang: SupportedLang): void {
@@ -108,107 +136,102 @@ export class BugReporterWidget {
     const styleEl = document.createElement('style');
     styleEl.textContent = widgetStyles;
     this.shadow.appendChild(styleEl);
+    // After the base styles, so a site's accent wins over the theme's.
+    this.appearanceStyleEl = document.createElement('style');
+    this.shadow.appendChild(this.appearanceStyleEl);
 
     const container = document.createElement('div');
     container.innerHTML = `
-      <!-- Кнопка-лаунчер -->
-      <button class="lab-launcher hidden" id="lab-launcher">
-        ${icons.help(16)}
-        <span id="lab-launcher-text">${this.t.launcherText}</span>
+      <button class="lab-launcher hidden" id="lab-launcher" type="button" aria-expanded="false" aria-controls="lab-panel">
+        <span class="lab-launcher-mark">${icons.mark(18)}</span>
+        <span class="lab-launcher-close">${icons.close(18)}</span>
+        <span class="lab-launcher-text" id="lab-launcher-text"></span>
       </button>
 
-      <!-- ПЛАВАЮЩАЯ ПАНЕЛЬ ЗАПИСИ (Jam.dev стиль) -->
-      <div class="lab-recording-bar hidden" id="lab-recording-bar">
-        <div class="lab-rec-dot"></div>
+      <div class="lab-recording-bar hidden" id="lab-recording-bar" role="status">
+        <span class="lab-rec-dot" aria-hidden="true"></span>
         <span class="lab-rec-time" id="lab-bar-timer">0:00</span>
-        <button class="lab-bar-stop-btn" id="lab-bar-stop" type="button">
-          ${icons.stop(12)}
-          <span id="lab-bar-stop-text">${this.t.btnRecordStop}</span>
-        </button>
+        <button class="lab-bar-stop-btn" id="lab-bar-stop" type="button">${this.t.btnRecordStop}</button>
       </div>
 
-      <!-- Затемнение фона -->
-      <div class="lab-backdrop" id="lab-backdrop"></div>
-
-      <!-- Выезжающий сайдбар -->
-      <div class="lab-sidebar" id="lab-sidebar">
+      <section class="lab-panel" id="lab-panel" role="dialog" aria-labelledby="lab-header-title">
         <div class="lab-header">
-          <h2 id="lab-header-title">${this.t.headerTitle}</h2>
+          <div>
+            <h2 id="lab-header-title">${this.t.headerTitle}</h2>
+            <p class="lab-subtitle" id="lab-header-subtitle">${this.t.headerSubtitle}</p>
+          </div>
           <button class="lab-close-btn" id="lab-close" type="button" title="${this.t.btnClose}" aria-label="${this.t.btnClose}">
             ${icons.close(18)}
           </button>
         </div>
 
-        <!-- Форма -->
         <div class="lab-body" id="lab-form-view">
-          <!-- Блок ошибки загрузки (Inline Error с Retry) -->
-          <div class="lab-error-banner hidden" id="lab-error-banner">
-            <span class="lab-error-icon">${icons.alert(16)}</span>
+          <p class="lab-error-banner hidden" id="lab-error-banner" role="alert">
+            ${icons.alert(16)}
             <span id="lab-error-text">${this.t.errorUploadText}</span>
+          </p>
+
+          <div class="lab-type-selector" role="radiogroup" id="lab-type-selector" aria-label="${this.t.typeLabel}">
+            <button class="lab-type-btn" type="button" role="radio" aria-checked="true" tabindex="0" data-type="bug" id="lab-type-bug">${this.t.typeBug}</button>
+            <button class="lab-type-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-type="feature" id="lab-type-feature">${this.t.typeFeature}</button>
+            <button class="lab-type-btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-type="question" id="lab-type-question">${this.t.typeQuestion}</button>
           </div>
 
-          <!-- Тип отчета (со скользящим индикатором) -->
-          <div class="lab-type-selector">
-            <div class="lab-type-indicator" id="lab-type-indicator"></div>
-            <button class="lab-type-btn active" data-type="bug" data-index="0" id="lab-type-bug">${this.t.typeBug}</button>
-            <button class="lab-type-btn" data-type="feature" data-index="1" id="lab-type-feature">${this.t.typeFeature}</button>
-            <button class="lab-type-btn" data-type="question" data-index="2" id="lab-type-question">${this.t.typeQuestion}</button>
-          </div>
-
-          <!-- Заголовок -->
           <div class="lab-field">
-            <label id="lab-label-title">${this.t.titleLabel}</label>
-            <input type="text" class="lab-input" id="lab-title" placeholder="${this.t.titlePlaceholder}" />
+            <label for="lab-title" id="lab-label-title">${this.t.titleLabel}</label>
+            <input type="text" class="lab-input" id="lab-title" required placeholder="${this.t.titlePlaceholder}" />
           </div>
 
-          <!-- Описание -->
           <div class="lab-field">
-            <label id="lab-label-desc">${this.t.descLabel}</label>
-            <textarea class="lab-textarea" id="lab-desc" placeholder="${this.t.descPlaceholder}"></textarea>
+            <label for="lab-desc"><span id="lab-label-desc">${this.t.descLabel}</span> <span class="lab-optional" id="lab-label-optional">— ${this.t.optionalHint}</span></label>
+            <textarea class="lab-textarea" id="lab-desc" rows="3" placeholder="${this.t.descPlaceholder}"></textarea>
           </div>
 
-          <!-- Кнопки захвата медиа -->
-          <div class="lab-field">
-            <label id="lab-label-attachments">${this.t.attachmentsLabel}</label>
-            <div class="lab-media-actions">
-              <button class="lab-btn-outline" id="lab-btn-screenshot" type="button">
-                ${icons.camera(16)}
-                <span id="lab-btn-screenshot-text">${this.t.btnScreenshot}</span>
-              </button>
-              <button class="lab-btn-outline" id="lab-btn-record" type="button">
-                ${icons.video(16)}
-                <span id="lab-record-text">${this.t.btnRecord}</span>
-              </button>
-            </div>
+          <div class="lab-media-actions">
+            <button class="lab-tile" id="lab-btn-screenshot" type="button">
+              ${icons.camera(18)}
+              <span class="lab-tile-text">
+                <span class="lab-tile-label" id="lab-btn-screenshot-text">${this.t.btnScreenshot}</span>
+                <span class="lab-tile-hint lab-mono" id="lab-screenshot-hint">${this.t.screenshotHint}</span>
+              </span>
+            </button>
+            <button class="lab-tile" id="lab-btn-record" type="button">
+              ${icons.record(18)}
+              <span class="lab-tile-text">
+                <span class="lab-tile-label" id="lab-record-text">${this.t.btnRecord}</span>
+                <span class="lab-tile-hint lab-mono" id="lab-record-hint">${this.t.recordHint}</span>
+              </span>
+            </button>
           </div>
 
-          <!-- Список прикрепленных файлов (до 5 скриншотов + видео) -->
-          <div class="lab-attachments-list" id="lab-attachments"></div>
+          <ul class="lab-attachments-list" id="lab-attachments" aria-label="${this.t.attachmentsLabel}"></ul>
+
+          <p class="lab-context-note">
+            <span id="lab-context-note">${this.t.contextNote}</span>
+            <span id="lab-privacy-note">${this.t.privacyNote}</span>
+          </p>
         </div>
 
-        <!-- Экран успеха -->
         <div class="lab-success-view" id="lab-success-view">
-          <div class="lab-success-icon">${icons.check(26)}</div>
-          <h2 style="margin: 0 0 6px 0; font-size: 18px;" id="lab-success-title">${this.t.successTitle}</h2>
-          <p style="color: var(--lab-text-muted); font-size: 13px; margin: 0;" id="lab-success-desc">${this.t.successDesc}</p>
-          <div class="lab-ref-badge" id="lab-ref-badge"></div>
-          
+          ${icons.sent(28)}
+          <h3 id="lab-success-title">${this.t.successTitle}</h3>
+          <p id="lab-success-desc">${this.t.successDesc}</p>
+          <span class="lab-ref lab-mono"><span id="lab-ref-label">${this.t.refLabel}</span> <span id="lab-ref-badge"></span></span>
           <div class="lab-success-actions">
             <button class="lab-btn-secondary" id="lab-btn-new-report" type="button">${this.t.btnNewReport}</button>
-            <button class="lab-btn-primary" id="lab-btn-done" type="button">${this.t.btnClose}</button>
+            <button class="lab-btn-primary" id="lab-btn-done" type="button">${this.t.btnDone}</button>
           </div>
         </div>
 
-        <!-- Нижняя панель отправки с прогресс-баром -->
         <div class="lab-footer" id="lab-footer">
           <div class="lab-progress-container" id="lab-progress-container">
             <div class="lab-progress-bar" id="lab-progress-bar"></div>
           </div>
-          <button class="lab-submit-btn" id="lab-submit-btn">
+          <button class="lab-submit-btn" id="lab-submit-btn" type="button">
             <span id="lab-submit-text">${this.t.submitBtn}</span>
           </button>
         </div>
-      </div>
+      </section>
     `;
 
     this.shadow.appendChild(container);
@@ -217,148 +240,150 @@ export class BugReporterWidget {
 
   private bindElements(): void {
     if (!this.shadow) return;
+    const byId = <T extends HTMLElement>(id: string) => this.shadow!.getElementById(id) as T;
 
-    this.launcherBtn = this.shadow.getElementById('lab-launcher') as HTMLButtonElement;
-    this.backdrop = this.shadow.getElementById('lab-backdrop') as HTMLDivElement;
-    this.sidebar = this.shadow.getElementById('lab-sidebar') as HTMLDivElement;
-    this.formView = this.shadow.getElementById('lab-form-view') as HTMLDivElement;
-    this.successView = this.shadow.getElementById('lab-success-view') as HTMLDivElement;
-    this.footerEl = this.shadow.getElementById('lab-footer') as HTMLDivElement;
-    this.titleInput = this.shadow.getElementById('lab-title') as HTMLInputElement;
-    this.descInput = this.shadow.getElementById('lab-desc') as HTMLTextAreaElement;
-    this.attachmentsList = this.shadow.getElementById('lab-attachments') as HTMLDivElement;
-    this.submitBtn = this.shadow.getElementById('lab-submit-btn') as HTMLButtonElement;
-    this.screenshotBtn = this.shadow.getElementById('lab-btn-screenshot') as HTMLButtonElement;
-    this.screenshotBtnText = this.shadow.getElementById('lab-btn-screenshot-text') as HTMLSpanElement;
-    this.recordBtn = this.shadow.getElementById('lab-btn-record') as HTMLButtonElement;
-    this.recordBtnText = this.shadow.getElementById('lab-record-text') as HTMLSpanElement;
-    this.refBadge = this.shadow.getElementById('lab-ref-badge') as HTMLElement;
+    this.launcherBtn = byId('lab-launcher');
+    this.launcherText = byId('lab-launcher-text');
+    this.panel = byId('lab-panel');
+    this.formView = byId('lab-form-view');
+    this.successView = byId('lab-success-view');
+    this.footerEl = byId('lab-footer');
+    this.titleInput = byId('lab-title');
+    this.descInput = byId('lab-desc');
+    this.attachmentsList = byId('lab-attachments');
+    this.submitBtn = byId('lab-submit-btn');
+    this.submitText = byId('lab-submit-text');
+    this.screenshotBtn = byId('lab-btn-screenshot');
+    this.screenshotHint = byId('lab-screenshot-hint');
+    this.recordBtn = byId('lab-btn-record');
+    this.recordBtnText = byId('lab-record-text');
+    this.refBadge = byId('lab-ref-badge');
+    this.progressContainer = byId('lab-progress-container');
+    this.progressBar = byId('lab-progress-bar');
+    this.errorBanner = byId('lab-error-banner');
+    this.errorTextEl = byId('lab-error-text');
+    this.recordingBar = byId('lab-recording-bar');
+    this.barTimerEl = byId('lab-bar-timer');
+    this.barStopBtn = byId('lab-bar-stop');
+    this.updateLauncherText();
 
-    this.progressContainer = this.shadow.getElementById('lab-progress-container') as HTMLDivElement;
-    this.progressBar = this.shadow.getElementById('lab-progress-bar') as HTMLDivElement;
-    this.errorBanner = this.shadow.getElementById('lab-error-banner') as HTMLDivElement;
-    this.errorTextEl = this.shadow.getElementById('lab-error-text') as HTMLSpanElement;
-
-    // Плавающая плашка записи
-    this.recordingBar = this.shadow.getElementById('lab-recording-bar') as HTMLDivElement;
-    this.barTimerEl = this.shadow.getElementById('lab-bar-timer') as HTMLSpanElement;
-    this.barStopBtn = this.shadow.getElementById('lab-bar-stop') as HTMLButtonElement;
-
-    // Сегментированный переключатель со скользящей анимацией
-    const indicator = this.shadow.getElementById('lab-type-indicator') as HTMLDivElement;
-    const typeBtns = this.shadow.querySelectorAll('.lab-type-btn');
-    typeBtns.forEach((btn, index) => {
-      this.typeButtons.push(btn as HTMLButtonElement);
-      btn.addEventListener('click', () => {
-        this.typeButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.currentType = btn.getAttribute('data-type') as any;
-        if (indicator) {
-          indicator.style.transform = `translateX(${index * 100}%)`;
-        }
-      });
+    this.typeButtons = Array.from(this.shadow.querySelectorAll<HTMLButtonElement>('.lab-type-btn'));
+    this.typeButtons.forEach((button) => {
+      button.addEventListener('click', () => this.selectType(button.dataset.type as ReportType));
+    });
+    // Arrow keys move between the types, as in any radio group.
+    byId('lab-type-selector').addEventListener('keydown', (event) => {
+      const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+      if (step === 0) return;
+      event.preventDefault();
+      const index = this.typeButtons.findIndex((button) => button.dataset.type === this.currentType);
+      const next = this.typeButtons[(index + step + this.typeButtons.length) % this.typeButtons.length];
+      this.selectType(next.dataset.type as ReportType);
+      next.focus();
     });
 
-    // Открытие/закрытие
-    this.launcherBtn.addEventListener('click', () => this.open());
-    this.backdrop.addEventListener('click', () => this.close());
-    this.shadow.getElementById('lab-close')?.addEventListener('click', () => this.close());
+    // The launcher opens the form and, while it is open, closes it.
+    this.launcherBtn.addEventListener('click', () => (this.panel.classList.contains('open') ? this.close() : this.open()));
+    byId('lab-close').addEventListener('click', () => this.close());
 
-    this.shadow.getElementById('lab-btn-done')?.addEventListener('click', () => {
+    byId('lab-btn-done').addEventListener('click', () => {
       this.resetForm();
       this.close();
     });
 
-    this.shadow.getElementById('lab-btn-new-report')?.addEventListener('click', () => {
+    byId('lab-btn-new-report').addEventListener('click', () => {
       this.resetForm();
+      this.titleInput.focus();
     });
 
-    // Escape
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.sidebar.classList.contains('open')) {
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && this.panel.classList.contains('open')) {
         this.close();
       }
     });
 
-    // Скриншот (до 5 штук)
-    this.screenshotBtn.addEventListener('click', async () => {
-      if (this.currentScreenshots.length >= 5) return;
-      if (!this.onScreenshotCallback) return;
-
-      this.sidebar.style.display = 'none';
-      this.backdrop.style.display = 'none';
-
-      try {
-        const blob = await this.onScreenshotCallback();
-        this.currentScreenshots.push(blob);
-        this.renderAttachments();
-      } catch (err) {
-        console.error('[LabReporter] Ошибка скриншота:', err);
-      } finally {
-        this.sidebar.style.display = 'flex';
-        this.backdrop.style.display = 'block';
-      }
-    });
-
-    // Запись экрана
-    this.recordBtn.addEventListener('click', () => this.handleToggleRecording());
-    this.barStopBtn.addEventListener('click', () => this.handleToggleRecording());
+    this.screenshotBtn.addEventListener('click', () => void this.takeScreenshot());
+    this.recordBtn.addEventListener('click', () => void this.handleToggleRecording());
+    this.barStopBtn.addEventListener('click', () => void this.handleToggleRecording());
 
     this.titleInput.addEventListener('input', () => {
-      this.titleInput.style.borderColor = '';
+      this.titleInput.removeAttribute('aria-invalid');
     });
 
-    // Отправка формы (с прогресс-баром и Retry вместо alert)
-    this.submitBtn.addEventListener('click', async () => {
-      const title = this.titleInput.value.trim();
-      if (!title) {
-        this.titleInput.focus();
-        this.titleInput.style.borderColor = 'var(--lab-danger)';
-        return;
-      }
-      if (!this.onSubmitCallback) return;
+    this.submitBtn.addEventListener('click', () => void this.submit());
+  }
 
-      this.hideError();
-      this.submitBtn.disabled = true;
+  private selectType(type: ReportType): void {
+    this.currentType = type;
+    this.typeButtons.forEach((button) => {
+      const isSelected = button.dataset.type === type;
+      button.setAttribute('aria-checked', String(isSelected));
+      button.tabIndex = isSelected ? 0 : -1;
+    });
+  }
 
-      // A recording still running belongs to this report, so it is finished first.
-      if (this.isRecording) {
-        await this.stopRecording();
-      }
+  // The widget hides while the screen is captured, so it does not cover what the visitor wants to show.
+  private async takeScreenshot(): Promise<void> {
+    if (this.currentScreenshots.length >= MAX_SCREENSHOTS || !this.onScreenshotCallback || !this.host) return;
 
-      this.progressContainer.classList.add('active');
-      this.progressBar.style.width = '2%';
+    this.host.style.display = 'none';
+    try {
+      const blob = await this.onScreenshotCallback();
+      this.currentScreenshots.push(blob);
+      this.renderAttachments();
+    } catch (err) {
+      console.error('[LabReporter] Ошибка скриншота:', err);
+    } finally {
+      this.host.style.display = '';
+    }
+  }
 
-      const submitTextEl = this.shadow?.getElementById('lab-submit-text');
-      if (submitTextEl) submitTextEl.innerText = this.t.submittingText;
+  private async submit(): Promise<void> {
+    const title = this.titleInput.value.trim();
+    if (!title) {
+      this.titleInput.setAttribute('aria-invalid', 'true');
+      this.titleInput.focus();
+      return;
+    }
+    if (!this.onSubmitCallback) return;
 
-      try {
-        const refId = await this.onSubmitCallback({
-          type: this.currentType,
-          title,
-          description: this.descInput.value.trim(),
-          screenshots: [...this.currentScreenshots],
-          video: this.currentVideo || undefined,
-          videoDurationMs: this.currentVideo ? this.currentVideoDuration : undefined,
-          recordingStartTime: this.currentVideo ? this.recordingStartTime : undefined
-        }, (percent: number) => {
-          // The upload ends at 100%, but the service still stores the files, so the bar stops short of the end.
-          this.progressBar.style.width = `${Math.min(95, Math.max(2, percent))}%`;
-        });
+    this.hideError();
+    this.submitBtn.disabled = true;
 
-        this.progressBar.style.width = '100%';
-        setTimeout(() => {
-          this.progressContainer.classList.remove('active');
-          this.showSuccess(refId);
-        }, 300);
-      } catch (err: any) {
-        // Ошибка: НЕ используем alert()!
-        // Сохраняем черновик формы и превращаем кнопку в Retry!
+    // A recording still running belongs to this report, so it is finished first.
+    if (this.isRecording) {
+      await this.stopRecording();
+    }
+
+    this.progressContainer.classList.add('active');
+    this.progressBar.style.width = '2%';
+    this.submitText.innerText = this.t.submittingText;
+
+    try {
+      const refId = await this.onSubmitCallback({
+        type: this.currentType,
+        title,
+        description: this.descInput.value.trim(),
+        screenshots: [...this.currentScreenshots],
+        video: this.currentVideo || undefined,
+        videoDurationMs: this.currentVideo ? this.currentVideoDuration : undefined,
+        recordingStartTime: this.currentVideo ? this.recordingStartTime : undefined
+      }, (percent: number) => {
+        // The upload ends at 100%, but the service still stores the files, so the bar stops short of the end.
+        this.progressBar.style.width = `${Math.min(95, Math.max(2, percent))}%`;
+      });
+
+      this.progressBar.style.width = '100%';
+      setTimeout(() => {
         this.progressContainer.classList.remove('active');
-        this.progressBar.style.width = '0%';
-        this.showError(this.describeSubmitError(err));
-      }
-    });
+        this.showSuccess(refId);
+      }, 300);
+    } catch (err: unknown) {
+      // The form keeps what the visitor wrote, and the button becomes Retry.
+      this.progressContainer.classList.remove('active');
+      this.progressBar.style.width = '0%';
+      this.showError(this.describeSubmitError(err));
+    }
   }
 
   // The service explains a rejected report (too large, unknown project); other failures get the general text.
@@ -374,58 +399,65 @@ export class BugReporterWidget {
     this.errorBanner.classList.remove('hidden');
     this.errorTextEl.innerText = msg;
     this.submitBtn.disabled = false;
-    this.submitBtn.classList.add('retry-mode');
-    const submitTextEl = this.shadow?.getElementById('lab-submit-text');
-    if (submitTextEl) {
-      submitTextEl.innerText = `↻ ${this.t.retryBtn}`;
-    }
+    this.submitText.innerText = this.t.retryBtn;
   }
 
   private hideError(): void {
     this.isRetryMode = false;
     this.errorBanner.classList.add('hidden');
-    this.submitBtn.classList.remove('retry-mode');
-    const submitTextEl = this.shadow?.getElementById('lab-submit-text');
-    if (submitTextEl) {
-      submitTextEl.innerText = this.t.submitBtn;
-    }
+    this.submitText.innerText = this.t.submitBtn;
+  }
+
+  // A site's own text wins over the page language's word.
+  private updateLauncherText(): void {
+    const text = this.appearance.launcherText ?? this.t.launcherText;
+    this.launcherText.textContent = text;
+    const isOpen = this.panel?.classList.contains('open') ?? false;
+    const showsClose = isOpen && this.appearance.launcher !== 'tab';
+    this.launcherBtn.setAttribute('aria-label', showsClose ? this.t.launcherClose : text);
   }
 
   private updateTexts(): void {
     if (!this.shadow) return;
-    const el = (id: string) => this.shadow?.getElementById(id);
+    const setText = (id: string, text: string) => {
+      const element = this.shadow?.getElementById(id);
+      if (element) element.innerText = text;
+    };
 
-    const launcher = el('lab-launcher-text');
-    if (launcher) launcher.innerText = this.t.launcherText;
-
-    const stopText = el('lab-bar-stop-text');
-    if (stopText) stopText.innerText = this.t.btnRecordStop;
+    this.updateLauncherText();
+    this.barStopBtn.innerText = this.t.btnRecordStop;
     this.recordBtnText.innerText = this.isRecording ? this.t.btnRecordStop : this.t.btnRecord;
-    el('lab-close')?.setAttribute('title', this.t.btnClose);
-    el('lab-close')?.setAttribute('aria-label', this.t.btnClose);
+    const closeButton = this.shadow.getElementById('lab-close');
+    closeButton?.setAttribute('title', this.t.btnClose);
+    closeButton?.setAttribute('aria-label', this.t.btnClose);
 
-    const header = el('lab-header-title');
-    if (header) header.innerText = this.t.headerTitle;
+    setText('lab-header-title', this.t.headerTitle);
+    setText('lab-header-subtitle', this.t.headerSubtitle);
+    this.shadow.getElementById('lab-type-selector')?.setAttribute('aria-label', this.t.typeLabel);
+    setText('lab-type-bug', this.t.typeBug);
+    setText('lab-type-feature', this.t.typeFeature);
+    setText('lab-type-question', this.t.typeQuestion);
 
-    const bBug = el('lab-type-bug'); if (bBug) bBug.innerText = this.t.typeBug;
-    const bFeat = el('lab-type-feature'); if (bFeat) bFeat.innerText = this.t.typeFeature;
-    const bQuest = el('lab-type-question'); if (bQuest) bQuest.innerText = this.t.typeQuestion;
-
-    const lTitle = el('lab-label-title'); if (lTitle) lTitle.innerText = this.t.titleLabel;
+    setText('lab-label-title', this.t.titleLabel);
     this.titleInput.placeholder = this.t.titlePlaceholder;
-
-    const lDesc = el('lab-label-desc'); if (lDesc) lDesc.innerText = this.t.descLabel;
+    setText('lab-label-desc', this.t.descLabel);
+    setText('lab-label-optional', `— ${this.t.optionalHint}`);
     this.descInput.placeholder = this.t.descPlaceholder;
 
-    const lAttach = el('lab-label-attachments'); if (lAttach) lAttach.innerText = this.t.attachmentsLabel;
-    const sDone = el('lab-btn-done'); if (sDone) sDone.innerText = this.t.btnClose;
-    const sNew = el('lab-btn-new-report'); if (sNew) sNew.innerText = this.t.btnNewReport;
+    setText('lab-btn-screenshot-text', this.t.btnScreenshot);
+    setText('lab-record-hint', this.t.recordHint);
+    this.attachmentsList.setAttribute('aria-label', this.t.attachmentsLabel);
+    setText('lab-context-note', this.t.contextNote);
+    setText('lab-privacy-note', this.t.privacyNote);
 
-    const sTitle = el('lab-success-title'); if (sTitle) sTitle.innerText = this.t.successTitle;
-    const sDesc = el('lab-success-desc'); if (sDesc) sDesc.innerText = this.t.successDesc;
+    setText('lab-success-title', this.t.successTitle);
+    setText('lab-success-desc', this.t.successDesc);
+    setText('lab-ref-label', this.t.refLabel);
+    setText('lab-btn-new-report', this.t.btnNewReport);
+    setText('lab-btn-done', this.t.btnDone);
 
     if (!this.isRetryMode) {
-      const sSubmit = el('lab-submit-text'); if (sSubmit) sSubmit.innerText = this.t.submitBtn;
+      this.submitText.innerText = this.t.submitBtn;
     }
     this.renderAttachments();
   }
@@ -444,6 +476,7 @@ export class BugReporterWidget {
       });
       this.isRecording = true;
       this.recordBtnText.innerText = this.t.btnRecordStop;
+      this.recordBtn.classList.add('is-recording');
       this.close();
       this.startRecordBar();
     } catch (err) {
@@ -468,11 +501,14 @@ export class BugReporterWidget {
   }
 
   private attachRecording(result: RecordingResult): void {
+    this.clearVideo();
     this.currentVideo = result.blob;
+    this.videoPreviewUrl = URL.createObjectURL(result.blob);
     this.currentVideoDuration = result.durationMs;
     this.recordingStartTime = result.startTime;
     this.isRecording = false;
     this.recordBtnText.innerText = this.t.btnRecord;
+    this.recordBtn.classList.remove('is-recording');
     this.stopRecordBar();
     this.renderAttachments();
   }
@@ -505,68 +541,66 @@ export class BugReporterWidget {
   private renderAttachments(): void {
     this.attachmentsList.innerHTML = '';
 
-    // Проверяем лимит скриншотов (до 5)
-    if (this.currentScreenshots.length >= 5) {
-      this.screenshotBtn.disabled = true;
-      this.screenshotBtnText.innerText = `${this.t.btnScreenshot} (5/5)`;
-    } else {
-      this.screenshotBtn.disabled = false;
-      this.screenshotBtnText.innerText = this.currentScreenshots.length > 0 
-        ? `${this.t.btnScreenshot} (${this.currentScreenshots.length}/5)`
-        : this.t.btnScreenshot;
-    }
+    const count = this.currentScreenshots.length;
+    this.screenshotBtn.disabled = count >= MAX_SCREENSHOTS;
+    this.screenshotHint.innerText = count > 0 ? this.t.screenshotCount.replace('{count}', String(count)) : this.t.screenshotHint;
 
-    // Список скриншотов
-    this.currentScreenshots.forEach((blob, idx) => {
-      const item = document.createElement('div');
-      item.className = 'lab-attachment-item';
-      item.innerHTML = `
-        <div class="lab-attachment-name">
-          ${icons.image(14)}
-          <span>${this.t.screenshotItem} ${idx + 1} (${(blob.size / 1024).toFixed(0)} KB)</span>
-        </div>
-        <button class="lab-btn-remove" data-idx="${idx}">${this.t.removeAttachment}</button>
-      `;
-      item.querySelector('button')?.addEventListener('click', () => {
-        this.currentScreenshots.splice(idx, 1);
-        this.renderAttachments();
-      });
-      this.attachmentsList.appendChild(item);
+    this.currentScreenshots.forEach((blob, index) => {
+      this.attachmentsList.appendChild(this.createAttachment(
+        icons.image(13),
+        `${this.t.screenshotItem} ${index + 1}`,
+        formatSize(blob.size),
+        () => {
+          this.currentScreenshots.splice(index, 1);
+          this.renderAttachments();
+        }
+      ));
     });
 
-    // Видео (с предварительным просмотром Preview before submit по ТЗ)
-    if (this.currentVideo) {
-      const item = document.createElement('div');
-      item.className = 'lab-attachment-item';
-      item.style.flexDirection = 'column';
-      item.style.alignItems = 'stretch';
-      
-      const row = document.createElement('div');
-      row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; width: 100%;';
-      row.innerHTML = `
-        <div class="lab-attachment-name">
-          ${icons.video(14)}
-          <span>${this.t.videoItem} (${(this.currentVideoDuration / 1000).toFixed(0)}s)</span>
-        </div>
-        <button class="lab-btn-remove" id="del-video" type="button">${this.t.removeAttachment}</button>
-      `;
-      item.appendChild(row);
+    if (this.currentVideo && this.videoPreviewUrl) {
+      this.attachmentsList.appendChild(this.createAttachment(
+        icons.video(13),
+        this.t.videoItem,
+        formatSeconds(Math.round(this.currentVideoDuration / 1000)),
+        () => {
+          this.clearVideo();
+          this.renderAttachments();
+        }
+      ));
 
-      const videoPreview = document.createElement('video');
-      videoPreview.controls = true;
-      videoPreview.src = URL.createObjectURL(this.currentVideo);
-      videoPreview.style.cssText = 'width: 100%; max-height: 140px; border-radius: var(--lab-radius-md); margin-top: 8px; background: #000; display: block;';
-      item.appendChild(videoPreview);
-
-      row.querySelector('#del-video')?.addEventListener('click', () => {
-        URL.revokeObjectURL(videoPreview.src);
-        this.currentVideo = null;
-        this.currentVideoDuration = 0;
-        this.recordingStartTime = 0;
-        this.renderAttachments();
-      });
-      this.attachmentsList.appendChild(item);
+      // The visitor watches the recording before it is sent.
+      const previewItem = document.createElement('li');
+      previewItem.className = 'lab-video-preview';
+      const video = document.createElement('video');
+      video.controls = true;
+      video.src = this.videoPreviewUrl;
+      video.setAttribute('aria-label', this.t.videoItem);
+      previewItem.appendChild(video);
+      this.attachmentsList.appendChild(previewItem);
     }
+  }
+
+  private clearVideo(): void {
+    if (this.videoPreviewUrl) {
+      URL.revokeObjectURL(this.videoPreviewUrl);
+      this.videoPreviewUrl = null;
+    }
+    this.currentVideo = null;
+    this.currentVideoDuration = 0;
+    this.recordingStartTime = 0;
+  }
+
+  private createAttachment(iconSvg: string, name: string, detail: string, onRemove: () => void): HTMLLIElement {
+    const item = document.createElement('li');
+    item.className = 'lab-attachment-item';
+    item.innerHTML = `${iconSvg}<span class="lab-attachment-name"></span><span class="lab-mono"></span>` +
+      `<button class="lab-btn-remove" type="button">${icons.close(12)}</button>`;
+    (item.querySelector('.lab-attachment-name') as HTMLElement).textContent = name;
+    (item.querySelector('.lab-mono') as HTMLElement).textContent = detail;
+    const removeButton = item.querySelector('button') as HTMLButtonElement;
+    removeButton.setAttribute('aria-label', `${this.t.removeAttachment}: ${name}`);
+    removeButton.addEventListener('click', onRemove);
+    return item;
   }
 
   showLauncher(): void {
@@ -578,13 +612,26 @@ export class BugReporterWidget {
   }
 
   open(): void {
-    this.sidebar.classList.add('open');
-    this.backdrop.classList.add('open');
+    const wasOpen = this.panel.classList.contains('open');
+    this.panel.classList.add('open');
+    this.launcherBtn.classList.add('is-open');
+    this.launcherBtn.setAttribute('aria-expanded', 'true');
+    this.updateLauncherText();
+    if (!wasOpen && this.formView.style.display !== 'none') {
+      this.titleInput.focus({ preventScroll: true });
+    }
   }
 
   close(): void {
-    this.sidebar.classList.remove('open');
-    this.backdrop.classList.remove('open');
+    const hadFocus = this.shadow?.activeElement !== null && this.panel.contains(this.shadow?.activeElement ?? null);
+    this.panel.classList.remove('open');
+    this.launcherBtn.classList.remove('is-open');
+    this.launcherBtn.setAttribute('aria-expanded', 'false');
+    this.updateLauncherText();
+    // Focus goes back to the launcher, so a keyboard user does not land at the top of the page.
+    if (hadFocus && !this.launcherBtn.classList.contains('hidden') && this.appearance.launcher !== 'none') {
+      this.launcherBtn.focus({ preventScroll: true });
+    }
   }
 
   showSuccess(refId: string): void {
@@ -596,18 +643,11 @@ export class BugReporterWidget {
 
   resetForm(): void {
     this.titleInput.value = '';
-    this.titleInput.style.borderColor = 'var(--lab-border)';
+    this.titleInput.removeAttribute('aria-invalid');
     this.descInput.value = '';
     this.currentScreenshots = [];
-    this.currentVideo = null;
-    this.currentVideoDuration = 0;
-    this.recordingStartTime = 0;
-    this.currentType = 'bug';
-
-    // Сброс переключателя типа
-    const indicator = this.shadow?.getElementById('lab-type-indicator') as HTMLDivElement;
-    if (indicator) indicator.style.transform = 'translateX(0%)';
-    this.typeButtons.forEach((b, i) => b.classList.toggle('active', i === 0));
+    this.clearVideo();
+    this.selectType('bug');
 
     this.hideError();
     this.renderAttachments();
@@ -615,7 +655,6 @@ export class BugReporterWidget {
     this.footerEl.style.display = 'flex';
     this.successView.style.display = 'none';
     this.submitBtn.disabled = false;
-    this.submitBtn.innerHTML = `<span id="lab-submit-text">${this.t.submitBtn}</span>`;
   }
 
   onScreenshot(cb: () => Promise<Blob>): void { this.onScreenshotCallback = cb; }
@@ -628,4 +667,8 @@ function formatSeconds(totalSeconds: number): string {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+function formatSize(bytes: number): string {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

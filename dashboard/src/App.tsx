@@ -5,6 +5,7 @@ import { ReportDetailPage } from './components/ReportDetailPage';
 import { ReportList } from './components/ReportList';
 import { useReportList } from './hooks/useReportList';
 import { useReportRoute } from './hooks/useReportRoute';
+import { useStatusCounts } from './hooks/useStatusCounts';
 
 // The team starts from the reports nobody has looked at yet (ТЗ, раздел 10).
 const DEFAULT_FILTERS: ReportFilters = { projects: [], statuses: ['new'], types: [], query: '' };
@@ -13,7 +14,13 @@ export const App: React.FC = () => {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
   const { reportId, openReport, showList } = useReportRoute();
-  const { state: listState, reload } = useReportList(filters, page);
+  const { state: listState, reload: reloadList } = useReportList(filters, page);
+  const { counts, reload: reloadCounts } = useStatusCounts(filters);
+
+  const reload = useCallback(() => {
+    reloadList();
+    reloadCounts();
+  }, [reloadList, reloadCounts]);
 
   const changeFilters = useCallback((newFilters: ReportFilters) => {
     setFilters(newFilters);
@@ -47,6 +54,7 @@ export const App: React.FC = () => {
         ) : (
           <ReportList
             state={listState}
+            counts={counts}
             filters={filters}
             onFiltersChange={changeFilters}
             onPageChange={setPage}

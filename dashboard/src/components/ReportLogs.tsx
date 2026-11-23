@@ -31,15 +31,16 @@ export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canS
     onSeek: (offset) => onSeek(Math.max(0, offset)),
   };
 
-  const tabs: { id: LogTab; label: string; count?: number }[] = [
-    { id: 'network', label: 'Network', count: report.network.length },
-    { id: 'console', label: 'Console', count: report.console.length },
+  // A tab's count turns red when something in it went wrong, so the triager knows where to look first.
+  const tabs: { id: LogTab; label: string; count?: number; isAlert?: boolean }[] = [
+    { id: 'network', label: 'Network', count: report.network.length, isAlert: report.network.some((entry) => requestOutcomeOf(entry) === 'failed') },
+    { id: 'console', label: 'Console', count: report.console.length, isAlert: report.console.some((entry) => entry.level === 'error') },
     { id: 'actions', label: 'Actions', count: report.breadcrumbs.length },
     { id: 'environment', label: 'Environment' },
   ];
 
   return (
-    <section className={`${ui.card} ${styles.panel} ${styles.logs}`} aria-label="Captured data">
+    <section className={styles.logs} aria-label="Captured data">
       <div role="tablist" aria-label="Captured data" className={styles.tabs}>
         {tabs.map((tab) => (
           <button
@@ -51,7 +52,7 @@ export const ReportLogs: React.FC<ReportLogsProps> = ({ report, timeOrigin, canS
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
-            {tab.count !== undefined && <span className={styles.tabCount}>{tab.count}</span>}
+            {tab.count !== undefined && <span className={tab.isAlert ? styles.tabCountAlert : styles.tabCount}>{tab.count}</span>}
           </button>
         ))}
       </div>
@@ -90,16 +91,15 @@ interface Timeline {
 interface TimedEntryProps {
   time: number;
   timeline: Timeline;
-  stateClass?: string;
   children: React.ReactNode;
 }
 
 // An entry that moves the video works like a button, also from the keyboard.
-const TimedEntry: React.FC<TimedEntryProps> = ({ time, timeline, stateClass, children }) => {
+const TimedEntry: React.FC<TimedEntryProps> = ({ time, timeline, children }) => {
   const offset = timeline.offsetOf(time);
   const className = [
     timeline.canSeek ? styles.entrySeekable : styles.entry,
-    timeline.isPlayingAt(offset) ? styles.entryPlaying : stateClass,
+    timeline.isPlayingAt(offset) ? styles.entryPlaying : undefined,
   ].filter(Boolean).join(' ');
 
   if (!timeline.canSeek) {
@@ -144,12 +144,6 @@ const ExpandButton: React.FC<{ isExpanded: boolean; label: string; onToggle: () 
   </button>
 );
 
-const OUTCOME_ENTRY_CLASSES: Record<RequestOutcome, string | undefined> = {
-  succeeded: undefined,
-  failed: styles.entryFailed,
-  pending: styles.entryPending,
-};
-
 const NetworkTab: React.FC<{ entries: NetworkEntry[]; timeline: Timeline }> = ({ entries, timeline }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   if (entries.length === 0) {
@@ -161,7 +155,7 @@ const NetworkTab: React.FC<{ entries: NetworkEntry[]; timeline: Timeline }> = ({
         const outcome = requestOutcomeOf(entry);
         const isExpanded = expandedIndex === index;
         return (
-          <TimedEntry key={index} time={entry.t_start} timeline={timeline} stateClass={OUTCOME_ENTRY_CLASSES[outcome]}>
+          <TimedEntry key={index} time={entry.t_start} timeline={timeline}>
             <div className={styles.entryLine}>
               <EntryTime time={entry.t_start} timeline={timeline} />
               <span className={styles.method}>{entry.method}</span>
@@ -224,25 +218,27 @@ const ConsoleTab: React.FC<{ entries: ConsoleEntry[]; timeline: Timeline }> = ({
 
   return (
     <div>
-      <div className={styles.filterBar} role="group" aria-label="Level">
-        {CONSOLE_FILTERS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            aria-pressed={filter === option.id}
-            className={`${ui.button} ${ui.buttonSmall} ${filter === option.id ? styles.filterButtonActive : ''}`}
-            onClick={() => setFilter(option.id)}
-          >
-            {option.label} {countOf(option.id)}
-          </button>
-        ))}
+      <div className={styles.filterBar}>
+        <div role="group" aria-label="Level" className={ui.segmented}>
+          {CONSOLE_FILTERS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={filter === option.id}
+              className={`${ui.segment} ${styles.levelOption}`}
+              onClick={() => setFilter(option.id)}
+            >
+              {option.label} <span className={styles.tabCount}>{countOf(option.id)}</span>
+            </button>
+          ))}
+        </div>
       </div>
       {visibleEntries.length === 0 && <p className={styles.empty}>No entries</p>}
       {visibleEntries.map(({ entry, index }) => {
         const isExpanded = expandedIndex === index;
         const levelClass = entry.level === 'error' ? styles.levelError : entry.level === 'warn' ? styles.levelWarn : styles.level;
         return (
-          <TimedEntry key={index} time={entry.t} timeline={timeline} stateClass={entry.level === 'error' ? styles.entryFailed : undefined}>
+          <TimedEntry key={index} time={entry.t} timeline={timeline}>
             <div className={styles.entryLine}>
               <EntryTime time={entry.t} timeline={timeline} />
               <span className={levelClass}>{entry.level}</span>
@@ -278,7 +274,9 @@ const ActionsTab: React.FC<{ report: ReportView; timeline: Timeline }> = ({ repo
         <TimedEntry key={index} time={breadcrumb.t} timeline={timeline}>
           <div className={styles.entryLine}>
             <EntryTime time={breadcrumb.t} timeline={timeline} />
-            <span className={styles.breadcrumbKind}>{BREADCRUMB_LABELS[breadcrumb.kind] ?? breadcrumb.kind}</span>
+            <span className={breadcrumb.kind === 'navigation' ? styles.breadcrumbNavigation : styles.breadcrumbKind}>
+              {BREADCRUMB_LABELS[breadcrumb.kind] ?? breadcrumb.kind}
+            </span>
             <span className={styles.consoleMessage}>
               {breadcrumb.target || breadcrumb.url}
               {breadcrumb.text && <span className={ui.muted}> «{breadcrumb.text}»</span>}

@@ -75,6 +75,24 @@ class ReportServiceTest {
 	}
 
 	@Test
+	void countsReportsOfEveryStatus() {
+		// One count query per status, in the order the statuses are declared.
+		when(reportRepository.count(any(Specification.class))).thenReturn(3L, 1L, 0L, 2L);
+
+		ReportStatusCountsResponse counts = reportService.countByStatus(TRIAGER, new ReportFilter(null, Set.of(ReportStatus.NEW), null, "upload"));
+
+		assertThat(counts).isEqualTo(new ReportStatusCountsResponse(3, 1, 0, 2));
+	}
+
+	@Test
+	void countsNothingForAProjectTheUserCannotSee() {
+		ReportStatusCountsResponse counts = reportService.countByStatus(TRIAGER, new ReportFilter(Set.of("admin-only"), null, null, null));
+
+		assertThat(counts).isEqualTo(new ReportStatusCountsResponse(0, 0, 0, 0));
+		verify(reportRepository, never()).count(any(Specification.class));
+	}
+
+	@Test
 	void hidesReportFromAProjectTheUserCannotSee() {
 		Report report = report("admin-only");
 		when(reportRepository.findWithAttachmentsById(report.getId())).thenReturn(Optional.of(report));

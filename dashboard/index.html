@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bug Reporter</title>
-  <!-- The logo bug in the campus.codes brand blue. -->
+  <!-- The ring mark of the wordmark; it follows the system theme. -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <meta name="theme-color" content="#1b4b6f">
+  <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131311" media="(prefers-color-scheme: dark)">
   <script>
-    // The theme is set before the page draws, so a dark-theme user never sees a light flash. Same rule as
-    // campus.codes: the saved choice, otherwise the system setting.
+    // The theme is set before the page draws, so a dark-theme user never sees a light flash: the saved choice,
+    // otherwise the system setting.
     try {
       var stored = localStorage.getItem('lab-dashboard.theme');
       var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
