@@ -32,7 +32,7 @@ const DARK_TOKENS = `
  * the appearance option of init(), and can still override any --lab-* variable on #lab-reporter-root.
  */
 export const widgetStyles = `
-:host {
+:host, .lab-component-host, .lab-component-wrapper {
   --lab-font: '${WIDGET_FONT_FAMILY}', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --lab-font-mono: '${WIDGET_MONO_FONT_FAMILY}', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -78,12 +78,12 @@ export const widgetStyles = `
   -webkit-font-smoothing: antialiased;
 }
 
-:host([data-theme='dark']) {
+:host([data-theme='dark']), .lab-component-host[data-theme='dark'], .lab-component-wrapper[data-theme='dark'] {
 ${DARK_TOKENS}
 }
 
 @media (prefers-color-scheme: dark) {
-  :host([data-theme='system']) {
+  :host([data-theme='system']), .lab-component-host[data-theme='system'], .lab-component-wrapper[data-theme='system'] {
 ${DARK_TOKENS}
   }
 }
@@ -139,9 +139,16 @@ svg {
   z-index: 2147483640;
 }
 
-.lab-launcher:hover {
+.lab-launcher:hover,
+.lab-launcher.hover {
   background: var(--lab-primary-hover);
   transform: translateY(-1px);
+}
+
+.lab-launcher:focus-visible,
+.lab-launcher.focus {
+  outline: 2px solid var(--lab-primary);
+  outline-offset: 2px;
 }
 
 .lab-launcher:active {
@@ -551,6 +558,19 @@ svg {
   color: var(--lab-text-muted);
 }
 
+/* The recording to watch before sending, on its own line under the chips */
+.lab-video-preview {
+  flex-basis: 100%;
+}
+
+.lab-video-preview video {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  border-radius: var(--lab-radius-md);
+  background: #000;
+}
+
 .lab-btn-remove {
   display: flex;
   align-items: center;
@@ -672,6 +692,51 @@ svg {
 
 .lab-btn-secondary:hover {
   background: var(--lab-muted);
+}
+
+/* The separate components of LabReporter.components, drawn in the same look as the widget */
+.lab-btn-outline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--lab-radius-md);
+  background: var(--lab-surface);
+  box-shadow: inset 0 0 0 1px var(--lab-border);
+  color: var(--lab-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+
+.lab-btn-outline:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--lab-border-strong);
+}
+
+.lab-btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lab-type-btn.active {
+  background: var(--lab-surface);
+  color: var(--lab-text);
+  box-shadow: 0 0 0 1px var(--lab-border-strong);
+}
+
+/* The new look marks the chosen type on the button itself, without a sliding indicator. */
+.lab-type-indicator {
+  display: none;
+}
+
+.lab-submit-btn.retry-mode {
+  background: var(--lab-danger);
+  color: var(--lab-bg);
 }
 
 /* Sent */

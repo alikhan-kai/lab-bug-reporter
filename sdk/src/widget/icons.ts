@@ -1,4 +1,4 @@
-import { Camera, CircleAlert, Image, Video, X, type IconNode } from 'lucide';
+import { Camera, Check, CircleAlert, CircleHelp, Image, Square, Video, X, type IconNode } from 'lucide';
 
 /** lucide icons as SVG markup for the widget's templates, drawn with the thin stroke of the widget. */
 function toSvg(icon: IconNode, size: number): string {
@@ -30,4 +30,8 @@ export const icons = {
   camera: (size = 18) => toSvg(Camera, size),
   video: (size = 14) => toSvg(Video, size),
   image: (size = 14) => toSvg(Image, size),
+  // Used by the separate components of LabReporter.components.
+  help: (size = 16) => toSvg(CircleHelp, size),
+  stop: (size = 12) => toSvg(Square, size),
+  check: (size = 26) => toSvg(Check, size),
 };

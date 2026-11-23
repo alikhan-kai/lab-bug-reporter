@@ -9,6 +9,16 @@ import { captureScreenFrame } from './core/capture/screenshot';
 import { BugReporterWidget, ReportFormData, WidgetTheme } from './widget/widget';
 import { SupportedLang } from './core/i18n';
 import { WidgetAppearance } from './widget/appearance';
+import {
+  components,
+  HelpButton,
+  TypeSelector,
+  ReportForm,
+  ScreenshotButton,
+  RecordButton,
+  AttachmentList,
+  SubmitBar
+} from './widget/components';
 
 export type { WidgetAppearance } from './widget/appearance';
 
@@ -25,6 +35,8 @@ export interface InitOptions {
   theme?: WidgetTheme;
   /** The site's own button, accent colour, corners and place for the widget. See WidgetAppearance. */
   appearance?: WidgetAppearance;
+  /** Max recording duration in seconds (configurable, default: 300 / 5 minutes). */
+  maxRecordingSeconds?: number;
 }
 
 // The service serves sdk.js itself, so the script's own address is the default service address.
@@ -77,6 +89,16 @@ class LabBugReporter {
   // Виджет UI
   private widget: BugReporterWidget | null = null;
 
+  // Prebuilt components kit (по ТЗ раздел 9)
+  public components = components;
+  public createHelpButton = components.createHelpButton;
+  public createTypeSelector = components.createTypeSelector;
+  public createReportForm = components.createReportForm;
+  public createScreenshotButton = components.createScreenshotButton;
+  public createRecordButton = components.createRecordButton;
+  public createAttachmentList = components.createAttachmentList;
+  public createSubmitBar = components.createSubmitBar;
+
   constructor() {
     this.consoleCapture.install();
     this.networkCapture.install();
@@ -100,16 +122,21 @@ class LabBugReporter {
     }
 
     if (options.widget !== false && typeof document !== 'undefined') {
-      this.setupWidget(options.lang, options.theme, options.appearance);
+      this.setupWidget(options.lang, options.theme, options.appearance, options.maxRecordingSeconds);
     }
 
     this.debugLog('Initialized with options:', this.options);
   }
 
-  private setupWidget(lang?: SupportedLang, theme?: WidgetTheme, appearance?: WidgetAppearance): void {
+  private setupWidget(
+    lang?: SupportedLang,
+    theme?: WidgetTheme,
+    appearance?: WidgetAppearance,
+    maxRecordingSeconds?: number,
+  ): void {
     if (this.widget) return;
 
-    this.widget = new BugReporterWidget(lang, theme, appearance);
+    this.widget = new BugReporterWidget(lang, theme, appearance, maxRecordingSeconds);
 
     this.widget.onScreenshot(() => this.captureScreenshot());
     this.widget.onStartRecording((opts) => this.startRecording(opts));
@@ -154,8 +181,11 @@ class LabBugReporter {
 
   // --- МЕДИА API ---
 
-  async startRecording(optionsOrMic?: { microphone?: boolean } | boolean): Promise<number> {
-    const startTime = await this.recorder.start(optionsOrMic);
+  async startRecording(optionsOrMic?: { microphone?: boolean; maxDurationSeconds?: number } | boolean): Promise<number> {
+    const maxSec = (typeof optionsOrMic === 'object' && optionsOrMic?.maxDurationSeconds)
+      ? optionsOrMic.maxDurationSeconds
+      : (this.options?.maxRecordingSeconds ?? 300);
+    const startTime = await this.recorder.start(optionsOrMic, maxSec);
     this.lastRecording = null;
     this.debugLog('Recording started at', startTime);
     return startTime;
@@ -304,6 +334,16 @@ function videoExtension(video: Blob): string {
 }
 
 const LabReporter = new LabBugReporter();
+Object.assign(LabReporter, {
+  HelpButton,
+  TypeSelector,
+  ReportForm,
+  ScreenshotButton,
+  RecordButton,
+  AttachmentList,
+  SubmitBar,
+  components
+});
 
 if (typeof window !== 'undefined') {
   (window as any).LabReporter = LabReporter;

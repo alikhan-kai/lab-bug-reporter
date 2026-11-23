@@ -71,18 +71,27 @@ export class BugReporterWidget {
   private currentScreenshots: Blob[] = []; // до 5 штук
   private currentVideo: Blob | null = null;
   private currentVideoDuration: number = 0;
+  /** One object URL per recording, so that redrawing the list does not leak a new one each time. */
+  private videoPreviewUrl: string | null = null;
   private recordingStartTime: number = 0;
   private isRecording: boolean = false;
   private isRetryMode: boolean = false;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private maxRecordingSeconds: number = MAX_RECORDING_SECONDS;
 
   // Callbacks
   private onScreenshotCallback?: () => Promise<Blob>;
-  private onStartRecordingCallback?: (options?: { microphone?: boolean }) => Promise<number>;
+  private onStartRecordingCallback?: (options?: { microphone?: boolean; maxDurationSeconds?: number }) => Promise<number>;
   private onStopRecordingCallback?: () => Promise<RecordingResult>;
   private onSubmitCallback?: (data: ReportFormData, onProgress: (percent: number) => void) => Promise<string>;
 
-  constructor(preferredLang?: string, theme: WidgetTheme = 'light', appearance?: WidgetAppearance) {
+  constructor(
+    preferredLang?: string,
+    theme: WidgetTheme = 'light',
+    appearance?: WidgetAppearance,
+    maxRecordingSeconds: number = MAX_RECORDING_SECONDS,
+  ) {
+    this.maxRecordingSeconds = maxRecordingSeconds;
     this.lang = detectLanguage(preferredLang);
     this.t = getTranslations(this.lang);
     this.initDOM();
@@ -461,7 +470,10 @@ export class BugReporterWidget {
     }
     if (!this.onStartRecordingCallback) return;
     try {
-      this.recordingStartTime = await this.onStartRecordingCallback({ microphone: true });
+      this.recordingStartTime = await this.onStartRecordingCallback({
+        microphone: true,
+        maxDurationSeconds: this.maxRecordingSeconds
+      });
       this.isRecording = true;
       this.recordBtnText.innerText = this.t.btnRecordStop;
       this.recordBtn.classList.add('is-recording');
@@ -489,7 +501,9 @@ export class BugReporterWidget {
   }
 
   private attachRecording(result: RecordingResult): void {
+    this.clearVideo();
     this.currentVideo = result.blob;
+    this.videoPreviewUrl = URL.createObjectURL(result.blob);
     this.currentVideoDuration = result.durationMs;
     this.recordingStartTime = result.startTime;
     this.isRecording = false;
@@ -506,7 +520,7 @@ export class BugReporterWidget {
     // Counted from the start time, because a background tab slows the interval down.
     this.timerInterval = setInterval(() => {
       const seconds = Math.floor((Date.now() - this.recordingStartTime) / 1000);
-      const secondsLeft = Math.max(0, MAX_RECORDING_SECONDS - seconds);
+      const secondsLeft = Math.max(0, this.maxRecordingSeconds - seconds);
       const isEndingSoon = secondsLeft <= RECORDING_WARNING_SECONDS;
       this.recordingBar.classList.toggle('warning', isEndingSoon);
       this.barTimerEl.innerText = isEndingSoon
@@ -543,19 +557,37 @@ export class BugReporterWidget {
       ));
     });
 
-    if (this.currentVideo) {
+    if (this.currentVideo && this.videoPreviewUrl) {
       this.attachmentsList.appendChild(this.createAttachment(
         icons.video(13),
         this.t.videoItem,
         formatSeconds(Math.round(this.currentVideoDuration / 1000)),
         () => {
-          this.currentVideo = null;
-          this.currentVideoDuration = 0;
-          this.recordingStartTime = 0;
+          this.clearVideo();
           this.renderAttachments();
         }
       ));
+
+      // The visitor watches the recording before it is sent.
+      const previewItem = document.createElement('li');
+      previewItem.className = 'lab-video-preview';
+      const video = document.createElement('video');
+      video.controls = true;
+      video.src = this.videoPreviewUrl;
+      video.setAttribute('aria-label', this.t.videoItem);
+      previewItem.appendChild(video);
+      this.attachmentsList.appendChild(previewItem);
     }
+  }
+
+  private clearVideo(): void {
+    if (this.videoPreviewUrl) {
+      URL.revokeObjectURL(this.videoPreviewUrl);
+      this.videoPreviewUrl = null;
+    }
+    this.currentVideo = null;
+    this.currentVideoDuration = 0;
+    this.recordingStartTime = 0;
   }
 
   private createAttachment(iconSvg: string, name: string, detail: string, onRemove: () => void): HTMLLIElement {
@@ -614,9 +646,7 @@ export class BugReporterWidget {
     this.titleInput.removeAttribute('aria-invalid');
     this.descInput.value = '';
     this.currentScreenshots = [];
-    this.currentVideo = null;
-    this.currentVideoDuration = 0;
-    this.recordingStartTime = 0;
+    this.clearVideo();
     this.selectType('bug');
 
     this.hideError();
